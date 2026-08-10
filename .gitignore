@@ -1,11 +1,8 @@
-wazapbro-ai/.env
-wazapbro-ai/session.db
-wazapbro-ai/uvicorn.log
-wazapbro-ai/venv/
-.pytest_cache/
-wazapbro-ai/.pytest_cache/
-.claude/
-__pycache__/
-*.pyc
-*.pyo
+node_modules/
+.env
 .DS_Store
+*.log
+session.db
+
+# RSA Keys — jangan pernah di-commit!
+flow_private_key.pem

@@ -1,0 +1,54 @@
+[
+  {
+    "topik": "jam operasional hotel",
+    "jawaban": "Hotel SapaTamu buka 24 jam. Resepsionis selalu standby untuk membantu Anda kapan saja."
+  },
+  {
+    "topik": "jam operasional kafe",
+    "jawaban": "Kafe SapaTamu buka setiap hari pukul 07.00 – 22.00 WIB."
+  },
+  {
+    "topik": "harga kamar",
+    "jawaban": "Harga kamar Hotel SapaTamu: Deluxe Room Rp 550.000/malam, Executive Suite Rp 950.000/malam, Presidential Suite Rp 1.800.000/malam. Harga sudah termasuk sarapan untuk 2 orang."
+  },
+  {
+    "topik": "fasilitas hotel",
+    "jawaban": "Fasilitas Hotel SapaTamu: Kolam renang (06.00–21.00), Gym (05.00–22.00), Restoran (06.00–22.00), WiFi gratis di seluruh area, Parkir gratis, Room Service 24 jam, Laundry express."
+  },
+  {
+    "topik": "cara reservasi kamar",
+    "jawaban": "Untuk reservasi kamar, silakan ketik: Nama / Tipe Kamar / Tanggal Check-in / Tanggal Check-out / Jumlah Tamu. Contoh: Budi / Deluxe / 10 Agustus / 12 Agustus / 2 orang. Tim kami akan mengkonfirmasi ketersediaan."
+  },
+  {
+    "topik": "check-in check-out",
+    "jawaban": "Check-in: pukul 14.00 WIB. Check-out: pukul 12.00 WIB. Early check-in dan late check-out tersedia dengan biaya tambahan, silakan hubungi resepsionis."
+  },
+  {
+    "topik": "menu kafe",
+    "jawaban": "Menu Kafe SapaTamu: Minuman — Espresso Rp 22.000, Caffe Latte Rp 28.000, Matcha Latte Rp 25.000, Es Teh Rp 15.000. Makanan — Butter Croissant Rp 20.000, Roti Bakar Spesial Rp 18.000, Spaghetti Carbonara Rp 45.000, Nasi Goreng Spesial Rp 35.000."
+  },
+  {
+    "topik": "reservasi meja kafe",
+    "jawaban": "Untuk reservasi meja kafe, silakan kirim: Nama / Jumlah Orang / Tanggal / Jam. Contoh: Siti / 4 orang / 10 Agustus / 19.00. Tim kami akan mengkonfirmasi."
+  },
+  {
+    "topik": "lokasi",
+    "jawaban": "Hotel & Kafe SapaTamu berlokasi di Jalan Sudirman No. 123, Jakarta Pusat. Kami mudah dijangkau dari berbagai penjuru kota."
+  },
+  {
+    "topik": "wifi",
+    "jawaban": "WiFi gratis tersedia di seluruh area hotel dan kafe. Password WiFi dapat diperoleh di resepsionis atau kasir kafe."
+  },
+  {
+    "topik": "parkir",
+    "jawaban": "Parkir gratis tersedia untuk semua tamu hotel dan pengunjung kafe selama kunjungan."
+  },
+  {
+    "topik": "pembayaran",
+    "jawaban": "Kami menerima pembayaran tunai (cash), transfer bank, kartu debit/kredit (Visa/Mastercard), dan e-wallet (GoPay, OVO, Dana, ShopeePay)."
+  },
+  {
+    "topik": "room service",
+    "jawaban": "Room Service tersedia 24 jam. Silakan hubungi ext. 100 dari kamar Anda atau ketik 'room service' di WhatsApp ini."
+  }
+]
