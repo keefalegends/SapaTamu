@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Chatwoot Widget - WazapBro AI</title>
+</head>
+<body>
+    <div style="text-align: center; margin-top: 20vh; font-family: sans-serif;">
+        <h1>Test Chatwoot Widget</h1>
+        <p>Gunakan widget chat di pojok kanan bawah untuk memulai percakapan dengan AI Bot.</p>
+        <p>Ketik <strong>cs</strong>, <strong>bantuan</strong>, atau <strong>customer service</strong> untuk masuk ke flow AI.</p>
+    </div>
+
+    <!-- Chatwoot Widget Script -->
+    <script>
+      (function(d,t) {
+        var BASE_URL="http://localhost:3000";
+        var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+        g.src=BASE_URL+"/packs/js/sdk.js";
+        g.async = true;
+        s.parentNode.insertBefore(g,s);
+        g.onload=function(){
+          window.chatwootSDK.run({
+            websiteToken: 'EJAgfjHBVxRshgeofzcdX5MY',
+            baseUrl: BASE_URL
+          })
+        }
+      })(document,"script");
+    </script>
+</body>
+</html>

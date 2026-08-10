@@ -1,0 +1,11 @@
+wazapbro-ai/.env
+wazapbro-ai/session.db
+wazapbro-ai/uvicorn.log
+wazapbro-ai/venv/
+.pytest_cache/
+wazapbro-ai/.pytest_cache/
+.claude/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
