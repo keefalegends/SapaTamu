@@ -15,7 +15,7 @@ const client = new OpenAI({
   },
 });
 
-const MODEL = config.openrouterModel || 'google/gemini-2.0-flash-exp:free';
+const MODEL = process.env.NINER_ROUTER_MODEL || 'gc/gemini-2.5-flash';
 
 const SYSTEM_PROMPT = `Kamu adalah AI Customer Service asisten dari SapaTamu — sebuah resort yang memiliki Hotel dan Kafe.
 
@@ -58,7 +58,9 @@ async function jawab(pertanyaan) {
     const raw = completion.choices[0]?.message?.content?.trim();
     console.log(`🤖 [AI Raw] ${raw}`);
 
-    const parsed = JSON.parse(raw);
+    // Strip markdown code block kalau ada (```json ... ```)
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    const parsed = JSON.parse(cleaned);
 
     if (parsed.eskalasi === true) {
       return { jawaban: null, eskalasi: true, alasan: parsed.alasan || 'ai_eskalasi' };
