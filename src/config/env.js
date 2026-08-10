@@ -16,9 +16,13 @@ const config = {
   chatwootWebhookSecret:  process.env.CHATWOOT_WEBHOOK_SECRET   || '',
   chatwootEscalationTeam: parseInt(process.env.CHATWOOT_ESCALATION_TEAM_ID || '1', 10),
 
-  // Google Gemini AI
+  // Google Gemini AI (legacy)
   geminiApiKey: process.env.GEMINI_API_KEY || '',
-  geminiModel:  process.env.GEMINI_MODEL   || 'gemini-1.5-flash',
+  geminiModel:  process.env.GEMINI_MODEL   || 'gemini-2.0-flash',
+
+  // OpenRouter AI (active)
+  openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
+  openrouterModel:  process.env.OPENROUTER_MODEL   || 'google/gemini-2.0-flash-exp:free',
 
   // Escalation & Entry keywords
   escalationKeywords: (process.env.ESCALATION_KEYWORDS || 'alergi,komplain,darurat,refund,bicara sama orang,urgent,marah')
