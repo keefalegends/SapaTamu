@@ -243,12 +243,16 @@ router.post('/', async (req, res) => {
   const convId     = body.conversation?.id || body.id;
   const content    = (body.content || '').trim();
   const msgType    = body.message_type;
-  const convStatus = body.conversation?.status;
+  // Status bisa di body.conversation.status ATAU body.status (tergantung event type)
+  const convStatus = body.conversation?.status || body.status;
 
   console.log(`\n📨 [CHATWOOT] Event: ${event} | Conv: ${convId}`);
 
   // ── Reset session saat percakapan di-resolve / reopen ─────────────────────
   if (event === 'conversation_resolved' || event === 'conversation_status_changed') {
+    // Debug: log semua field untuk resolve event
+    console.log(`🔍 [RESOLVE DEBUG] event=${event} | convStatus=${convStatus} | convId=${convId}`);
+    console.log(`🔍 [RESOLVE DEBUG] body.status=${body.status} | body.conversation?.status=${body.conversation?.status}`);
     if (convStatus === 'resolved' && convId) {
       console.log(`♻️ [SESSION] Conv ${convId} resolved → kirim notif penutup + menu`);
       setStatus(convId, 'ai_active');
