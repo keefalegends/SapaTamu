@@ -115,7 +115,8 @@ const STATIC = {
 // ─── BUTTON ACTION MATCHER ────────────────────────────────────────────────────
 
 function detectButtonAction(content) {
-  const t = content.trim();
+  const t     = content.trim();
+  const lower = t.toLowerCase();
 
   // Cek value persis (untuk test manual)
   const VALUE_MAP = {
@@ -131,23 +132,47 @@ function detectButtonAction(content) {
     'escalate_human':   'escalate_human',
     'ai_tanya_lagi':    'ai_tanya_lagi',
   };
-  if (VALUE_MAP[t]) return VALUE_MAP[t];
+  if (VALUE_MAP[t] || VALUE_MAP[lower]) return VALUE_MAP[t] || VALUE_MAP[lower];
 
-  // Cek title (yang dikirim Chatwoot saat user klik tombol)
-  if (t.includes('Kafe') && !t.includes('Customer'))        return 'menu_kafe';
-  if (t.includes('Hotel') && !t.includes('Customer'))       return 'menu_hotel';
-  if (t.includes('Customer Service'))                        return 'menu_cs';
-  if (t.includes('Reservasi Kamar') || (t.includes('Reservasi') && t.includes('Kamar'))) return 'hotel_reservasi';
-  if (t.includes('Info') && t.includes('Fasilitas'))         return 'hotel_fasilitas';
-  if (t.includes('Fasilitas') && !t.includes('Info'))        return 'hotel_fasilitas';
-  if (t.includes('Room Service'))                            return 'hotel_roomservice';
-  if (t.includes('Menu') && t.includes('Harga'))             return 'kafe_menu';
-  if (t.includes('Reservasi Meja'))                          return 'kafe_reservasi';
-  if (t.includes('Staf Manusia') || (t.includes('Staf') && t.includes('Manusia'))) return 'escalate_human';
-  if (t.includes('Menu Utama') || t.includes('🔙'))          return 'goto_main';
-  if (t.includes('Tanya Lagi'))                              return 'ai_tanya_lagi';
+  // ── Matching case-insensitive (tombol klik + natural language commands) ─────
 
-  return null; // bukan tombol — free text
+  // CS / escalate
+  if (lower.includes('customer service'))                          return 'menu_cs';
+  if (lower.includes('hubungi staf') || lower.includes('staf manusia') ||
+      (lower.includes('staf') && lower.includes('manusia')))      return 'escalate_human';
+
+  // Hotel submenus (cek spesifik dulu sebelum generic 'hotel')
+  if (lower.includes('reservasi') && lower.includes('kamar'))     return 'hotel_reservasi';
+  if (lower.includes('reservasi kamar'))                          return 'hotel_reservasi';
+  if (lower.includes('room service'))                             return 'hotel_roomservice';
+  if ((lower.includes('info') || lower.includes('fasilitas')) &&
+      (lower.includes('hotel') || lower.includes('fasilitas')))   return 'hotel_fasilitas';
+  if (lower === 'fasilitas' || lower === 'info & fasilitas')      return 'hotel_fasilitas';
+
+  // Kafe submenus
+  if (lower.includes('reservasi meja') || lower.includes('reservasi') && lower.includes('meja')) return 'kafe_reservasi';
+  if ((lower.includes('menu') && lower.includes('harga')) ||
+      lower === 'menu & harga')                                   return 'kafe_menu';
+
+  // Hotel menu (generic) — case-insensitive, natural language
+  if ((lower.includes('hotel') || lower.includes('menu hotel') ||
+       lower.includes('tampilkan hotel')) &&
+      !lower.includes('customer') && !lower.includes('room service')) return 'menu_hotel';
+
+  // Kafe menu (generic) — case-insensitive, natural language
+  if ((lower.includes('kafe') || lower.includes('menu kafe') ||
+       lower.includes('cafe') || lower.includes('tampilkan kafe')) &&
+      !lower.includes('customer'))                                return 'menu_kafe';
+
+  // Menu utama / kembali
+  if (lower === 'menu' || lower === 'tampilkan menu' || lower === 'menu utama' ||
+      lower.includes('menu utama') || lower.includes('kembali ke menu') ||
+      lower.includes('🔙'))                                       return 'goto_main';
+
+  // Tanya lagi
+  if (lower.includes('tanya lagi') || lower.includes('tanya'))   return 'ai_tanya_lagi';
+
+  return null; // bukan tombol/command — free text untuk AI
 }
 
 // ─── GREETING DETECTION ───────────────────────────────────────────────────────
