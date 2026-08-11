@@ -56,17 +56,30 @@ async function sendMenuMessage(conversationId, text, items) {
 }
 
 /**
- * Assign percakapan ke Tim CS saat terjadi eskalasi.
+ * Assign percakapan ke Tim CS dan/atau agent individual saat terjadi eskalasi.
  */
 async function assignConversation(conversationId, teamId) {
-  if (!teamId || teamId <= 0) return false;
   try {
-    await axios.post(
-      `${BASE()}/conversations/${conversationId}/assignments`,
-      { team_id: teamId },
-      { headers: getHeaders(), timeout: 10000 }
-    );
-    console.log(`✅ [Chatwoot] Conv ${conversationId} di-assign ke Team ${teamId}`);
+    // Assign ke team (jika dikonfigurasi)
+    if (teamId && teamId > 0) {
+      await axios.post(
+        `${BASE()}/conversations/${conversationId}/assignments`,
+        { team_id: teamId },
+        { headers: getHeaders(), timeout: 10000 }
+      );
+      console.log(`✅ [Chatwoot] Conv ${conversationId} di-assign ke Team ${teamId}`);
+    }
+
+    // Assign ke agent individual (ambil dari env CHATWOOT_AGENT_ID)
+    const agentId = parseInt(process.env.CHATWOOT_AGENT_ID || '0');
+    if (agentId > 0) {
+      await axios.post(
+        `${BASE()}/conversations/${conversationId}/assignments`,
+        { assignee_id: agentId },
+        { headers: getHeaders(), timeout: 10000 }
+      );
+      console.log(`✅ [Chatwoot] Conv ${conversationId} di-assign ke Agent ${agentId}`);
+    }
     return true;
   } catch (err) {
     console.error(`❌ [Chatwoot] Gagal assign:`, err.response?.data || err.message);
