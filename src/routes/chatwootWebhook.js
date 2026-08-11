@@ -305,19 +305,27 @@ router.post('/', async (req, res) => {
       console.log(`🚀 [SESSION] Conv ${convId} idle → ai_active`);
       setStatus(convId, 'ai_active');
 
-      if (isGreeting(content) || detectButtonAction(content)) {
-        // Salam biasa → kirim welcome + menu
+      const action = detectButtonAction(content);
+
+      if (action) {
+        // Tombol diklik saat idle (misal setelah resolve) → langsung handle,
+        // jangan tampilkan welcome dulu
+        console.log(`🔘 [BUTTON dari IDLE] Conv ${convId} | Action: ${action}`);
+        session = 'ai_active'; // fall-through ke handler ai_active di bawah
+      } else if (isGreeting(content)) {
+        // Salam → welcome + menu
         await sendMenuMessage(convId, MENU_UTAMA.text, MENU_UTAMA.items);
+        return;
       } else {
-        // Free text langsung → kirim welcome singkat + AI jawab pertanyaannya
+        // Free text → welcome singkat + AI jawab
         await sendMenuMessage(convId,
           '👋 *Selamat Datang di SapaTamu!*\n\n' +
           'Halo! Saya asisten virtual SapaTamu. Izinkan saya menjawab pertanyaan Anda:',
           MENU_UTAMA.items
         );
         await replyAI(convId, content);
+        return;
       }
-      return;
     }
 
     // ═══ STATE: ai_active ═══════════════════════════════════════════════════
