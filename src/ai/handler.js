@@ -11,7 +11,7 @@ const fs     = require('fs');
 const client = new OpenAI({
   baseURL: process.env.NINER_ROUTER_URL || 'http://localhost:20128/v1',
   apiKey : process.env.NINER_ROUTER_KEY || process.env.GEMINI_API_KEY || 'no-key',
-  timeout: 15000, // 15 detik timeout — biar tidak nunggu selamanya
+  timeout: 45000, // 45 detik timeout — 9router VPS bisa lambat tapi masih jalan
   defaultHeaders: {
     'HTTP-Referer': 'https://sapatamu.local',
     'X-Title'     : 'SapaTamu Bot',
