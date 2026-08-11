@@ -1,10 +1,12 @@
 /**
- * AI Handler — menggunakan OpenRouter (openai-compatible API)
- * Models gratis: google/gemini-2.0-flash-exp:free, meta-llama/llama-3.3-70b-instruct:free
+ * AI Handler — menggunakan 9router (openai-compatible API)
+ * Knowledge base dibaca dari src/knowledge/data.json
+ * AI HANYA boleh menjawab berdasarkan data tersebut.
  */
 
 const OpenAI = require('openai');
-const config = require('../config/env');
+const path   = require('path');
+const fs     = require('fs');
 
 const client = new OpenAI({
   baseURL: process.env.NINER_ROUTER_URL || 'http://localhost:20128/v1',
@@ -17,25 +19,54 @@ const client = new OpenAI({
 
 const MODEL = process.env.NINER_ROUTER_MODEL || 'gc/gemini-2.5-flash';
 
-const SYSTEM_PROMPT = `Kamu adalah AI Customer Service asisten dari SapaTamu — sebuah resort yang memiliki Hotel dan Kafe.
+// ─── Load knowledge base dari data.json ──────────────────────────────────────
 
-INFORMASI BISNIS:
-=== HOTEL ===
-- Harga Kamar: Deluxe Rp 550.000/malam | Executive Suite Rp 950.000/malam | Presidential Suite Rp 1.800.000/malam
-- Check-In: 14.00 | Check-Out: 12.00
-- Fasilitas: Kolam Renang (06-21), Restoran (06-22), Gym (05-22), WiFi gratis, Parkir gratis, Room Service 24 jam, Laundry express
+function buildSystemPrompt() {
+  try {
+    const dataPath = path.join(__dirname, '../knowledge/data.json');
+    const rawData  = fs.readFileSync(dataPath, 'utf-8');
+    const topics   = JSON.parse(rawData);
 
-=== KAFE ===
-- Jam Buka: 07.00 – 22.00 WIB
-- Minuman: Espresso/Americano Rp 22.000 | Caffe Latte/Cappuccino Rp 28.000 | Matcha Latte Rp 25.000 | Es Teh/Jeruk Peras Rp 15.000
-- Makanan: Butter Croissant Rp 20.000 | Roti Bakar Spesial Rp 18.000 | Spaghetti Carbonara Rp 45.000 | Nasi Goreng Spesial Rp 35.000
+    const knowledgeText = topics
+      .map((item, i) => `${i + 1}. [${item.topik}]\n   ${item.jawaban}`)
+      .join('\n\n');
 
-ATURAN MENJAWAB:
-1. Jawab dalam Bahasa Indonesia yang sopan dan ramah
-2. Jawab SINGKAT dan PADAT (max 3-4 kalimat)
-3. Jika pertanyaan di luar informasi di atas atau menyangkut komplain serius → kembalikan {"eskalasi": true, "alasan": "di_luar_jangkauan"}
-4. Jika user meminta bicara dengan manusia/staf → kembalikan {"eskalasi": true, "alasan": "minta_manusia"}
-5. Selalu balas dalam format JSON: {"jawaban": "...", "eskalasi": false} ATAU {"eskalasi": true, "alasan": "..."}`;
+    return `Kamu adalah AI Customer Service dari SapaTamu (Hotel & Kafe).
+
+KNOWLEDGE BASE (SATU-SATUNYA SUMBER JAWABAN):
+${knowledgeText}
+
+ATURAN WAJIB:
+1. Jawab HANYA berdasarkan knowledge base di atas. JANGAN mengarang atau menambah informasi di luar data tersebut.
+2. Jawab dalam Bahasa Indonesia yang sopan dan ramah.
+3. Jawab SINGKAT dan PADAT (maks 3-4 kalimat).
+4. Jika pertanyaan TIDAK ada dalam knowledge base → eskalasi ke staf.
+5. Jika user minta bicara dengan manusia/staf → eskalasi ke staf.
+6. Jika ada keluhan/komplain serius → eskalasi ke staf.
+7. SELALU balas dalam format JSON:
+   - Jawaban normal : {"jawaban": "...", "eskalasi": false}
+   - Eskalasi       : {"eskalasi": true, "alasan": "di_luar_jangkauan" | "minta_manusia" | "komplain"}`;
+
+  } catch (err) {
+    console.error('⚠️ [AI] Gagal load knowledge/data.json:', err.message);
+    // Fallback minimal jika file tidak ada
+    return `Kamu adalah AI Customer Service SapaTamu.
+Jawab dalam JSON: {"jawaban":"...","eskalasi":false} atau {"eskalasi":true,"alasan":"..."}
+Jika tidak tahu → {"eskalasi":true,"alasan":"di_luar_jangkauan"}`;
+  }
+}
+
+// Build sekali saat startup (cached), reload jika file berubah lewat SIGUSR2
+let SYSTEM_PROMPT = buildSystemPrompt();
+console.log(`✅ [AI] Knowledge base dimuat — ${SYSTEM_PROMPT.split('\n').length} baris`);
+
+// Hot-reload knowledge base tanpa restart server (opsional)
+process.on('SIGUSR2', () => {
+  SYSTEM_PROMPT = buildSystemPrompt();
+  console.log('🔄 [AI] Knowledge base di-reload!');
+});
+
+// ─── Main function ────────────────────────────────────────────────────────────
 
 /**
  * Tanya AI dan dapatkan jawaban terstruktur
@@ -51,7 +82,7 @@ async function jawab(pertanyaan) {
         { role: 'user',   content: pertanyaan     },
       ],
       max_tokens      : 400,
-      temperature     : 0.3,
+      temperature     : 0.2,   // Lebih rendah = lebih konsisten/tidak ngarang
       response_format : { type: 'json_object' },
     });
 
@@ -60,7 +91,7 @@ async function jawab(pertanyaan) {
 
     // Strip markdown code block kalau ada (```json ... ```)
     const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-    const parsed = JSON.parse(cleaned);
+    const parsed  = JSON.parse(cleaned);
 
     if (parsed.eskalasi === true) {
       return { jawaban: null, eskalasi: true, alasan: parsed.alasan || 'ai_eskalasi' };
