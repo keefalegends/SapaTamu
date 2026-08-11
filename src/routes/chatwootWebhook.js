@@ -336,8 +336,18 @@ router.post('/', async (req, res) => {
         }
       }
 
-      // ── Free text → AI handles ─────────────────────────────────────────────
+      // ── Free text → cek greeting dulu, baru AI ───────────────────────────
       console.log(`🤖 [AI MODE] Conv ${convId} — free text → AI`);
+
+      // Kalau user kirim ulang salam → cukup tampilkan menu lagi
+      if (isGreeting(content)) {
+        await sendMenuMessage(convId,
+          '😊 Halo lagi! Silakan pilih layanan yang Anda butuhkan:',
+          MENU_UTAMA.items
+        );
+        return;
+      }
+
       await replyAI(convId, content);
       return;
     }

@@ -1,5 +1,9 @@
 [
   {
+    "topik": "salam dan sapaan",
+    "jawaban": "Halo! Selamat datang di SapaTamu. Saya siap membantu Anda. Apakah ada yang ingin Anda tanyakan tentang Hotel, Kafe, atau layanan kami lainnya?"
+  },
+  {
     "topik": "jam operasional hotel",
     "jawaban": "Hotel SapaTamu buka 24 jam. Resepsionis selalu standby untuk membantu Anda kapan saja."
   },
