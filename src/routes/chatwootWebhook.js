@@ -248,43 +248,42 @@ router.post('/', async (req, res) => {
 
   console.log(`\n📨 [CHATWOOT] Event: ${event} | Conv: ${convId}`);
 
-  // ── Reset session saat percakapan di-resolve / reopen ─────────────────────
-  if (event === 'conversation_resolved' || event === 'conversation_status_changed') {
-    // Debug: log semua field untuk resolve event
-    console.log(`🔍 [RESOLVE DEBUG] event=${event} | convStatus=${convStatus} | convId=${convId}`);
-    console.log(`🔍 [RESOLVE DEBUG] body.status=${body.status} | body.conversation?.status=${body.conversation?.status}`);
-    if (convStatus === 'resolved' && convId) {
-      console.log(`♻️ [SESSION] Conv ${convId} resolved → kirim notif penutup + menu`);
-      setStatus(convId, 'ai_active');
+  // ── conversation_resolved → kirim notif penutup + menu (SEKALI saja) ───────
+  if (event === 'conversation_resolved') {
+    if (!convId) return;
+    console.log(`♻️ [SESSION] Conv ${convId} resolved → kirim notif penutup + menu`);
+    setStatus(convId, 'ai_active');
 
-      // 1. Notifikasi penutup dari bot
-      await sendMessage(convId,
-        '✅ *Percakapan dengan staf kami telah selesai.*\n\n' +
-        'Terima kasih telah menghubungi SapaTamu! 😊\n' +
-        'Semoga kami dapat membantu Anda kembali.'
-      ).catch(() => {});
+    await sendMessage(convId,
+      '✅ *Percakapan dengan staf kami telah selesai.*\n\n' +
+      'Terima kasih telah menghubungi SapaTamu! 😊\n' +
+      'Semoga kami dapat membantu Anda kembali.'
+    ).catch(() => {});
 
-      // 2. Tampilkan menu utama kembali
-      await sendMenuMessage(convId,
-        '🤖 *Bot SapaTamu aktif kembali.*\nAda lagi yang bisa kami bantu?',
-        MENU_UTAMA.items
-      ).catch(() => {});
+    await sendMenuMessage(convId,
+      '🤖 *Bot SapaTamu aktif kembali.*\nAda lagi yang bisa kami bantu?',
+      MENU_UTAMA.items
+    ).catch(() => {});
+    return;
+  }
 
-    } else if ((convStatus === 'pending' || convStatus === 'open') && convId) {
-      // Staff reopen / pending → bot ambil alih lagi
+  // ── conversation_status_changed → hanya tangani reopen ───────────────────
+  if (event === 'conversation_status_changed') {
+    console.log(`🔍 [STATUS CHANGE] Conv ${convId} → status: ${convStatus}`);
+    if ((convStatus === 'pending' || convStatus === 'open') && convId) {
       const curStatus = getStatus(convId);
       if (curStatus === 'escalated') {
         console.log(`🔄 [SESSION] Conv ${convId} reopened → reset ke ai_active`);
         setStatus(convId, 'ai_active');
         sendMessage(convId,
-          '🤖 *Bot SapaTamu kembali aktif!*\n\n' +
-          'Ketik pertanyaan Anda atau pilih menu:'
+          '🤖 *Bot SapaTamu kembali aktif!*\n\nKetik pertanyaan Anda atau pilih menu:'
         ).catch(() => {});
         sendMenuMessage(convId, '', MENU_UTAMA.items).catch(() => {});
       }
     }
     return;
   }
+
 
   // Hanya proses message_created incoming
   if (event !== 'message_created' || msgType !== 'incoming') return;
