@@ -11,6 +11,7 @@ const fs     = require('fs');
 const client = new OpenAI({
   baseURL: process.env.NINER_ROUTER_URL || 'http://localhost:20128/v1',
   apiKey : process.env.NINER_ROUTER_KEY || process.env.GEMINI_API_KEY || 'no-key',
+  timeout: 15000, // 15 detik timeout — biar tidak nunggu selamanya
   defaultHeaders: {
     'HTTP-Referer': 'https://sapatamu.local',
     'X-Title'     : 'SapaTamu Bot',
@@ -104,7 +105,16 @@ async function jawab(pertanyaan) {
     };
 
   } catch (err) {
-    console.error(`❌ [AI] Error:`, err.message || err);
+    const errMsg = err.message || String(err);
+    // Timeout atau koneksi putus
+    if (errMsg.includes('timeout') || errMsg.includes('ECONNREFUSED') ||
+        errMsg.includes('530') || errMsg.includes('network') ||
+        errMsg.includes('fetch failed') || err.status >= 500) {
+      console.error(`⏰ [AI] Timeout/Down — 9router tidak bisa dijangkau`);
+      return { jawaban: null, eskalasi: false, alasan: 'ai_down',
+               fallback: '⚠️ Maaf, layanan AI sedang tidak tersedia. Silakan coba lagi atau hubungi staf kami.' };
+    }
+    console.error(`❌ [AI] Error:`, errMsg);
     return { jawaban: null, eskalasi: true, alasan: 'ai_error' };
   }
 }

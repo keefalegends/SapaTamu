@@ -181,7 +181,21 @@ async function replyAI(convId, content) {
   console.log(`🤖 [AI] Bertanya untuk Conv ${convId}: "${content.substring(0, 50)}"`);
   const aiResp = await jawab(content);
 
-  if (aiResp.eskalasi === true) {
+  if (aiResp.alasan === 'ai_down') {
+    // 9router/AI sedang mati — tampilkan pesan fallback + tawarkan staf
+    console.error(`⏰ [AI DOWN] Conv ${convId} — AI tidak tersedia, tampilkan fallback`);
+    await sendMessage(convId,
+      '⚠️ *Maaf, asisten AI sedang tidak tersedia saat ini.*\n\n' +
+      'Anda bisa:\n' +
+      '• Coba tanya lagi dalam beberapa saat\n' +
+      '• Atau langsung hubungi staf kami'
+    );
+    await sendMenuMessage(convId, 'Pilih opsi:', [
+      { title: '🔄 Coba Lagi',           value: 'ai_tanya_lagi'  },
+      { title: '👨‍💼 Hubungi Staf',        value: 'escalate_human' },
+      { title: '🔙 Menu Utama',           value: 'goto_main'      },
+    ]);
+  } else if (aiResp.eskalasi === true) {
     const customReply = aiResp.alasan === 'minta_manusia'
       ? '👨‍💼 *Dialihkan ke Staf Manusia:*\n\nMenghubungkan Anda ke staf kami... 🙏'
       : '🤔 *Pertanyaan ini perlu ditangani oleh staf kami.*\n\nMohon tunggu, kami segera menghubungkan... 🙏';
