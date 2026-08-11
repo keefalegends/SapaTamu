@@ -250,9 +250,24 @@ router.post('/', async (req, res) => {
   // ── Reset session saat percakapan di-resolve / reopen ─────────────────────
   if (event === 'conversation_resolved' || event === 'conversation_status_changed') {
     if (convStatus === 'resolved' && convId) {
-      console.log(`♻️ [SESSION] Conv ${convId} resolved → reset idle`);
-      setStatus(convId, 'idle');
+      console.log(`♻️ [SESSION] Conv ${convId} resolved → kirim notif penutup + menu`);
+      setStatus(convId, 'ai_active');
+
+      // 1. Notifikasi penutup dari bot
+      await sendMessage(convId,
+        '✅ *Percakapan dengan staf kami telah selesai.*\n\n' +
+        'Terima kasih telah menghubungi SapaTamu! 😊\n' +
+        'Semoga kami dapat membantu Anda kembali.'
+      ).catch(() => {});
+
+      // 2. Tampilkan menu utama kembali
+      await sendMenuMessage(convId,
+        '🤖 *Bot SapaTamu aktif kembali.*\nAda lagi yang bisa kami bantu?',
+        MENU_UTAMA.items
+      ).catch(() => {});
+
     } else if ((convStatus === 'pending' || convStatus === 'open') && convId) {
+      // Staff reopen / pending → bot ambil alih lagi
       const curStatus = getStatus(convId);
       if (curStatus === 'escalated') {
         console.log(`🔄 [SESSION] Conv ${convId} reopened → reset ke ai_active`);
