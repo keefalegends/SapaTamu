@@ -338,12 +338,12 @@ router.post('/', async (req, res) => {
 
       if (aiResp.eskalasi === true) {
         const customReply = aiResp.alasan === 'minta_manusia'
-          ? '👨‍💼 Menghubungkan Anda ke staf kami... 🙏'
-          : '🤔 Pertanyaan ini perlu ditangani oleh staf kami. Mohon tunggu 🙏';
+          ? '👨‍💼 *Dialihkan ke Staf Manusia:*\n\nMenghubungkan Anda ke staf kami... 🙏'
+          : '👨‍💼 *Dialihkan ke Staf Manusia:*\n\nPertanyaan ini perlu ditangani oleh staf kami. Mohon tunggu 🙏';
         await eksekusiEskalasi(convId, aiResp.alasan || 'ai_eskalasi', customReply);
       } else if (aiResp.jawaban) {
         // Kirim jawaban AI + tampilkan tombol lanjut
-        await sendMessage(convId, aiResp.jawaban);
+        await sendMessage(convId, `🤖 *Dijawab oleh AI:*\n\n${aiResp.jawaban}`);
         await sendMenuMessage(convId,
           '💬 _Masih ada pertanyaan?_',
           [

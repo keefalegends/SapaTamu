@@ -50,5 +50,45 @@
   {
     "topik": "room service",
     "jawaban": "Room Service tersedia 24 jam. Silakan hubungi ext. 100 dari kamar Anda atau ketik 'room service' di WhatsApp ini."
+  },
+  {
+    "topik": "kebijakan pembatalan",
+    "jawaban": "Pembatalan gratis jika dilakukan maksimal 24 jam sebelum tanggal check-in. Pembatalan kurang dari 24 jam dikenakan biaya 50% dari harga kamar satu malam. No-show (tidak datang tanpa konfirmasi) dikenakan biaya penuh satu malam."
+  },
+  {
+    "topik": "shuttle dan transportasi",
+    "jawaban": "Kami menyediakan layanan antar-jemput bandara dengan biaya Rp 150.000 (sekali jalan). Reservasi shuttle minimal 6 jam sebelum keberangkatan. Hubungi resepsionis atau ketik 'shuttle' di WhatsApp ini untuk pemesanan."
+  },
+  {
+    "topik": "kebijakan hewan peliharaan",
+    "jawaban": "Mohon maaf, Hotel & Kafe SapaTamu tidak mengizinkan hewan peliharaan di dalam area hotel dan kafe demi kenyamanan seluruh tamu. Pengecualian berlaku untuk hewan pemandu (guide dog) dengan dokumen resmi."
+  },
+  {
+    "topik": "ruang meeting dan event",
+    "jawaban": "Tersedia 2 ruang meeting: Ruang Melati (kapasitas 20 orang, Rp 500.000/3 jam) dan Ruang Anggrek (kapasitas 50 orang, Rp 1.200.000/3 jam). Fasilitas: proyektor, layar, whiteboard, WiFi, air mineral, dan snack box. Untuk booking, hubungi resepsionis atau ketik 'meeting room'."
+  },
+  {
+    "topik": "promo dan diskon",
+    "jawaban": "Promo saat ini: 1) Diskon 15% untuk menginap di hari kerja (Senin–Kamis). 2) Paket Honeymoon: Executive Suite + dinner romantis Rp 1.200.000. 3) Beli 2 kopi gratis 1 di Kafe SapaTamu setiap Selasa. Promo dapat berubah sewaktu-waktu, tanyakan staf untuk info terbaru."
+  },
+  {
+    "topik": "anak dan extra bed",
+    "jawaban": "Anak di bawah 6 tahun menginap gratis (tanpa extra bed, berbagi tempat tidur dengan orang tua). Extra bed tersedia dengan biaya Rp 150.000/malam. Maksimal 1 extra bed per kamar. Baby cot (box bayi) tersedia gratis, reservasi di resepsionis."
+  },
+  {
+    "topik": "alergi makanan",
+    "jawaban": "Kafe & Restoran SapaTamu dapat menyesuaikan menu untuk tamu dengan alergi makanan. Silakan informasikan alergi Anda saat memesan. Tersedia pilihan menu vegetarian, bebas gluten, dan bebas kacang. Untuk alergi berat, kami sarankan menghubungi staf dapur terlebih dahulu."
+  },
+  {
+    "topik": "kebijakan merokok",
+    "jawaban": "Hotel & Kafe SapaTamu menerapkan kebijakan bebas asap rokok (no smoking) di seluruh area dalam ruangan. Area merokok tersedia di taman belakang hotel dan teras lantai 2 kafe."
+  },
+  {
+    "topik": "komplain dan feedback",
+    "jawaban": "Kami sangat menghargai masukan Anda. Untuk menyampaikan komplain atau feedback, silakan: 1) Sampaikan langsung ke resepsionis atau manajer on-duty. 2) Ketik 'komplain' di WhatsApp ini untuk terhubung langsung dengan tim Customer Service kami. Kami berkomitmen merespons dalam waktu maksimal 1x24 jam."
+  },
+  {
+    "topik": "barang tertinggal",
+    "jawaban": "Jika ada barang yang tertinggal di kamar atau area hotel/kafe, silakan hubungi resepsionis di ext. 100 atau ketik 'lost and found' di WhatsApp ini. Barang temuan kami simpan hingga 30 hari. Pengiriman barang ke alamat tamu dikenakan biaya kirim sesuai ekspedisi."
   }
 ]
