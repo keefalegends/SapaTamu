@@ -57,15 +57,19 @@ load_env_defaults() {
     local env_file="${SCRIPT_DIR}/.env"
     if [[ -f "$env_file" ]]; then
         # Baca .env tanpa export (hanya grep nilai)
-        DEFAULT_CHATWOOT_BASE_URL=$(grep -oP '(?<=^CHATWOOT_BASE_URL=).*' "$env_file" 2>/dev/null | tr -d '"' || true)
-        DEFAULT_CHATWOOT_API_TOKEN=$(grep -oP '(?<=^CHATWOOT_API_TOKEN=).*' "$env_file" 2>/dev/null | tr -d '"' || true)
-        DEFAULT_CHATWOOT_ACCOUNT_ID=$(grep -oP '(?<=^CHATWOOT_ACCOUNT_ID=).*' "$env_file" 2>/dev/null | tr -d '"' || true)
+        DEFAULT_CHATWOOT_BASE_URL=$(grep -oP '(?<=^CHATWOOT_BASE_URL=).*' "$env_file" 2>/dev/null | tr -d '"\r' || true)
+        DEFAULT_CHATWOOT_API_TOKEN=$(grep -oP '(?<=^CHATWOOT_API_TOKEN=).*' "$env_file" 2>/dev/null | tr -d '"\r' || true)
+        DEFAULT_CHATWOOT_ACCOUNT_ID=$(grep -oP '(?<=^CHATWOOT_ACCOUNT_ID=).*' "$env_file" 2>/dev/null | tr -d '"\r' || true)
+        DEFAULT_API_KEY=$(grep -oP '(?<=^WHATSAPP_TOKEN=).*' "$env_file" 2>/dev/null | tr -d '"\r' || true)
+        DEFAULT_PHONE_NUMBER_ID=$(grep -oP '(?<=^PHONE_NUMBER_ID=).*' "$env_file" 2>/dev/null | tr -d '"\r' || true)
         info "Default dibaca dari ${env_file}"
     fi
 
     DEFAULT_CHATWOOT_BASE_URL="${DEFAULT_CHATWOOT_BASE_URL:-http://localhost:3000}"
     DEFAULT_CHATWOOT_API_TOKEN="${DEFAULT_CHATWOOT_API_TOKEN:-}"
     DEFAULT_CHATWOOT_ACCOUNT_ID="${DEFAULT_CHATWOOT_ACCOUNT_ID:-1}"
+    DEFAULT_API_KEY="${DEFAULT_API_KEY:-}"
+    DEFAULT_PHONE_NUMBER_ID="${DEFAULT_PHONE_NUMBER_ID:-}"
 }
 
 # ── show_usage ───────────────────────────────────────────────
@@ -167,9 +171,9 @@ prompt_inputs() {
     echo ""
 
     [[ -z "$PHONE_NUMBER" ]]       && prompt_one PHONE_NUMBER       "Nomor WhatsApp (E.164, contoh: +6281234567890)" "" "e164"
-    [[ -z "$PHONE_NUMBER_ID" ]]    && prompt_one PHONE_NUMBER_ID    "Meta Phone Number ID" "" "nonempty"
+    [[ -z "$PHONE_NUMBER_ID" ]]    && prompt_one PHONE_NUMBER_ID    "Meta Phone Number ID" "$DEFAULT_PHONE_NUMBER_ID" "nonempty"
     [[ -z "$BUSINESS_ACCOUNT_ID" ]] && prompt_one BUSINESS_ACCOUNT_ID "WhatsApp Business Account (WABA) ID" "" "nonempty"
-    [[ -z "$API_KEY" ]]            && prompt_one API_KEY            "System User permanent token" "" "token"
+    [[ -z "$API_KEY" ]]            && prompt_one API_KEY            "System User permanent token" "$DEFAULT_API_KEY" "token"
 
     echo ""
     echo -e "${BOLD}⚙️  Konfigurasi Chatwoot${NC}"
