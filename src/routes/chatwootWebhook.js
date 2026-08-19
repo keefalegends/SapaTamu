@@ -410,6 +410,15 @@ router.post('/', async (req, res) => {
       if (action) {
         console.log(`🔘 [BUTTON/ACTION] Conv ${convId} | Action: ${action}`);
 
+        // Validasi: Cegah klik tombol dari pesan lama jika sesi booking sudah selesai/dibatalkan
+        const bookingStepActions = ['booking_pay_step', 'booking_change_date', 'pay_method_qris', 'pay_method_va', 'confirm_payment_paid'];
+        if (bookingStepActions.includes(action) && !getDraft(convId)) {
+          console.log(`⚠️ [BOOKING EXPIRED] Conv ${convId} Tombol pemesanan lama diklik tanpa active draft`);
+          await sendMessage(convId, 'ℹ️ *Sesi pemesanan sebelumnya telah selesai atau dibatalkan.*\n\nSilakan mulai pemesanan baru melalui menu Hotel.');
+          await sendWelcomeWithImage(convId, senderPhone);
+          return;
+        }
+
         switch (action) {
 
           // 🏨 Menu Utama Hotel
