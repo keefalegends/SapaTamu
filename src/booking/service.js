@@ -50,6 +50,17 @@ function generateBookingCode() {
   return `SPT-${dateStr}-${randHex}`;
 }
 
+function calculateCheckOut(checkInStr, nights, explicitCheckOut) {
+  if (explicitCheckOut) return explicitCheckOut;
+  const match = (checkInStr || '').match(/^(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?/i);
+  if (!match) return `Hari ke-${(parseInt(nights) || 1) + 1}`;
+  const day = parseInt(match[1]);
+  const month = match[2];
+  const year = match[3] ? ' ' + match[3] : '';
+  const outDay = day + (parseInt(nights) || 1);
+  return `${outDay} ${month}${year}`;
+}
+
 // ─── DRAFT LOGIC ──────────────────────────────────────────────────────────────
 
 /**
@@ -57,16 +68,29 @@ function generateBookingCode() {
  */
 function updateBookingDraft(conversationId, updateData) {
   const current = getDraft(conversationId) || {};
-  const merged  = { ...current, ...updateData };
+  const cleanUpdate = {};
 
-  // Hitung ulang total jika room atau nights berubah
-  if (merged.roomKey) {
-    const room = ROOM_CATALOG[merged.roomKey] || ROOM_CATALOG.deluxe;
-    const nights = Math.max(1, parseInt(merged.nights) || 1);
-    merged.roomName   = room.name;
-    merged.pricePerNight = room.price;
-    merged.nights     = nights;
-    merged.totalPrice = room.price * nights;
+  // Hanya salin nilai yang tidak null / undefined agar roomKey sebelumnya tidak tertimpa
+  for (const [k, v] of Object.entries(updateData || {})) {
+    if (v !== null && v !== undefined && v !== '') {
+      cleanUpdate[k] = v;
+    }
+  }
+
+  const merged = { ...current, ...cleanUpdate };
+
+  // Pastikan roomKey selalu valid dari pilihan user
+  merged.roomKey       = merged.roomKey || current.roomKey || 'deluxe';
+  const room           = ROOM_CATALOG[merged.roomKey] || ROOM_CATALOG.deluxe;
+  const nights         = Math.max(1, parseInt(merged.nights) || 1);
+
+  merged.roomName      = room.name;
+  merged.pricePerNight = room.price;
+  merged.nights        = nights;
+  merged.totalPrice    = room.price * nights;
+
+  if (merged.checkInDate && !merged.checkOutDate) {
+    merged.checkOutDate = calculateCheckOut(merged.checkInDate, nights);
   }
 
   setDraft(conversationId, merged);
@@ -77,18 +101,21 @@ function updateBookingDraft(conversationId, updateData) {
  * Format ringkasan invoice draft untuk dikirim ke user
  */
 function formatDraftInvoice(draft) {
-  const room = ROOM_CATALOG[draft.roomKey] || ROOM_CATALOG.deluxe;
-  const nights = draft.nights || 1;
-  const total = draft.totalPrice || (room.price * nights);
-  const name = draft.customerName || 'Tamu Terhormat';
-  const checkIn = draft.checkInDate || 'Menyesuaikan';
+  const roomKey  = draft.roomKey || 'deluxe';
+  const room     = ROOM_CATALOG[roomKey] || ROOM_CATALOG.deluxe;
+  const nights   = Math.max(1, parseInt(draft.nights) || 1);
+  const total    = room.price * nights;
+  const name     = draft.customerName || 'Tamu Terhormat';
+  const checkIn  = draft.checkInDate || 'Menyesuaikan';
+  const checkOut = draft.checkOutDate || calculateCheckOut(checkIn, nights);
 
   return (
     '📋 *RINGKASAN PEMESANAN KAMAR*\n' +
     '────────────────────────\n' +
-    `👤 *Nama Tamu*   : ${name}\n` +
+    `👤 *Nama Tamu*   : *${name}*\n` +
     `🏨 *Tipe Kamar*  : *${room.name}*\n` +
     `📅 *Check-In*    : ${checkIn} (14.00 WIB)\n` +
+    `🚪 *Check-Out*   : ${checkOut} (12.00 WIB)\n` +
     `🌙 *Durasi*      : ${nights} Malam\n` +
     `🍽️ *Sarapan*     : Termasuk (${room.facilities[0]})\n` +
     '────────────────────────\n' +
@@ -110,12 +137,14 @@ function saveConfirmedBooking(conversationId, paymentMethod, customerPhone) {
 
   const db = getDb();
   const bookingCode = generateBookingCode();
-  const room = ROOM_CATALOG[draft.roomKey] || ROOM_CATALOG.deluxe;
-  const nights = draft.nights || 1;
-  const totalPrice = draft.totalPrice || (room.price * nights);
+  const roomKey = draft.roomKey || 'deluxe';
+  const room = ROOM_CATALOG[roomKey] || ROOM_CATALOG.deluxe;
+  const nights = Math.max(1, parseInt(draft.nights) || 1);
+  const totalPrice = room.price * nights;
   const name = draft.customerName || 'Tamu SapaTamu';
   const phone = customerPhone || draft.customerPhone || '-';
   const checkIn = draft.checkInDate || 'Hari ini';
+  const checkOut = draft.checkOutDate || calculateCheckOut(checkIn, nights);
 
   db.prepare(`
     INSERT INTO bookings (
@@ -128,7 +157,7 @@ function saveConfirmedBooking(conversationId, paymentMethod, customerPhone) {
     phone,
     name,
     room.name,
-    checkIn,
+    `${checkIn} - ${checkOut}`,
     nights,
     totalPrice,
     paymentMethod
@@ -143,6 +172,7 @@ function saveConfirmedBooking(conversationId, paymentMethod, customerPhone) {
     customerPhone: phone,
     roomName:      room.name,
     checkInDate:   checkIn,
+    checkOutDate:  checkOut,
     nights:        nights,
     totalPrice:    totalPrice,
     paymentMethod: paymentMethod,
@@ -160,9 +190,10 @@ function formatEVoucher(booking) {
     '🎟️ *E-VOUCHER HOTEL SAPATAMU*\n' +
     '════════════════════════\n' +
     `🔖 *No. Booking* : *${booking.bookingCode}*\n` +
-    `👤 *Nama Tamu*   : ${booking.customerName}\n` +
+    `👤 *Nama Tamu*   : *${booking.customerName}*\n` +
     `🏨 *Tipe Kamar*  : ${booking.roomName}\n` +
     `📅 *Check-In*    : ${booking.checkInDate} (Pukul 14.00 WIB)\n` +
+    `🚪 *Check-Out*   : ${booking.checkOutDate} (Pukul 12.00 WIB)\n` +
     `🌙 *Durasi*      : ${booking.nights} Malam\n` +
     `💳 *Pembayaran*  : ${booking.paymentMethod.toUpperCase()} (LUNAS)\n` +
     `💰 *Total Bayar* : ${formatRupiah(booking.totalPrice)}\n` +
