@@ -36,8 +36,8 @@ const MENU_UTAMA = {
 const MENU_HOTEL = {
   text:
     '🏨 *Hotel SapaTamu*\n\n' +
-    'Saya siap membantu kebutuhan hotel Anda.\n\n' +
-    'Pilih layanan:',
+    'Selamat datang di layanan perhotelan SapaTamu. Kami menyediakan akomodasi nyaman bintang 4 dengan pelayanan 24 jam.\n\n' +
+    'Silakan pilih layanan yang Anda butuhkan:',
   items: [
     { title: '🛏️ Reservasi Kamar',  value: 'hotel_reservasi'   },
     { title: 'ℹ️ Info & Fasilitas', value: 'hotel_fasilitas'   },
@@ -49,8 +49,17 @@ const MENU_HOTEL = {
 
 const MENU_PILIH_KAMAR = {
   text:
-    '🛏️ *Reservasi Kamar Hotel SapaTamu*\n\n' +
-    'Pilih tipe kamar yang Anda inginkan:',
+    '🛏️ *Pilihan Kamar Hotel SapaTamu*\n\n' +
+    'Nikmati pengalaman menginap nyaman & berkelas bintang 4 dengan fasilitas lengkap:\n\n' +
+    '📌 *Daftar & Tarif Kamar:*\n' +
+    '• 🛏️ *Deluxe Room* — Rp 550.000 / malam\n' +
+    '  _Kasur King Size, AC, Smart TV 43", Balkon_\n\n' +
+    '• 🌟 *Executive Suite* — Rp 950.000 / malam\n' +
+    '  _Ruang Tamu, Jacuzzi, Espresso Maker, Lounge Access_\n\n' +
+    '• 👑 *Presidential Suite* — Rp 1.800.000 / malam\n' +
+    '  _2 Kamar Tidur, Dining Room, Mini Bar Gratis, 24h Butler_\n\n' +
+    '✨ _Semua tarif sudah termasuk sarapan, akses kolam renang, gym & WiFi._\n\n' +
+    '👇 *Silakan pilih tipe kamar yang Anda inginkan di bawah:*',
   items: [
     { title: '🛏️ Deluxe (Rp 550rb)',    value: 'book_room_deluxe'    },
     { title: '🌟 Executive (Rp 950rb)', value: 'book_room_executive' },
