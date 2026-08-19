@@ -25,4 +25,41 @@ function setStatus(conversationId, newStatus) {
   `).run(conversationId, newStatus);
 }
 
-module.exports = { getStatus, setStatus };
+/**
+ * Ambil draft pemesanan dari session.
+ */
+function getDraft(conversationId) {
+  const db  = getDb();
+  const row = db.prepare('SELECT booking_draft FROM session_state WHERE conversation_id = ?').get(conversationId);
+  if (!row || !row.booking_draft) return null;
+  try {
+    return JSON.parse(row.booking_draft);
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Simpan / update draft pemesanan ke session.
+ */
+function setDraft(conversationId, draftObj) {
+  const db = getDb();
+  const draftJson = draftObj ? JSON.stringify(draftObj) : null;
+  db.prepare(`
+    INSERT INTO session_state (conversation_id, booking_draft, updated_at)
+    VALUES (?, ?, datetime('now'))
+    ON CONFLICT(conversation_id) DO UPDATE
+      SET booking_draft = excluded.booking_draft,
+          updated_at    = excluded.updated_at
+  `).run(conversationId, draftJson);
+}
+
+/**
+ * Hapus draft pemesanan dari session.
+ */
+function clearDraft(conversationId) {
+  const db = getDb();
+  db.prepare('UPDATE session_state SET booking_draft = NULL WHERE conversation_id = ?').run(conversationId);
+}
+
+module.exports = { getStatus, setStatus, getDraft, setDraft, clearDraft };

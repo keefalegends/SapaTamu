@@ -13,15 +13,44 @@ function getDb() {
     db = new Database(DB_PATH);
     db.pragma('journal_mode = WAL');
 
-    // Buat tabel jika belum ada
+    // Buat tabel session_state jika belum ada
     db.exec(`
       CREATE TABLE IF NOT EXISTS session_state (
         conversation_id INTEGER PRIMARY KEY,
         status          TEXT NOT NULL DEFAULT 'idle',
+        booking_draft   TEXT,
         updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
-      )
+      );
+
+      CREATE TABLE IF NOT EXISTS bookings (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        booking_code    TEXT UNIQUE NOT NULL,
+        conversation_id INTEGER NOT NULL,
+        customer_phone  TEXT,
+        customer_name   TEXT NOT NULL,
+        room_type       TEXT NOT NULL,
+        check_in_date   TEXT NOT NULL,
+        nights          INTEGER NOT NULL DEFAULT 1,
+        total_price     INTEGER NOT NULL,
+        payment_method  TEXT NOT NULL,
+        status          TEXT NOT NULL DEFAULT 'pending',
+        created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+        paid_at         TEXT
+      );
     `);
-    console.log('✅ [DB] SQLite session.db siap digunakan');
+
+    // Migration jika kolom booking_draft belum ada di database lama
+    try {
+      const tableInfo = db.prepare(`PRAGMA table_info(session_state)`).all();
+      const hasDraft = tableInfo.some(col => col.name === 'booking_draft');
+      if (!hasDraft) {
+        db.exec(`ALTER TABLE session_state ADD COLUMN booking_draft TEXT;`);
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    console.log('✅ [DB] SQLite session.db & bookings table siap digunakan');
   }
   return db;
 }

@@ -119,4 +119,51 @@ async function jawab(pertanyaan) {
   }
 }
 
-module.exports = { jawab };
+/**
+ * Ekstrak entitas booking (tanggal, malam, nama, tipe kamar) dari input teks bebas
+ */
+async function parseBookingInput(text) {
+  const t = text.trim();
+  const lower = t.toLowerCase();
+
+  const result = {
+    roomKey: null,
+    nights: 1,
+    checkInDate: null,
+    customerName: null,
+  };
+
+  // 1. Ekstrak tipe kamar
+  if (lower.includes('presidential') || lower.includes('suite') || lower.includes('presiden')) {
+    result.roomKey = 'suite';
+  } else if (lower.includes('executive') || lower.includes('eksekutif')) {
+    result.roomKey = 'executive';
+  } else if (lower.includes('deluxe')) {
+    result.roomKey = 'deluxe';
+  }
+
+  // 2. Ekstrak durasi / jumlah malam
+  const nightMatch = lower.match(/(\d+)\s*(malam|hari|night)/i);
+  if (nightMatch) {
+    result.nights = parseInt(nightMatch[1]) || 1;
+  }
+
+  // 3. Ekstrak nama jika ada format "atas nama X" / "a/n X" / "nama: X"
+  const nameMatch = t.match(/\b(?:atas\s+nama|a\/n|nama)\b\s*[:=]?\s*([A-Za-z\s]{2,30})/i);
+  if (nameMatch) {
+    result.customerName = nameMatch[1].trim();
+  }
+
+  // 4. Ekstrak tanggal (format dd/mm, dd-mm, atau "25 Agustus", "besok", "lusa")
+  const dateMatch = t.match(/(\d{1,2}\s+(?:jan|feb|mar|apr|mei|jun|jul|agu|agt|sep|okt|nov|des)[a-z]*(?:\s+\d{2,4})?|\d{1,2}[-/]\d{1,2}(?:[-/]\d{2,4})?|besok|lusa|hari ini)/i);
+  if (dateMatch) {
+    result.checkInDate = dateMatch[1].trim();
+  } else if (!result.customerName && t.length < 40) {
+    // Jika teks pendek dan bukan nama, anggap sebagai tanggal
+    result.checkInDate = t;
+  }
+
+  return result;
+}
+
+module.exports = { jawab, parseBookingInput };
