@@ -289,7 +289,7 @@ router.post('/', async (req, res) => {
   if (event !== 'message_created' || msgType !== 'incoming') return;
   if (!content || !convId) return;
 
-  const session = getStatus(convId);
+  let session = getStatus(convId);
   console.log(`📊 [SESSION] Conv ${convId} | Status: ${session} | Pesan: "${content.substring(0, 40)}"`);
 
   try {
