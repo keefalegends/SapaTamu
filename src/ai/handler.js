@@ -142,24 +142,49 @@ async function parseBookingInput(text) {
     result.roomKey = 'deluxe';
   }
 
-  // 2. Ekstrak durasi / jumlah malam
+  // 2. Ekstrak rentang tanggal: "20 Agustus sampai 21 Agustus" atau "20 - 22 Agustus"
+  const rangeMatch = t.match(/(\d{1,2})\s*(?:[A-Za-z]+)?\s*(?:sampai|-|s\/d|hingga)\s*(\d{1,2})\s*([A-Za-z]+(?:\s+\d{2,4})?)/i);
+  if (rangeMatch) {
+    const d1 = parseInt(rangeMatch[1]);
+    const d2 = parseInt(rangeMatch[2]);
+    const monthYear = rangeMatch[3];
+    if (d2 > d1) {
+      result.nights = d2 - d1;
+    }
+    result.checkInDate = `${d1} ${monthYear}`;
+  } else {
+    // Tanggal tunggal
+    const dateMatch = t.match(/(\d{1,2}\s+(?:jan|feb|mar|apr|mei|jun|jul|agu|agt|sep|okt|nov|des)[a-z]*(?:\s+\d{2,4})?|\d{1,2}[-/]\d{1,2}(?:[-/]\d{2,4})?|besok|lusa|hari ini)/i);
+    if (dateMatch) {
+      result.checkInDate = dateMatch[1].trim();
+    }
+  }
+
+  // 3. Ekstrak durasi jika ditulis eksplisit: "X malam" / "X hari"
   const nightMatch = lower.match(/(\d+)\s*(malam|hari|night)/i);
   if (nightMatch) {
     result.nights = parseInt(nightMatch[1]) || 1;
   }
 
-  // 3. Ekstrak nama jika ada format "atas nama X" / "a/n X" / "nama: X"
-  const nameMatch = t.match(/\b(?:atas\s+nama|a\/n|nama)\b\s*[:=]?\s*([A-Za-z\s]{2,30})/i);
-  if (nameMatch) {
-    result.customerName = nameMatch[1].trim();
+  // 4. Ekstrak nama
+  // Pola A: "atas nama X" / "nama: X" / "a/n X"
+  const explicitName = t.match(/\b(?:atas\s+nama|a\/n|nama)\b\s*[:=]?\s*([A-Za-z\s]{2,30})/i);
+  if (explicitName) {
+    result.customerName = explicitName[1].trim();
+  } else if (result.checkInDate) {
+    // Pola B: Nama ditaruh di awal sebelum tanggal, contoh "Keefa Youra Pambudi 20 Agustus..."
+    const firstWordOfDate = result.checkInDate.split(' ')[0];
+    const idx = t.toLowerCase().indexOf(firstWordOfDate.toLowerCase());
+    if (idx > 2) {
+      const potentialName = t.substring(0, idx).trim().replace(/[,\-:]+$/, '').trim();
+      if (potentialName.length >= 3 && !/^(mau|pesan|booking|saya|tolong|kamar)\b/i.test(potentialName)) {
+        result.customerName = potentialName;
+      }
+    }
   }
 
-  // 4. Ekstrak tanggal (format dd/mm, dd-mm, atau "25 Agustus", "besok", "lusa")
-  const dateMatch = t.match(/(\d{1,2}\s+(?:jan|feb|mar|apr|mei|jun|jul|agu|agt|sep|okt|nov|des)[a-z]*(?:\s+\d{2,4})?|\d{1,2}[-/]\d{1,2}(?:[-/]\d{2,4})?|besok|lusa|hari ini)/i);
-  if (dateMatch) {
-    result.checkInDate = dateMatch[1].trim();
-  } else if (!result.customerName && t.length < 40) {
-    // Jika teks pendek dan bukan nama, anggap sebagai tanggal
+  // Fallback tanggal jika tidak terdeteksi
+  if (!result.checkInDate && t.length < 40 && !result.customerName) {
     result.checkInDate = t;
   }
 

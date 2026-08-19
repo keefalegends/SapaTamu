@@ -60,9 +60,9 @@ const MENU_PILIH_KAMAR = {
 };
 
 const MENU_DRAFT_ACTION = [
-  { title: '💳 Lanjut Pembayaran', value: 'booking_pay_step'    },
-  { title: '✏️ Ganti Tanggal/Nama', value: 'booking_change_date' },
-  { title: '❌ Batalkan Pemesanan', value: 'booking_cancel'      },
+  { title: '💳 Lanjut Bayar',   value: 'booking_pay_step'    },
+  { title: '✏️ Ganti Tanggal',  value: 'booking_change_date' },
+  { title: '❌ Batalkan',        value: 'booking_cancel'      },
 ];
 
 const MENU_PAYMENT_METHOD = {
@@ -70,15 +70,15 @@ const MENU_PAYMENT_METHOD = {
     '💳 *Pilih Metode Pembayaran (Demo):*\n\n' +
     'Silakan pilih cara pembayaran simulasi di bawah ini:',
   items: [
-    { title: '📱 QRIS (Demo)',         value: 'pay_method_qris' },
-    { title: '🏦 Virtual Account BCA', value: 'pay_method_va'   },
-    { title: '❌ Batalkan',            value: 'booking_cancel'  },
+    { title: '📱 QRIS (Demo)',    value: 'pay_method_qris' },
+    { title: '🏦 VA BCA (Demo)',  value: 'pay_method_va'   },
+    { title: '❌ Batalkan',       value: 'booking_cancel'  },
   ],
 };
 
 const MENU_PAYMENT_CONFIRM = [
-  { title: '✅ Saya Sudah Bayar', value: 'confirm_payment_paid' },
-  { title: '❌ Batalkan',         value: 'booking_cancel'       },
+  { title: '✅ Sudah Bayar', value: 'confirm_payment_paid' },
+  { title: '❌ Batalkan',    value: 'booking_cancel'       },
 ];
 
 const MENU_KAFE = {
@@ -309,6 +309,7 @@ router.post('/', async (req, res) => {
   const content     = (body.content || '').trim();
   const msgType     = body.message_type;
   const senderPhone = body.conversation?.meta?.sender?.phone_number || body.conversation?.contact_inbox?.source_id || body.sender?.phone_number || '';
+  const senderName  = body.conversation?.meta?.sender?.name || body.conversation?.contact_inbox?.name || body.sender?.name || '';
   const convStatus  = body.conversation?.status || body.status;
 
   console.log(`\n📨 [CHATWOOT] Event: ${event} | Conv: ${convId}`);
@@ -369,6 +370,9 @@ router.post('/', async (req, res) => {
     if (session === 'booking_await_date' && !action) {
       console.log(`📅 [BOOKING DATE] Conv ${convId} Parsing tanggal: "${content}"`);
       const parsed = await parseBookingInput(content);
+      if (!parsed.customerName && senderName) {
+        parsed.customerName = senderName;
+      }
       const draft  = updateBookingDraft(convId, parsed);
 
       setStatus(convId, 'booking_confirm_draft');
@@ -669,6 +673,9 @@ router.post('/', async (req, res) => {
       const lower = content.toLowerCase();
       if (lower.includes('booking') || lower.includes('pesan kamar') || lower.includes('reservasi kamar')) {
         const parsed = await parseBookingInput(content);
+        if (!parsed.customerName && senderName) {
+          parsed.customerName = senderName;
+        }
         const roomKey = parsed.roomKey || 'deluxe';
         const draft = updateBookingDraft(convId, { ...parsed, roomKey });
 
