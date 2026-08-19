@@ -58,48 +58,105 @@ async function sendMenuMessage(conversationId, text, items) {
   }
 }
 
+const mediaCache = new Map();
+
 /**
- * Kirim gambar lokal beserta caption ke Chatwoot.
+ * Kirim gambar lokal beserta caption ke WhatsApp via Meta Cloud API & catat ke Chatwoot.
  * @param {number|string} conversationId
  * @param {string} imageFilePath - Path absolut/relatif file gambar
  * @param {string} [caption] - Teks keterangan foto
+ * @param {string} [recipientPhone] - Nomor WhatsApp tujuan (opsional)
  */
-async function sendImageMessage(conversationId, imageFilePath, caption = '') {
+async function sendImageMessage(conversationId, imageFilePath, caption = '', recipientPhone = '') {
   const fullPath = path.isAbsolute(imageFilePath)
     ? imageFilePath
     : path.join(__dirname, '../../', imageFilePath);
 
   if (!fs.existsSync(fullPath)) {
-    console.error(`❌ [Chatwoot] File gambar tidak ditemukan di: ${fullPath}`);
+    console.error(`❌ [Media] File gambar tidak ditemukan di: ${fullPath}`);
+    if (caption) await sendMessage(conversationId, caption);
     return false;
   }
 
+  const token   = process.env.WHATSAPP_TOKEN;
+  const phoneId = process.env.PHONE_NUMBER_ID || '1289827514206711';
+
   try {
-    const fileBuffer = fs.readFileSync(fullPath);
-    const fileName   = path.basename(fullPath);
-    const mimeType   = fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
-    const blob       = new Blob([fileBuffer], { type: mimeType });
+    // 1. Dapatkan atau upload media ke Meta WhatsApp Media API
+    const fileStats = fs.statSync(fullPath);
+    const cacheKey  = `${fullPath}_${fileStats.mtimeMs}`;
+    let mediaId     = mediaCache.get(cacheKey);
 
-    const form = new FormData();
-    if (caption) form.append('content', caption);
-    form.append('message_type', 'outgoing');
-    form.append('private', 'false');
-    form.append('attachments[]', blob, fileName);
+    if (!mediaId) {
+      const fileBuffer = fs.readFileSync(fullPath);
+      const fileName   = path.basename(fullPath);
+      const mimeType   = fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      const blob       = new Blob([fileBuffer], { type: mimeType });
 
-    await axios.post(
-      `${BASE()}/conversations/${conversationId}/messages`,
-      form,
-      {
-        headers: {
-          'api_access_token': config.chatwootApiToken,
-        },
-        timeout: 15000,
+      const form = new FormData();
+      form.append('messaging_product', 'whatsapp');
+      form.append('file', blob, fileName);
+      form.append('type', mimeType);
+
+      const uploadRes = await axios.post(
+        `https://graph.facebook.com/v20.0/${phoneId}/media`,
+        form,
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 20000 }
+      );
+      mediaId = uploadRes.data?.id;
+      if (mediaId) {
+        mediaCache.set(cacheKey, mediaId);
+        console.log(`✅ [Meta Media] Upload berhasil, mediaId: ${mediaId}`);
       }
-    );
-    console.log(`✅ [Chatwoot] Gambar terkirim ke Conv ${conversationId}: ${fileName}`);
+    }
+
+    // 2. Dapatkan nomor telepon penerima jika belum disediakan
+    let targetPhone = recipientPhone;
+    if (!targetPhone) {
+      const convRes = await axios.get(
+        `${BASE()}/conversations/${conversationId}`,
+        { headers: getHeaders(), timeout: 10000 }
+      );
+      const meta = convRes.data?.meta;
+      targetPhone = meta?.sender?.phone_number || convRes.data?.contact_inbox?.source_id;
+    }
+
+    // 3. Kirim pesan gambar langsung ke WhatsApp jika ada nomor tujuan
+    if (targetPhone && mediaId) {
+      const cleanPhone = targetPhone.replace(/\D/g, '');
+      await axios.post(
+        `https://graph.facebook.com/v20.0/${phoneId}/messages`,
+        {
+          messaging_product: 'whatsapp',
+          recipient_type:    'individual',
+          to:                cleanPhone,
+          type:              'image',
+          image: {
+            id:      mediaId,
+            caption: caption || '',
+          },
+        },
+        {
+          headers: {
+            Authorization:  `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 15000,
+        }
+      );
+      console.log(`✅ [WhatsApp Direct] Gambar terkirim ke ${cleanPhone}`);
+    }
+
+    // 4. Catat teks ke Chatwoot dashboard agar riwayat percakapan tercatat
+    if (caption) {
+      await sendMessage(conversationId, `📷 *[Foto Menu Terkirim]*\n\n${caption}`);
+    }
+
     return true;
   } catch (err) {
-    console.error(`❌ [Chatwoot] Gagal kirim gambar:`, err.response?.data || err.message);
+    console.error(`❌ [Media Error] Gagal kirim gambar via WhatsApp Direct:`, err.response?.data || err.message);
+    // Fallback: kirim teksnya ke Chatwoot
+    if (caption) await sendMessage(conversationId, caption);
     return false;
   }
 }

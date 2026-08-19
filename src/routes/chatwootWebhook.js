@@ -251,12 +251,13 @@ router.post('/', async (req, res) => {
   const body = req.body;
   if (!body) return;
 
-  const event      = body.event;
-  const convId     = body.conversation?.id || body.id;
-  const content    = (body.content || '').trim();
-  const msgType    = body.message_type;
+  const event       = body.event;
+  const convId      = body.conversation?.id || body.id;
+  const content     = (body.content || '').trim();
+  const msgType     = body.message_type;
+  const senderPhone = body.conversation?.meta?.sender?.phone_number || body.conversation?.contact_inbox?.source_id || body.sender?.phone_number || '';
   // Status bisa di body.conversation.status ATAU body.status (tergantung event type)
-  const convStatus = body.conversation?.status || body.status;
+  const convStatus  = body.conversation?.status || body.status;
 
   console.log(`\n📨 [CHATWOOT] Event: ${event} | Conv: ${convId}`);
 
@@ -368,7 +369,7 @@ router.post('/', async (req, res) => {
           case 'hotel_reservasi': {
             const imgPath = getImageIfExists('hotel_kamar') || getImageIfExists('hotel_reservasi');
             if (imgPath) {
-              await sendImageMessage(convId, imgPath, STATIC.hotel_reservasi);
+              await sendImageMessage(convId, imgPath, STATIC.hotel_reservasi, senderPhone);
             } else {
               await sendMessage(convId, STATIC.hotel_reservasi);
             }
@@ -378,7 +379,7 @@ router.post('/', async (req, res) => {
           case 'hotel_fasilitas': {
             const imgPath = getImageIfExists('hotel_fasilitas');
             if (imgPath) {
-              await sendImageMessage(convId, imgPath, STATIC.hotel_fasilitas);
+              await sendImageMessage(convId, imgPath, STATIC.hotel_fasilitas, senderPhone);
             } else {
               await sendMessage(convId, STATIC.hotel_fasilitas);
             }
@@ -392,7 +393,7 @@ router.post('/', async (req, res) => {
           case 'kafe_menu': {
             const imgPath = getImageIfExists('menu_kafe') || getImageIfExists('kafe_menu');
             if (imgPath) {
-              await sendImageMessage(convId, imgPath, STATIC.kafe_menu);
+              await sendImageMessage(convId, imgPath, STATIC.kafe_menu, senderPhone);
             } else {
               await sendMessage(convId, STATIC.kafe_menu);
             }
