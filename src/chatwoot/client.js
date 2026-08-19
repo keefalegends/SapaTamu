@@ -147,9 +147,13 @@ async function sendImageMessage(conversationId, imageFilePath, caption = '', rec
       console.log(`✅ [WhatsApp Direct] Gambar terkirim ke ${cleanPhone}`);
     }
 
-    // 4. Catat teks ke Chatwoot dashboard agar riwayat percakapan tercatat
+    // 4. Catat riwayat ke Chatwoot sebagai Private Note (tidak dikirim ulang ke WhatsApp)
     if (caption) {
-      await sendMessage(conversationId, `📷 *[Foto Menu Terkirim]*\n\n${caption}`);
+      await axios.post(
+        `${BASE()}/conversations/${conversationId}/messages`,
+        { content: `📷 [Foto Terkirim ke User]\n\n${caption}`, message_type: 'outgoing', private: true },
+        { headers: getHeaders(), timeout: 10000 }
+      ).catch(() => {});
     }
 
     return true;
