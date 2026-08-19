@@ -6,7 +6,9 @@ const { getStatus, setStatus } = require('../session/manager');
 const { cekEskalasi }          = require('../escalation/detector');
 const { eksekusiEskalasi }     = require('../escalation/service');
 const { jawab }                = require('../ai/handler');
-const { sendMessage, sendMenuMessage } = require('../chatwoot/client');
+const { sendMessage, sendMenuMessage, sendImageMessage } = require('../chatwoot/client');
+const fs   = require('fs');
+const path = require('path');
 
 // ─── MENU DEFINITIONS ─────────────────────────────────────────────────────────
 
@@ -231,6 +233,16 @@ async function replyAI(convId, content) {
   }
 }
 
+function getImageIfExists(baseName) {
+  const extensions = ['.jpg', '.jpeg', '.png', '.webp'];
+  const dir = path.join(__dirname, '../../public/images');
+  for (const ext of extensions) {
+    const fullPath = path.join(dir, `${baseName}${ext}`);
+    if (fs.existsSync(fullPath)) return fullPath;
+  }
+  return null;
+}
+
 // ─── MAIN WEBHOOK HANDLER ─────────────────────────────────────────────────────
 
 router.post('/', async (req, res) => {
@@ -353,21 +365,39 @@ router.post('/', async (req, res) => {
               'Staf kami akan segera membalas. Mohon tunggu sebentar 🙏');
             return;
 
-          case 'hotel_reservasi':
-            await sendMessage(convId, STATIC.hotel_reservasi);
+          case 'hotel_reservasi': {
+            const imgPath = getImageIfExists('hotel_kamar') || getImageIfExists('hotel_reservasi');
+            if (imgPath) {
+              await sendImageMessage(convId, imgPath, STATIC.hotel_reservasi);
+            } else {
+              await sendMessage(convId, STATIC.hotel_reservasi);
+            }
             return;
+          }
 
-          case 'hotel_fasilitas':
-            await sendMessage(convId, STATIC.hotel_fasilitas);
+          case 'hotel_fasilitas': {
+            const imgPath = getImageIfExists('hotel_fasilitas');
+            if (imgPath) {
+              await sendImageMessage(convId, imgPath, STATIC.hotel_fasilitas);
+            } else {
+              await sendMessage(convId, STATIC.hotel_fasilitas);
+            }
             return;
+          }
 
           case 'hotel_roomservice':
             await sendMessage(convId, STATIC.hotel_roomservice);
             return;
 
-          case 'kafe_menu':
-            await sendMessage(convId, STATIC.kafe_menu);
+          case 'kafe_menu': {
+            const imgPath = getImageIfExists('menu_kafe') || getImageIfExists('kafe_menu');
+            if (imgPath) {
+              await sendImageMessage(convId, imgPath, STATIC.kafe_menu);
+            } else {
+              await sendMessage(convId, STATIC.kafe_menu);
+            }
             return;
+          }
 
           case 'kafe_reservasi':
             await sendMessage(convId, STATIC.kafe_reservasi);

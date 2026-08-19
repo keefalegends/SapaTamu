@@ -29,6 +29,9 @@ async function sendMessage(conversationId, text) {
   }
 }
 
+const fs    = require('fs');
+const path  = require('path');
+
 /**
  * Kirim pesan menu (input_select / inline buttons) ke Chatwoot.
  * items: [{ title: 'Label', value: 'callback_value' }]
@@ -51,6 +54,52 @@ async function sendMenuMessage(conversationId, text, items) {
     return true;
   } catch (err) {
     console.error(`❌ [Chatwoot] Gagal kirim menu:`, err.response?.data || err.message);
+    return false;
+  }
+}
+
+/**
+ * Kirim gambar lokal beserta caption ke Chatwoot.
+ * @param {number|string} conversationId
+ * @param {string} imageFilePath - Path absolut/relatif file gambar
+ * @param {string} [caption] - Teks keterangan foto
+ */
+async function sendImageMessage(conversationId, imageFilePath, caption = '') {
+  const fullPath = path.isAbsolute(imageFilePath)
+    ? imageFilePath
+    : path.join(__dirname, '../../', imageFilePath);
+
+  if (!fs.existsSync(fullPath)) {
+    console.error(`❌ [Chatwoot] File gambar tidak ditemukan di: ${fullPath}`);
+    return false;
+  }
+
+  try {
+    const fileBuffer = fs.readFileSync(fullPath);
+    const fileName   = path.basename(fullPath);
+    const mimeType   = fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
+    const blob       = new Blob([fileBuffer], { type: mimeType });
+
+    const form = new FormData();
+    if (caption) form.append('content', caption);
+    form.append('message_type', 'outgoing');
+    form.append('private', 'false');
+    form.append('attachments[]', blob, fileName);
+
+    await axios.post(
+      `${BASE()}/conversations/${conversationId}/messages`,
+      form,
+      {
+        headers: {
+          'api_access_token': config.chatwootApiToken,
+        },
+        timeout: 15000,
+      }
+    );
+    console.log(`✅ [Chatwoot] Gambar terkirim ke Conv ${conversationId}: ${fileName}`);
+    return true;
+  } catch (err) {
+    console.error(`❌ [Chatwoot] Gagal kirim gambar:`, err.response?.data || err.message);
     return false;
   }
 }
@@ -105,4 +154,4 @@ async function changeConversationStatus(conversationId, status) {
   }
 }
 
-module.exports = { sendMessage, sendMenuMessage, assignConversation, changeConversationStatus };
+module.exports = { sendMessage, sendMenuMessage, sendImageMessage, assignConversation, changeConversationStatus };
