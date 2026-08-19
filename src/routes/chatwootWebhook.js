@@ -243,6 +243,21 @@ function getImageIfExists(baseName) {
   return null;
 }
 
+async function sendWelcomeWithImage(convId, senderPhone) {
+  const hotelImg = getImageIfExists('hotel_sapatamu');
+  if (hotelImg && senderPhone) {
+    await sendImageMessage(
+      convId,
+      hotelImg,
+      '👋 *Selamat Datang di SapaTamu!*\n\nHalo! Saya asisten virtual SapaTamu, siap membantu Anda 24/7.',
+      senderPhone
+    );
+    await sendMenuMessage(convId, 'Pilih layanan yang Anda butuhkan:', MENU_UTAMA.items);
+  } else {
+    await sendMenuMessage(convId, MENU_UTAMA.text, MENU_UTAMA.items);
+  }
+}
+
 // ─── MAIN WEBHOOK HANDLER ─────────────────────────────────────────────────────
 
 router.post('/', async (req, res) => {
@@ -326,8 +341,8 @@ router.post('/', async (req, res) => {
         console.log(`🔘 [BUTTON dari IDLE] Conv ${convId} | Action: ${action}`);
         session = 'ai_active'; // fall-through ke handler ai_active di bawah
       } else if (isGreeting(content)) {
-        // Salam → welcome + menu
-        await sendMenuMessage(convId, MENU_UTAMA.text, MENU_UTAMA.items);
+        // Salam → welcome dengan foto Hotel SapaTamu + menu
+        await sendWelcomeWithImage(convId, senderPhone);
         return;
       } else {
         // Free text → welcome singkat + AI jawab
@@ -350,13 +365,27 @@ router.post('/', async (req, res) => {
         console.log(`🔘 [BUTTON] Conv ${convId} | Action: ${action}`);
 
         switch (action) {
-          case 'menu_kafe':
-            await sendMenuMessage(convId, MENU_KAFE.text, MENU_KAFE.items);
+          case 'menu_kafe': {
+            const cafeImg = getImageIfExists('cafe_sapatamu');
+            if (cafeImg && senderPhone) {
+              await sendImageMessage(convId, cafeImg, '☕ *Kafe SapaTamu*\n\nKami buka setiap hari 07.00 – 22.00 WIB.', senderPhone);
+              await sendMenuMessage(convId, 'Pilih layanan kafe:', MENU_KAFE.items);
+            } else {
+              await sendMenuMessage(convId, MENU_KAFE.text, MENU_KAFE.items);
+            }
             return;
+          }
 
-          case 'menu_hotel':
-            await sendMenuMessage(convId, MENU_HOTEL.text, MENU_HOTEL.items);
+          case 'menu_hotel': {
+            const hotelImg = getImageIfExists('hotel_sapatamu');
+            if (hotelImg && senderPhone) {
+              await sendImageMessage(convId, hotelImg, '🏨 *Hotel SapaTamu*\n\nSaya siap membantu kebutuhan hotel Anda.', senderPhone);
+              await sendMenuMessage(convId, 'Pilih layanan hotel:', MENU_HOTEL.items);
+            } else {
+              await sendMenuMessage(convId, MENU_HOTEL.text, MENU_HOTEL.items);
+            }
             return;
+          }
 
           case 'menu_cs':
           case 'escalate_human':
@@ -405,7 +434,7 @@ router.post('/', async (req, res) => {
             return;
 
           case 'goto_main':
-            await sendMenuMessage(convId, MENU_UTAMA.text, MENU_UTAMA.items);
+            await sendWelcomeWithImage(convId, senderPhone);
             return;
 
           case 'ai_tanya_lagi':
@@ -421,12 +450,9 @@ router.post('/', async (req, res) => {
       // ── Free text → cek greeting dulu, baru AI ───────────────────────────
       console.log(`🤖 [AI MODE] Conv ${convId} — free text → AI`);
 
-      // Kalau user kirim ulang salam → cukup tampilkan menu lagi
+      // Kalau user kirim ulang salam → welcome dengan foto Hotel SapaTamu + menu
       if (isGreeting(content)) {
-        await sendMenuMessage(convId,
-          '😊 Halo lagi! Silakan pilih layanan yang Anda butuhkan:',
-          MENU_UTAMA.items
-        );
+        await sendWelcomeWithImage(convId, senderPhone);
         return;
       }
 
