@@ -377,7 +377,7 @@ router.post('/', async (req, res) => {
           }
 
           case 'menu_hotel': {
-            const hotelImg = getImageIfExists('hotel_sapatamu');
+            const hotelImg = getImageIfExists('lobby_hotel') || getImageIfExists('hotel_sapatamu');
             if (hotelImg && senderPhone) {
               await sendImageMessage(convId, hotelImg, '🏨 *Hotel SapaTamu*\n\nSaya siap membantu kebutuhan hotel Anda.', senderPhone);
               await sendMenuMessage(convId, 'Pilih layanan hotel:', MENU_HOTEL.items);
