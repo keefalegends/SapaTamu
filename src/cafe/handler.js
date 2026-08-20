@@ -170,8 +170,23 @@ async function handleChooseType(convId, contactId, senderPhone, text, senderName
     return;
   }
 
-  // Unrecognized — show options again
-  await sendMenuMessage(convId, 'Pilih layanan:', [
+  // Try AI response for questions like "jam berapa buka?", "lokasi di mana?"
+  const { jawab } = require('../ai/handler');
+  const { eksekusiEskalasi } = require('../escalation/service');
+  console.log(`🤖 [CAFÉ AI] Answering question during choose type: "${text}"`);
+  const aiResp = await jawab(text);
+
+  if (aiResp.eskalasi) {
+    await eksekusiEskalasi(convId, 'ai_unhandled');
+    return;
+  }
+
+  if (aiResp.jawaban) {
+    await sendMessage(convId, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
+  }
+
+  // Show options again
+  await sendMenuMessage(convId, 'Pilih layanan kafe:', [
     { title: '🍽️ Makan di Tempat', value: 'cafe_dinein' },
     { title: '🛍️ Takeaway',        value: 'cafe_takeaway' },
     { title: '📅 Reservasi Meja',   value: 'cafe_reservasi' },
@@ -261,6 +276,27 @@ async function handleOrdering(convId, text) {
     setDraft(convId, draft);
     await sendMessage(convId, parsed.message);
     await sendMenuMessage(convId, 'Mau apa lagi?', renderer.afterAddButtons());
+    return;
+  }
+
+  // Free-text: Call AI to answer user question!
+  const { jawab } = require('../ai/handler');
+  const { eksekusiEskalasi } = require('../escalation/service');
+  console.log(`🤖 [CAFÉ AI] Answering question during ordering: "${text}"`);
+  const aiResp = await jawab(text);
+
+  if (aiResp.eskalasi) {
+    await eksekusiEskalasi(convId, 'ai_unhandled');
+    return;
+  }
+
+  if (aiResp.jawaban) {
+    await sendMessage(convId, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
+    if (draft.cart && draft.cart.length > 0) {
+      await sendMenuMessage(convId, 'Lanjutkan pesanan Anda:', renderer.afterAddButtons());
+    } else {
+      await sendMenuMessage(convId, 'Pilih menu kafe:', renderer.categoryButtons());
+    }
     return;
   }
 

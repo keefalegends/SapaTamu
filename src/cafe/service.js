@@ -18,21 +18,33 @@ function findMenuItem(itemId) {
 function fuzzyFindItem(text) {
   const lower = text.toLowerCase().trim();
   if (!lower) return null;
+  const clean = lower.replace(/[^\w\s]/g, '').trim();
 
   // Exact match first
   for (const cat of menu.categories) {
-    const exact = cat.items.find(i => i.name.toLowerCase() === lower);
+    const exact = cat.items.find(i => {
+      const iName = i.name.toLowerCase().replace(/[^\w\s]/g, '').trim();
+      return iName === clean || i.id === clean;
+    });
     if (exact) return exact;
   }
   // Partial match
   for (const cat of menu.categories) {
-    const partial = cat.items.find(i => i.name.toLowerCase().includes(lower));
+    const partial = cat.items.find(i => {
+      const iName = i.name.toLowerCase().replace(/[^\w\s]/g, '').trim();
+      return iName.includes(clean);
+    });
     if (partial) return partial;
   }
-  // Reverse partial (user text contains item name)
-  for (const cat of menu.categories) {
-    const rev = cat.items.find(i => lower.includes(i.name.toLowerCase()));
-    if (rev) return rev;
+  // Reverse partial ONLY if clean is short
+  if (clean.length <= 25) {
+    for (const cat of menu.categories) {
+      const rev = cat.items.find(i => {
+        const iName = i.name.toLowerCase().replace(/[^\w\s]/g, '').trim();
+        return clean.includes(iName);
+      });
+      if (rev) return rev;
+    }
   }
   return null;
 }
@@ -80,8 +92,19 @@ function recalcTotal(draft) {
 
 // ─── Free-text Cart Modification ────────────────────────────────────────────
 
+function isQuestion(text) {
+  const lower = text.toLowerCase().trim();
+  const qWords = ['?', 'berapa', 'apa', 'apakah', 'gimana', 'kenapa', 'bagaimana', 'rekomendasi', 'enak', 'total', 'manis', 'pedas', 'halal', 'bisa', 'ada apa', 'isinya', 'kalo', 'kalau', 'siapa', 'dimana', 'kapan'];
+  return qWords.some(w => lower.includes(w));
+}
+
 function parseCartModification(text, draft) {
   const lower = text.toLowerCase().trim();
+
+  // If it's a question or inquiry, do NOT parse as order modification! Let AI handle it!
+  if (isQuestion(lower)) {
+    return null;
+  }
 
   // "hapus espresso" / "remove latte" / "batal croissant"
   const hapusMatch = lower.match(/^(hapus|remove|batal)\s+(.+)/);
@@ -93,27 +116,43 @@ function parseCartModification(text, draft) {
     }
   }
 
-  // "espresso 3" / "3 espresso" / "espresso x3"
-  const qtyMatch = lower.match(/^(.+?)\s*[x×]\s*(\d+)$/)
-    || lower.match(/^(.+?)\s+(\d+)$/)
-    || lower.match(/^(\d+)\s*[x×]?\s*(.+)$/);
-  if (qtyMatch) {
-    const [, a, b] = qtyMatch;
-    const nameStr = isNaN(a) ? a : b;
-    const qtyStr = isNaN(a) ? b : a;
-    const found = fuzzyFindItem(nameStr.trim());
-    if (found) {
-      const qty = parseInt(qtyStr, 10);
-      addToCart(draft, found.id, qty);
-      return { message: `✅ ${found.name} x${qty} ditambahkan — ${formatRupiah(found.price * qty)}` };
+  // Multi-item / Single-item parsing e.g. "pesan 1 nasi goreng dan 2 espresso" / "croissant 3"
+  const itemsToAdd = [];
+  const parts = lower.split(/[,;\n]|(?:\s+dan\s+)|\+/);
+
+  for (const part of parts) {
+    const p = part.trim().replace(/^(pesan|tambah|order|beli|minta)\s+/i, '');
+    if (!p) continue;
+
+    const qtyMatch = p.match(/^(.+?)\s*[x×]\s*(\d+)$/)
+      || p.match(/^(.+?)\s+(\d+)$/)
+      || p.match(/^(\d+)\s*[x×]?\s*(.+)$/);
+
+    if (qtyMatch) {
+      const [, a, b] = qtyMatch;
+      const nameStr = isNaN(a) ? a : b;
+      const qtyStr = isNaN(a) ? b : a;
+      const found = fuzzyFindItem(nameStr.trim());
+      if (found) {
+        const qty = parseInt(qtyStr, 10);
+        if (qty > 0) itemsToAdd.push({ item: found, qty });
+      }
+    } else {
+      const found = fuzzyFindItem(p);
+      if (found && p.length <= found.name.length + 8) {
+        itemsToAdd.push({ item: found, qty: 1 });
+      }
     }
   }
 
-  // Plain item name → add 1
-  const found = fuzzyFindItem(lower);
-  if (found) {
-    addToCart(draft, found.id, 1);
-    return { message: `✅ ${found.name} x1 ditambahkan — ${formatRupiah(found.price)}` };
+  if (itemsToAdd.length > 0) {
+    const messages = [];
+    for (const { item, qty } of itemsToAdd) {
+      addToCart(draft, item.id, qty);
+      messages.push(`✅ ${item.name} x${qty} — ${formatRupiah(item.price * qty)}`);
+    }
+    messages.push(`\n💰 Total: *${formatRupiah(draft.totalAmount)}*`);
+    return { message: messages.join('\n') };
   }
 
   return null;
