@@ -145,26 +145,32 @@ async function parseBookingInput(text) {
   // 2. Ekstrak rentang tanggal: "19 Agustus sampai 20 Agustus" atau "19 - 21 Agustus"
   const rangeMatch = t.match(/(\d{1,2})\s*(?:[A-Za-z]+)?\s*(?:sampai|-|s\/d|hingga)\s*(\d{1,2})\s*([A-Za-z]+(?:\s+\d{2,4})?)/i);
   if (rangeMatch) {
-    const d1 = parseInt(rangeMatch[1]);
-    const d2 = parseInt(rangeMatch[2]);
+    let d1 = Math.min(31, Math.max(1, parseInt(rangeMatch[1]) || 1));
+    let d2 = Math.min(31, Math.max(1, parseInt(rangeMatch[2]) || 1));
     const monthYear = rangeMatch[3];
     if (d2 > d1) {
-      result.nights = d2 - d1;
+      result.nights = Math.min(30, d2 - d1);
     }
     result.checkInDate = `${d1} ${monthYear}`;
     result.checkOutDate = `${d2} ${monthYear}`;
   } else {
-    // Tanggal tunggal
-    const dateMatch = t.match(/(\d{1,2}\s+(?:jan|feb|mar|apr|mei|jun|jul|agu|agt|sep|okt|nov|des)[a-z]*(?:\s+\d{2,4})?|\d{1,2}[-/]\d{1,2}(?:[-/]\d{2,4})?|besok|lusa|hari ini)/i);
+    // Tanggal tunggal (format: 1-31 nama_bulan)
+    const dateMatch = t.match(/(\d{1,2})\s+((?:jan|feb|mar|apr|mei|jun|jul|agu|agt|sep|okt|nov|des)[a-z]*(?:\s+\d{2,4})?)/i);
     if (dateMatch) {
-      result.checkInDate = dateMatch[1].trim();
+      const d = Math.min(31, Math.max(1, parseInt(dateMatch[1]) || 1));
+      result.checkInDate = `${d} ${dateMatch[2]}`.trim();
+    } else {
+      const relDate = t.match(/(besok|lusa|hari ini|\d{1,2}[-/]\d{1,2}(?:[-/]\d{2,4})?)/i);
+      if (relDate) {
+        result.checkInDate = relDate[1].trim();
+      }
     }
   }
 
   // 3. Ekstrak durasi jika ditulis eksplisit: "X malam" / "X hari"
   const nightMatch = lower.match(/(\d+)\s*(malam|hari|night)/i);
   if (nightMatch) {
-    result.nights = parseInt(nightMatch[1]) || 1;
+    result.nights = Math.min(30, Math.max(1, parseInt(nightMatch[1]) || 1));
   }
 
   // 4. Ekstrak nama
