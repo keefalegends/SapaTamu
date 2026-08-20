@@ -20,28 +20,43 @@ const CAFE_VALUES = new Set([
 function detectCafeAction(text) {
   if (!text) return null;
   const lower = text.toLowerCase().trim();
+  const clean = lower.replace(/[^\w\s]/g, '').trim();
 
-  // Exact value match
-  if (CAFE_VALUES.has(lower)) return lower;
-  if (CAFE_VALUES.has(text.trim())) return text.trim();
-
-  // Category buttons: cat_minuman, cat_makanan
+  // Exact callback match
   if (/^cat_\w+$/.test(lower)) return lower;
-
-  // Item buttons: item_esp, item_lat, etc.
   if (/^item_\w+$/.test(lower)) return lower;
 
-  // Fuzzy text matching for common phrases
+  const menu = require('./menu.json');
+
+  // 1. Dynamic Category Match from menu.json
+  for (const cat of menu.categories) {
+    const catNameClean = cat.name.toLowerCase().replace(/[^\w\s]/g, '').trim();
+    if (lower === 'cat_' + cat.id || clean === catNameClean || lower.includes(cat.id)) {
+      return 'cat_' + cat.id;
+    }
+  }
+
+  // 2. Dynamic Item Match from menu.json
+  for (const cat of menu.categories) {
+    for (const item of cat.items) {
+      const itemNameClean = item.name.toLowerCase().replace(/[^\w\s]/g, '').trim();
+      if (lower === 'item_' + item.id || clean === itemNameClean || lower === item.name.toLowerCase()) {
+        return 'item_' + item.id;
+      }
+    }
+  }
+
+  // Common UI Actions
   if (lower.includes('dine') || lower.includes('makan di tempat')) return 'cafe_dinein';
   if (lower.includes('takeaway') || lower.includes('bungkus') || lower.includes('bawa pulang')) return 'cafe_takeaway';
   if (lower.includes('reservasi') || lower.includes('booking meja')) return 'cafe_reservasi';
-  if (lower.includes('lihat keranjang') || lower.includes('cart')) return 'cart_view';
-  if (lower.includes('selesai pesan') || lower.includes('checkout')) return 'cart_done';
+  if (lower.includes('lihat keranjang') || lower.includes('keranjang') || lower.includes('cart')) return 'cart_view';
+  if (lower.includes('selesai pesan') || lower.includes('selesai') || lower.includes('checkout')) return 'cart_done';
   if (lower.includes('batalkan') || lower.includes('batal')) return 'cart_cancel';
   if (lower.includes('konfirmasi') || lower.includes('confirm')) return 'order_confirm';
-  if (lower.includes('ubah pesanan') || lower.includes('edit')) return 'order_edit';
+  if (lower.includes('ubah') || lower.includes('edit')) return 'order_edit';
   if (lower.includes('sudah bayar')) return 'cafe_pay_done';
-  if (lower.includes('tambah lagi')) return 'cat_show';
+  if (lower.includes('tambah lagi') || lower.includes('kategori')) return 'cat_show';
 
   return null;
 }
