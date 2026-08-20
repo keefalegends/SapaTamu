@@ -25,7 +25,7 @@ function renderCategory(categoryId) {
   const text = `${cat.name}\n\n${lines.join('\n')}\n\nPilih item:`;
 
   const buttons = cat.items.map(item => ({
-    title: `${item.name} ${formatRupiah(item.price)}`,
+    title: item.name.length > 20 ? item.name.substring(0, 20) : item.name,
     value: `item_${item.id}`,
   }));
   buttons.push({ title: '🔙 Kategori', value: 'cat_show' });
