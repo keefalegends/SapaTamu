@@ -150,11 +150,10 @@ async function handleChooseType(convId, contactId, senderPhone, text, senderName
 
   if (action === 'cafe_dinein') {
     await sendMessage(convId,
-      '🍽️ Dine-in\n\n' +
-      'Silakan scan QR Code di meja Anda,\n' +
-      'atau ketik nomor meja (contoh: *Meja 05*)'
+      '🍽️ *Makan di Tempat (Dine-in)*\n\n' +
+      'Silakan scan QR Code yang tertera di meja Anda untuk mulai memesan. ☕✨'
     );
-    // Stay in kafe_choose_type — next message parsed as "Meja XX"
+    // Stay in kafe_choose_type — next message parsed as "Meja XX" from QR scan
     return;
   }
 
