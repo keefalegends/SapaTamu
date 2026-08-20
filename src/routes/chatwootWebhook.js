@@ -9,6 +9,8 @@ const { cekEskalasi }          = require('../escalation/detector');
 const { eksekusiEskalasi }     = require('../escalation/service');
 const { jawab, parseBookingInput } = require('../ai/handler');
 const { sendMessage, sendMenuMessage, sendImageMessage } = require('../chatwoot/client');
+const { detectMeja }           = require('../cafe/detector');
+const cafeHandler              = require('../cafe/handler');
 const {
   ROOM_CATALOG,
   formatRupiah,
@@ -373,6 +375,22 @@ router.post('/', async (req, res) => {
       return;
     }
 
+    // ═══ CAFÉ: "Meja XX" QR scan entry ═══════════════════════════════════════
+    const mejaMatch = detectMeja(content);
+    if (mejaMatch && (session === 'idle' || session === 'ai_active')) {
+      console.log(`☕ [CAFÉ QR] Conv ${convId} → Meja ${mejaMatch.tableNumber}`);
+      setStatus(convId, 'kafe_ordering');
+      await cafeHandler.handleMejaEntry(convId, convId, senderPhone, mejaMatch.tableNumber);
+      return;
+    }
+
+    // ═══ CAFÉ: delegate all kafe_* states ════════════════════════════════════
+    if (session.startsWith('kafe_')) {
+      console.log(`☕ [CAFÉ] Conv ${convId} | State: ${session} | Pesan: "${content.substring(0, 40)}"`);
+      await cafeHandler.handle(convId, convId, senderPhone, content, session, senderName);
+      return;
+    }
+
     const action = detectButtonAction(content);
 
     // ═══ STATE: booking_await_date (User sedang input tanggal) ════════════════
@@ -615,19 +633,17 @@ router.post('/', async (req, res) => {
             return;
           }
 
-          // ☕ Kafe
+          // ☕ Kafe → delegate to café handler
           case 'menu_kafe': {
             const cafeImg = getImageIfExists('cafe_sapatamu');
             if (cafeImg && senderPhone) {
               await sendImageMessage(convId, cafeImg, '☕ *Kafe SapaTamu*\n\nKami buka setiap hari 07.00 – 22.00 WIB.', senderPhone);
-              await sendMenuMessage(convId, 'Pilih layanan kafe:', MENU_KAFE.items);
-            } else {
-              await sendMenuMessage(convId, MENU_KAFE.text, MENU_KAFE.items);
             }
+            await cafeHandler.handleMenuKafe(convId);
             return;
           }
 
-          // 📋 Kafe Menu
+          // 📋 Kafe Menu (lihat harga saja)
           case 'kafe_menu': {
             const imgPath = getImageIfExists('menu_kafe') || getImageIfExists('kafe_menu');
             if (imgPath) {
@@ -639,7 +655,10 @@ router.post('/', async (req, res) => {
           }
 
           case 'kafe_reservasi':
-            await sendMessage(convId, STATIC.kafe_reservasi);
+            await cafeHandler.handleMenuKafe(convId);
+            // Force into reservasi flow
+            setStatus(convId, 'kafe_choose_type');
+            await cafeHandler.handle(convId, convId, senderPhone, 'cafe_reservasi', 'kafe_choose_type', senderName);
             return;
 
           case 'hotel_fasilitas': {
