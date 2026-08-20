@@ -9,6 +9,8 @@ const { cekEskalasi }          = require('../escalation/detector');
 const { eksekusiEskalasi }     = require('../escalation/service');
 const { jawab, parseBookingInput } = require('../ai/handler');
 const { sendMessage, sendMenuMessage, sendImageMessage } = require('../chatwoot/client');
+const { detectMeja }           = require('../cafe/detector');
+const cafeHandler              = require('../cafe/handler');
 const {
   ROOM_CATALOG,
   formatRupiah,
@@ -241,11 +243,11 @@ function isGreeting(content) {
 async function replyAI(convId, content) {
   const lower = content.toLowerCase();
   if (lower.includes('darurat') || lower.includes('alergi') || lower.includes('komplain')) {
-    await eksekusiEskalasi(convId, 'darurat_keyword', '🚨 Kami segera menghubungkan Anda dengan staf. Mohon tunggu 🙏');
+    await eksekusiEskalasi(convId, 'darurat_keyword');
     return;
   }
   if (lower.includes('staf') || lower.includes('manusia') || lower.includes('orang asli')) {
-    await eksekusiEskalasi(convId, 'minta_staf_keyword', '👨‍💼 Menghubungkan Anda ke staf kami, mohon tunggu... 🙏');
+    await eksekusiEskalasi(convId, 'minta_staf_keyword');
     return;
   }
   if (cekEskalasi(content, config.escalationKeywords)) {
@@ -373,6 +375,22 @@ router.post('/', async (req, res) => {
       return;
     }
 
+    // ═══ CAFÉ: "Meja XX" QR scan entry ═══════════════════════════════════════
+    const mejaMatch = detectMeja(content);
+    if (mejaMatch && (session === 'idle' || session === 'ai_active')) {
+      console.log(`☕ [CAFÉ QR] Conv ${convId} → Meja ${mejaMatch.tableNumber}`);
+      setStatus(convId, 'kafe_ordering');
+      await cafeHandler.handleMejaEntry(convId, convId, senderPhone, mejaMatch.tableNumber);
+      return;
+    }
+
+    // ═══ CAFÉ: delegate all kafe_* states ════════════════════════════════════
+    if (session.startsWith('kafe_')) {
+      console.log(`☕ [CAFÉ] Conv ${convId} | State: ${session} | Pesan: "${content.substring(0, 40)}"`);
+      await cafeHandler.handle(convId, convId, senderPhone, content, session, senderName);
+      return;
+    }
+
     const action = detectButtonAction(content);
 
     // ═══ STATE: booking_await_date (User sedang input tanggal) ════════════════
@@ -420,10 +438,14 @@ router.post('/', async (req, res) => {
         console.log(`🔘 [BUTTON/ACTION] Conv ${convId} | Action: ${action}`);
 
         // Validasi: Cegah klik tombol dari pesan lama jika sesi booking sudah selesai/dibatalkan
-        const bookingStepActions = ['booking_pay_step', 'booking_change_date', 'pay_method_qris', 'pay_method_va', 'confirm_payment_paid'];
+        const bookingStepActions = [
+          'booking_pay_step', 'booking_change_date',
+          'pay_method_qris', 'pay_method_va',
+          'confirm_payment_paid', 'booking_cancel'
+        ];
         if (bookingStepActions.includes(action) && !getDraft(convId)) {
-          console.log(`⚠️ [BOOKING EXPIRED] Conv ${convId} Tombol pemesanan lama diklik tanpa active draft`);
-          await sendMessage(convId, 'ℹ️ *Sesi pemesanan sebelumnya telah selesai atau dibatalkan.*\n\nSilakan mulai pemesanan baru melalui menu Hotel.');
+          console.log(`⚠️ [ACTION EXPIRED] Conv ${convId} Tombol aksi lama diklik tanpa active draft`);
+          await sendMessage(convId, 'ℹ️ *Sesi sebelumnya telah selesai atau sudah dibatalkan.*\n\nSilakan pilih menu di bawah ini:');
           await sendWelcomeWithImage(convId, senderPhone);
           return;
         }
@@ -606,28 +628,35 @@ router.post('/', async (req, res) => {
             return;
           }
 
-          // ❌ Batal Booking
+          // ❌ Batal Booking / Reservasi
           case 'booking_cancel': {
+            const draft = getDraft(convId);
             clearDraft(convId);
             setStatus(convId, 'ai_active');
-            await sendMessage(convId, '❌ *Pemesanan kamar telah dibatalkan.*');
+            if (draft && draft.roomKey) {
+              await sendMessage(convId, '❌ *Pemesanan kamar telah dibatalkan.*');
+            } else if (draft && draft.type === 'reservasi') {
+              await sendMessage(convId, '❌ *Reservasi kafe telah dibatalkan.*');
+            } else if (draft && (draft.type === 'dine_in' || draft.type === 'takeaway')) {
+              await sendMessage(convId, '❌ *Pesanan kafe telah dibatalkan.*');
+            } else {
+              await sendMessage(convId, '❌ *Proses telah dibatalkan.*');
+            }
             await sendWelcomeWithImage(convId, senderPhone);
             return;
           }
 
-          // ☕ Kafe
+          // ☕ Kafe → delegate to café handler
           case 'menu_kafe': {
             const cafeImg = getImageIfExists('cafe_sapatamu');
             if (cafeImg && senderPhone) {
               await sendImageMessage(convId, cafeImg, '☕ *Kafe SapaTamu*\n\nKami buka setiap hari 07.00 – 22.00 WIB.', senderPhone);
-              await sendMenuMessage(convId, 'Pilih layanan kafe:', MENU_KAFE.items);
-            } else {
-              await sendMenuMessage(convId, MENU_KAFE.text, MENU_KAFE.items);
             }
+            await cafeHandler.handleMenuKafe(convId);
             return;
           }
 
-          // 📋 Kafe Menu
+          // 📋 Kafe Menu (lihat harga saja)
           case 'kafe_menu': {
             const imgPath = getImageIfExists('menu_kafe') || getImageIfExists('kafe_menu');
             if (imgPath) {
@@ -639,7 +668,10 @@ router.post('/', async (req, res) => {
           }
 
           case 'kafe_reservasi':
-            await sendMessage(convId, STATIC.kafe_reservasi);
+            await cafeHandler.handleMenuKafe(convId);
+            // Force into reservasi flow
+            setStatus(convId, 'kafe_choose_type');
+            await cafeHandler.handle(convId, convId, senderPhone, 'cafe_reservasi', 'kafe_choose_type', senderName);
             return;
 
           case 'hotel_fasilitas': {
@@ -658,8 +690,7 @@ router.post('/', async (req, res) => {
 
           case 'menu_cs':
           case 'escalate_human':
-            await eksekusiEskalasi(convId, 'tombol_cs',
-              '👨‍💼 *Menghubungkan ke Staf Manusia...*\n\nStaf kami akan segera membalas. Mohon tunggu sebentar 🙏');
+            await eksekusiEskalasi(convId, 'tombol_cs');
             return;
 
           case 'goto_main':

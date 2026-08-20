@@ -4,5 +4,8 @@ node_modules/
 *.log
 session.db
 
+# Generated QR codes
+output/
+
 # RSA Keys — jangan pernah di-commit!
 flow_private_key.pem

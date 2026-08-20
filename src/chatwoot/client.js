@@ -215,4 +215,68 @@ async function changeConversationStatus(conversationId, status) {
   }
 }
 
-module.exports = { sendMessage, sendMenuMessage, sendImageMessage, assignConversation, changeConversationStatus };
+/**
+ * Dapatkan informasi nomor antrian live dari Chatwoot.
+ * @param {number|string} conversationId
+ * @returns {Promise<{ position: number, totalOpen: number, isDirect: boolean, waitTimeMin: number, waitTimeMax: number }>}
+ */
+async function getQueueInfo(conversationId) {
+  try {
+    const res = await axios.get(
+      `${BASE()}/conversations?status=open`,
+      { headers: getHeaders(), timeout: 10000 }
+    );
+    const payload = res.data?.data?.payload || [];
+    // Filter percakapan terbuka yang aktif
+    const openConvs = payload.filter(c => c.status === 'open');
+    const targetId = parseInt(conversationId);
+
+    // Sort FIFO: Urutkan dari percakapan terlama (yang antre duluan) ke terbaru
+    openConvs.sort((a, b) => {
+      const timeA = typeof a.created_at === 'number' ? a.created_at : parseInt(a.created_at) || a.id;
+      const timeB = typeof b.created_at === 'number' ? b.created_at : parseInt(b.created_at) || b.id;
+      return timeA - timeB;
+    });
+
+    // Cari posisi percakapan ini dalam antrian
+    let pos = openConvs.findIndex(c => c.id === targetId);
+    let position;
+
+    if (pos !== -1) {
+      position = pos + 1;
+    } else {
+      // Jika percakapan baru dibuka dan belum masuk payload
+      position = openConvs.length + 1;
+    }
+
+    const isDirect = position <= 1;
+    const waitTimeMin = isDirect ? 1 : position * 2;
+    const waitTimeMax = isDirect ? 2 : position * 3;
+
+    return {
+      position,
+      totalOpen: openConvs.length,
+      isDirect,
+      waitTimeMin,
+      waitTimeMax,
+    };
+  } catch (err) {
+    console.error(`⚠️ [Queue] Gagal cek antrian Chatwoot:`, err.message);
+    return {
+      position: 1,
+      totalOpen: 1,
+      isDirect: true,
+      waitTimeMin: 1,
+      waitTimeMax: 2,
+    };
+  }
+}
+
+module.exports = {
+  sendMessage,
+  sendMenuMessage,
+  sendImageMessage,
+  assignConversation,
+  changeConversationStatus,
+  getQueueInfo,
+};
