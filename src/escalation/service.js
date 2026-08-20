@@ -15,8 +15,7 @@ function formatQueueMessage(queueInfo) {
     return (
       '👨‍💼 *Menghubungkan ke Staf Customer Service...*\n\n' +
       'Halo! Anda terhubung langsung dengan tim kami.\n\n' +
-      '🟢 *Status:* Staf Siap Membantu\n' +
-      `⏱️ *Estimasi Respon:* ${queueInfo.waitTimeMin} - ${queueInfo.waitTimeMax} menit\n\n` +
+      '🟢 *Status:* Staf Siap Membantu\n\n' +
       '_Staf kami akan segera membalas pesan Anda. Mohon ditunggu ya_ 🙏'
     );
   }
@@ -25,8 +24,7 @@ function formatQueueMessage(queueInfo) {
     '👨‍💼 *Menghubungkan ke Staf Customer Service...*\n\n' +
     'Saat ini semua staf kami sedang melayani tamu lain.\n\n' +
     `🔢 *Posisi Antrian Anda:* *Ke-${queueInfo.position}*\n` +
-    '⏳ *Status:* Menunggu Giliran\n' +
-    `⏱️ *Estimasi Waktu Tunggu:* ± ${queueInfo.waitTimeMin} - ${queueInfo.waitTimeMax} menit\n\n` +
+    '⏳ *Status:* Menunggu Giliran\n\n' +
     '_Mohon tunggu sebentar, pesan Anda akan segera dibalas oleh tim kami sesuai urutan antrian. Terima kasih atas kesabarannya!_ 🙏'
   );
 }
