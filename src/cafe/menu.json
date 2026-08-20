@@ -1,0 +1,27 @@
+{
+  "categories": [
+    {
+      "id": "minuman",
+      "name": "☕ Minuman",
+      "items": [
+        { "id": "esp", "name": "Espresso", "price": 22000 },
+        { "id": "ame", "name": "Americano", "price": 22000 },
+        { "id": "lat", "name": "Caffe Latte", "price": 28000 },
+        { "id": "cap", "name": "Cappuccino", "price": 28000 },
+        { "id": "mat", "name": "Matcha Latte", "price": 25000 },
+        { "id": "teh", "name": "Es Teh", "price": 15000 },
+        { "id": "jer", "name": "Jeruk Peras", "price": 15000 }
+      ]
+    },
+    {
+      "id": "makanan",
+      "name": "🍳 Makanan",
+      "items": [
+        { "id": "cro", "name": "Butter Croissant", "price": 20000 },
+        { "id": "rot", "name": "Roti Bakar Spesial", "price": 18000 },
+        { "id": "car", "name": "Spaghetti Carbonara", "price": 45000 },
+        { "id": "nas", "name": "Nasi Goreng Spesial", "price": 35000 }
+      ]
+    }
+  ]
+}
