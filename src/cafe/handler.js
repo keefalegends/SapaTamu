@@ -440,8 +440,9 @@ async function handleBookDatetime(convId, text) {
 
 async function handleBookConfirm(convId, contactId, text) {
   const action = detectCafeAction(text);
+  const lower = (text || '').toLowerCase().trim();
 
-  if (action === 'book_confirm') {
+  if (action === 'book_confirm' || action === 'order_confirm' || lower.includes('konfirmasi') || lower.includes('confirm')) {
     const draft = getDraft(convId);
     if (!draft || !draft.pax || !draft.date) {
       setStatus(convId, 'ai_active');
@@ -469,7 +470,7 @@ async function handleBookConfirm(convId, contactId, text) {
     return;
   }
 
-  if (action === 'book_cancel') {
+  if (action === 'book_cancel' || action === 'order_cancel' || action === 'cart_cancel' || lower.includes('batal')) {
     clearDraft(convId);
     setStatus(convId, 'ai_active');
     await sendMessage(convId, '❌ Reservasi dibatalkan.\n\nKetik *menu* kapan saja untuk mulai lagi!');
