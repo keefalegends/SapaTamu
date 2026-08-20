@@ -438,10 +438,14 @@ router.post('/', async (req, res) => {
         console.log(`🔘 [BUTTON/ACTION] Conv ${convId} | Action: ${action}`);
 
         // Validasi: Cegah klik tombol dari pesan lama jika sesi booking sudah selesai/dibatalkan
-        const bookingStepActions = ['booking_pay_step', 'booking_change_date', 'pay_method_qris', 'pay_method_va', 'confirm_payment_paid'];
+        const bookingStepActions = [
+          'booking_pay_step', 'booking_change_date',
+          'pay_method_qris', 'pay_method_va',
+          'confirm_payment_paid', 'booking_cancel'
+        ];
         if (bookingStepActions.includes(action) && !getDraft(convId)) {
-          console.log(`⚠️ [BOOKING EXPIRED] Conv ${convId} Tombol pemesanan lama diklik tanpa active draft`);
-          await sendMessage(convId, 'ℹ️ *Sesi pemesanan sebelumnya telah selesai atau dibatalkan.*\n\nSilakan mulai pemesanan baru melalui menu Hotel.');
+          console.log(`⚠️ [ACTION EXPIRED] Conv ${convId} Tombol aksi lama diklik tanpa active draft`);
+          await sendMessage(convId, 'ℹ️ *Sesi sebelumnya telah selesai atau sudah dibatalkan.*\n\nSilakan pilih menu di bawah ini:');
           await sendWelcomeWithImage(convId, senderPhone);
           return;
         }
@@ -624,11 +628,20 @@ router.post('/', async (req, res) => {
             return;
           }
 
-          // ❌ Batal Booking
+          // ❌ Batal Booking / Reservasi
           case 'booking_cancel': {
+            const draft = getDraft(convId);
             clearDraft(convId);
             setStatus(convId, 'ai_active');
-            await sendMessage(convId, '❌ *Pemesanan kamar telah dibatalkan.*');
+            if (draft && draft.roomKey) {
+              await sendMessage(convId, '❌ *Pemesanan kamar telah dibatalkan.*');
+            } else if (draft && draft.type === 'reservasi') {
+              await sendMessage(convId, '❌ *Reservasi kafe telah dibatalkan.*');
+            } else if (draft && (draft.type === 'dine_in' || draft.type === 'takeaway')) {
+              await sendMessage(convId, '❌ *Pesanan kafe telah dibatalkan.*');
+            } else {
+              await sendMessage(convId, '❌ *Proses telah dibatalkan.*');
+            }
             await sendWelcomeWithImage(convId, senderPhone);
             return;
           }
