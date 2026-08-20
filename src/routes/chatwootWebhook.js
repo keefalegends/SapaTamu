@@ -241,11 +241,11 @@ function isGreeting(content) {
 async function replyAI(convId, content) {
   const lower = content.toLowerCase();
   if (lower.includes('darurat') || lower.includes('alergi') || lower.includes('komplain')) {
-    await eksekusiEskalasi(convId, 'darurat_keyword', '🚨 Kami segera menghubungkan Anda dengan staf. Mohon tunggu 🙏');
+    await eksekusiEskalasi(convId, 'darurat_keyword');
     return;
   }
   if (lower.includes('staf') || lower.includes('manusia') || lower.includes('orang asli')) {
-    await eksekusiEskalasi(convId, 'minta_staf_keyword', '👨‍💼 Menghubungkan Anda ke staf kami, mohon tunggu... 🙏');
+    await eksekusiEskalasi(convId, 'minta_staf_keyword');
     return;
   }
   if (cekEskalasi(content, config.escalationKeywords)) {
@@ -658,8 +658,7 @@ router.post('/', async (req, res) => {
 
           case 'menu_cs':
           case 'escalate_human':
-            await eksekusiEskalasi(convId, 'tombol_cs',
-              '👨‍💼 *Menghubungkan ke Staf Manusia...*\n\nStaf kami akan segera membalas. Mohon tunggu sebentar 🙏');
+            await eksekusiEskalasi(convId, 'tombol_cs');
             return;
 
           case 'goto_main':
