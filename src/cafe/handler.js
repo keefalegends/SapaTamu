@@ -309,8 +309,42 @@ async function handleOrdering(convId, text) {
 
 async function handleConfirm(convId, contactId, senderPhone, text) {
   const action = detectCafeAction(text);
+  const lower = (text || '').toLowerCase().trim();
 
-  if (action === 'order_confirm') {
+  // Cancel action check
+  if (
+    action === 'order_cancel' ||
+    action === 'cart_cancel' ||
+    action === 'cafe_pay_cancel' ||
+    action === 'book_cancel' ||
+    lower.includes('batal')
+  ) {
+    clearDraft(convId);
+    setStatus(convId, 'ai_active');
+    await sendMessage(convId, '❌ Pesanan dibatalkan.\n\nKetik *menu* kapan saja untuk mulai lagi!');
+    return;
+  }
+
+  // Edit action check
+  if (
+    action === 'order_edit' ||
+    lower.includes('ubah') ||
+    lower.includes('edit')
+  ) {
+    setStatus(convId, 'kafe_ordering');
+    const draft = getDraft(convId);
+    await sendMessage(convId, renderer.formatFullCart(draft));
+    await sendMenuMessage(convId, 'Pilih aksi:', renderer.cartActionButtons());
+    return;
+  }
+
+  // Confirm action check
+  if (
+    action === 'order_confirm' ||
+    action === 'book_confirm' ||
+    lower.includes('konfirmasi') ||
+    lower.includes('confirm')
+  ) {
     const draft = getDraft(convId);
     if (!draft || !draft.cart || draft.cart.length === 0) {
       setStatus(convId, 'ai_active');
@@ -346,22 +380,22 @@ async function handleConfirm(convId, contactId, senderPhone, text) {
     return;
   }
 
-  if (action === 'order_edit') {
-    setStatus(convId, 'kafe_ordering');
-    const draft = getDraft(convId);
-    await sendMessage(convId, renderer.formatFullCart(draft));
-    await sendMenuMessage(convId, 'Pilih aksi:', renderer.cartActionButtons());
+  // Unrecognized text / questions / greetings: try AI!
+  const { jawab } = require('../ai/handler');
+  const { eksekusiEskalasi } = require('../escalation/service');
+  console.log(`🤖 [CAFÉ AI] Answering question during confirm: "${text}"`);
+  const aiResp = await jawab(text);
+
+  if (aiResp.eskalasi) {
+    await eksekusiEskalasi(convId, 'ai_unhandled');
     return;
   }
 
-  if (action === 'order_cancel') {
-    clearDraft(convId);
-    setStatus(convId, 'ai_active');
-    await sendMessage(convId, '❌ Pesanan dibatalkan.\n\nKetik *menu* kapan saja untuk mulai lagi!');
-    return;
+  if (aiResp.jawaban) {
+    await sendMessage(convId, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
   }
 
-  // Unrecognized
+  // Resend confirmation options
   await sendMenuMessage(convId, 'Konfirmasi pesanan:', [
     { title: '✅ Konfirmasi',  value: 'order_confirm' },
     { title: '✏️ Ubah',       value: 'order_edit' },
@@ -373,8 +407,14 @@ async function handleConfirm(convId, contactId, senderPhone, text) {
 
 async function handlePayment(convId, contactId, senderPhone, text) {
   const action = detectCafeAction(text);
+  const lower = (text || '').toLowerCase().trim();
 
-  if (action === 'cafe_pay_done') {
+  if (
+    action === 'cafe_pay_done' ||
+    lower.includes('sudah bayar') ||
+    lower.includes('bayar') ||
+    lower.includes('lunas')
+  ) {
     const draft = getDraft(convId);
     if (!draft || !draft.orderCode) {
       setStatus(convId, 'ai_active');
@@ -411,14 +451,32 @@ async function handlePayment(convId, contactId, senderPhone, text) {
     return;
   }
 
-  if (action === 'cafe_pay_cancel') {
+  if (
+    action === 'cafe_pay_cancel' ||
+    action === 'order_cancel' ||
+    action === 'cart_cancel' ||
+    lower.includes('batal')
+  ) {
     clearDraft(convId);
     setStatus(convId, 'ai_active');
     await sendMessage(convId, '❌ Pesanan dibatalkan.\n\nKetik *menu* kapan saja untuk mulai lagi!');
     return;
   }
 
-  // Unrecognized
+  // Unrecognized: try AI
+  const { jawab } = require('../ai/handler');
+  const { eksekusiEskalasi } = require('../escalation/service');
+  const aiResp = await jawab(text);
+
+  if (aiResp.eskalasi) {
+    await eksekusiEskalasi(convId, 'ai_unhandled');
+    return;
+  }
+
+  if (aiResp.jawaban) {
+    await sendMessage(convId, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
+  }
+
   await sendMessage(convId, 'Silakan selesaikan pembayaran, lalu tekan *Sudah Bayar*.');
   await sendMenuMessage(convId, 'Status pembayaran:', [
     { title: '✅ Sudah Bayar', value: 'cafe_pay_done' },
