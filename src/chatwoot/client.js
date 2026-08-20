@@ -231,14 +231,21 @@ async function getQueueInfo(conversationId) {
     const openConvs = payload.filter(c => c.status === 'open');
     const targetId = parseInt(conversationId);
 
-    // Cari posisi percakapan ini
+    // Sort FIFO: Urutkan dari percakapan terlama (yang antre duluan) ke terbaru
+    openConvs.sort((a, b) => {
+      const timeA = typeof a.created_at === 'number' ? a.created_at : parseInt(a.created_at) || a.id;
+      const timeB = typeof b.created_at === 'number' ? b.created_at : parseInt(b.created_at) || b.id;
+      return timeA - timeB;
+    });
+
+    // Cari posisi percakapan ini dalam antrian
     let pos = openConvs.findIndex(c => c.id === targetId);
     let position;
 
     if (pos !== -1) {
       position = pos + 1;
     } else {
-      // Jika percakapan baru dibuka
+      // Jika percakapan baru dibuka dan belum masuk payload
       position = openConvs.length + 1;
     }
 
