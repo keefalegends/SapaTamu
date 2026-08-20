@@ -14,6 +14,21 @@
 - 🏷️ **Label Pesan** — `🤖 Dijawab oleh AI` / `👨‍💼 Staf Manusia` jelas terlihat
 - ♻️ **Auto Reset** — setelah CS resolve, bot aktif kembali + notif ke user
 
+### 🏨 Hotel
+- 🛏️ **Booking Kamar** — pilih tipe kamar → input tanggal → review invoice → bayar → E-Voucher
+- 3 tipe kamar: Deluxe (Rp 550rb), Executive (Rp 950rb), Presidential Suite (Rp 1.8jt)
+- State machine 6 step lengkap sampai e-voucher dengan booking code
+
+### ☕ Kafe
+- 🍽️ **Self-Ordering** — scan QR meja → pilih menu → tambah ke keranjang → bayar
+- 🛍️ **Takeaway** — order tanpa meja, ambil di kasir
+- 📅 **Reservasi Meja** — 3 step: jumlah orang + preferensi → tanggal/jam → konfirmasi
+- 📝 **Natural Language** — "4 orang, outdoor dekat taman" → auto-parse pax + notes
+- 🛒 **Cart via Chat** — ketik "Espresso 3" atau "hapus Latte" langsung dari chat
+- 🎁 **Loyalty Points** — otomatis +poin tiap transaksi (1 poin per Rp 10rb)
+- 📢 **Notif Staf** — pesanan masuk langsung tampil di Chatwoot
+- 🔲 **QR Generator** — CLI tool generate QR code per meja untuk print
+
 ---
 
 ## 🏗️ Arsitektur
@@ -32,11 +47,40 @@ Meta Cloud API ──► Chatwoot (port 3001) ──► SapaTamu Backend (port 3
 
 ### State Machine
 
+**Core:**
+
 | State | Trigger | Perilaku |
 |---|---|---|
 | `idle` | Percakapan baru / setelah resolve | Kirim welcome + menu |
 | `ai_active` | Setelah welcome | Tombol → submenu; Teks → AI |
 | `escalated` | Klik CS / AI tidak sanggup | Bot diam, staf menangani |
+
+**Hotel Booking:**
+
+| State | Trigger | Perilaku |
+|---|---|---|
+| `booking_pick_room` | Klik Reservasi Kamar | Tampil pilihan kamar |
+| `booking_await_date` | Pilih kamar | Tunggu input tanggal/lama |
+| `booking_confirm_draft` | Input tanggal | Tampil invoice draft |
+| `booking_select_payment` | Lanjut bayar | Pilih metode (QRIS/VA) |
+| `booking_await_payment` | Pilih metode | Tunggu konfirmasi bayar → E-Voucher |
+
+**Kafe Ordering:**
+
+| State | Trigger | Perilaku |
+|---|---|---|
+| `kafe_choose_type` | Klik Kafe dari menu | Pilih: Dine-in / Takeaway / Reservasi |
+| `kafe_ordering` | Pilih tipe / scan QR | Cart loop: pilih item, tambah/hapus, selesai |
+| `kafe_confirm` | Selesai pesan | Review order summary → konfirmasi/ubah/batal |
+| `kafe_payment_pending` | Konfirmasi order | Placeholder payment → "Sudah Bayar" |
+
+**Kafe Reservasi:**
+
+| State | Trigger | Perilaku |
+|---|---|---|
+| `kafe_book_ask_pax` | Pilih Reservasi | Tanya jumlah orang + preferensi |
+| `kafe_book_ask_datetime` | Input pax | Tanya tanggal & jam |
+| `kafe_book_confirm` | Input datetime | Review & konfirmasi reservasi |
 
 ---
 
@@ -155,19 +199,83 @@ Kirim WA ke nomor bot setelah semua jalan:
 | Kirim `halo` | 👋 Welcome + tombol Kafe / Hotel / CS |
 | Ketik `ada promo apa?` | 🤖 AI jawab dari knowledge base |
 | Klik **Hotel** | Submenu Hotel (Reservasi, Fasilitas, Room Service) |
+| Klik **Kafe** | Pilih: Makan di Tempat / Takeaway / Reservasi Meja |
+| Kirim `Meja 04` | Langsung masuk ordering kafe (QR scan flow) |
+| Pilih item → Selesai Pesan → Bayar | Order tersimpan + poin loyalty masuk |
+| Ketik `Espresso 3` saat ordering | Cart: Espresso x3 ditambahkan |
+| Pilih **Reservasi Meja** | Flow: jumlah orang → tanggal/jam → konfirmasi |
 | Klik **Customer Service** | Escalate ke staf di Chatwoot |
 | CS resolve di Chatwoot | ✅ Notif "Terima kasih" + menu di WA |
 | Tanya di luar KB | 🤔 AI eskalasi ke staf |
 
 ---
 
-## 📁 Struktur Project
+## 🔲 QR Code Generator (Meja Kafe)
+
+Generate QR code per meja kafe. Saat di-scan, otomatis buka WhatsApp dengan template "Meja 04".
+
+```bash
+# Install dependencies (sekali saja)
+npm install
+
+# Generate QR untuk 20 meja
+node tools/generate-qr.js --tables 20 --phone 628123456789
+
+# Dengan PDF untuk print
+node tools/generate-qr.js --tables 20 --phone 628123456789 --pdf
+
+# Mulai dari meja 5
+node tools/generate-qr.js --tables 10 --phone 628123456789 --start 5
+```
+
+Output tersimpan di `output/qr-codes/` (folder ini di-gitignore).
+
+| Flag | Default | Keterangan |
+|---|---|---|
+| `--phone` | *wajib* | Nomor WA bot (628xxx) |
+| `--tables` | *wajib* | Jumlah meja |
+| `--start` | 1 | Nomor meja mulai dari |
+| `--prefix` | "Meja" | Label prefix |
+| `--pdf` | false | Generate combined PDF |
+| `--outdir` | output/qr-codes | Folder output |
+
+---
+
+## 🍽️ Mengedit Menu Kafe
+
+Edit `src/cafe/menu.json` — tidak perlu restart server:
+
+```json
+{
+  "categories": [
+    {
+      "id": "minuman",
+      "name": "☕ Minuman",
+      "items": [
+        { "id": "esp", "name": "Espresso", "price": 22000 }
+      ]
+    }
+  ]
+}
+```
+
+> Harga dalam satuan Rupiah (integer). ID harus unik. Perubahan langsung aktif setelah restart server.
+
+---
 
 ```
 SapaTamu/
 ├── src/
 │   ├── ai/
 │   │   └── handler.js          # AI handler → 9router
+│   ├── booking/
+│   │   └── service.js          # Hotel booking (catalog, draft, e-voucher)
+│   ├── cafe/
+│   │   ├── menu.json           # ← Edit ini untuk ubah menu kafe
+│   │   ├── detector.js         # Detect "Meja XX" dari QR scan
+│   │   ├── handler.js          # State machine kafe (8 state)
+│   │   ├── menuRenderer.js     # Format menu/cart untuk WhatsApp
+│   │   └── service.js          # Cart ops, order, reservasi, loyalty
 │   ├── chatwoot/
 │   │   └── client.js           # Chatwoot API helper
 │   ├── config/
@@ -183,9 +291,12 @@ SapaTamu/
 │   │   └── chatwootWebhook.js  # Logic utama bot (state machine)
 │   └── session/
 │       └── manager.js          # Wrapper session DB
-├── .env                        # Konfigurasi (jangan di-commit!)
-├── server.js                   # Entry point
-└── session.db                  # Database session (auto-created)
+├── tools/
+│   └── generate-qr.js          # CLI: generate QR code per meja kafe
+├── public/images/               # Gambar hotel, kamar, kafe
+├── .env                         # Konfigurasi (jangan di-commit!)
+├── server.js                    # Entry point
+└── session.db                   # Database session (auto-created)
 ```
 
 ---
@@ -234,10 +345,4 @@ ESCALATION_KEYWORDS=alergi,komplain,darurat,refund,urgent,marah
 
 ---
 
-## 👥 Tim
 
-| Role | Nama |
-|---|---|
-| Developer | keefalegends |
-| Pembimbing | Pak Zohan |
-| AI Gateway | 9router (VPS temen) |
