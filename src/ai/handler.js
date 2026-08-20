@@ -28,23 +28,42 @@ function buildSystemPrompt() {
     const rawData  = fs.readFileSync(dataPath, 'utf-8');
     const topics   = JSON.parse(rawData);
 
+    // Also include dynamic cafe menu from menu.json
+    let cafeMenuText = '';
+    try {
+      const cafeMenuPath = path.join(__dirname, '../cafe/menu.json');
+      const cafeData = JSON.parse(fs.readFileSync(cafeMenuPath, 'utf-8'));
+      const lines = [];
+      for (const cat of cafeData.categories) {
+        lines.push(`${cat.name}:`);
+        for (const item of cat.items) {
+          lines.push(`- ${item.name}: Rp ${item.price.toLocaleString('id-ID')}`);
+        }
+      }
+      cafeMenuText = `\n\nKATALOG RESMI MENU KAFE SAPATAMU:\n${lines.join('\n')}`;
+    } catch (e) {
+      console.warn('⚠️ Gagal load cafe/menu.json untuk AI:', e.message);
+    }
+
     const knowledgeText = topics
       .map((item, i) => `${i + 1}. [${item.topik}]\n   ${item.jawaban}`)
       .join('\n\n');
 
     return `Kamu adalah AI Customer Service dari SapaTamu (Hotel & Kafe).
 
-KNOWLEDGE BASE (SATU-SATUNYA SUMBER JAWABAN):
-${knowledgeText}
+KNOWLEDGE BASE & KATALOG RESMI (SUMBER JAWABAN):
+${knowledgeText}${cafeMenuText}
 
 ATURAN WAJIB:
-1. Jawab HANYA berdasarkan knowledge base di atas. JANGAN mengarang atau menambah informasi di luar data tersebut.
-2. Jawab dalam Bahasa Indonesia yang sopan dan ramah.
-3. Jawab SINGKAT dan PADAT (maks 3-4 kalimat).
-4. Jika pertanyaan TIDAK ada dalam knowledge base → eskalasi ke staf.
-5. Jika user minta bicara dengan manusia/staf → eskalasi ke staf.
-6. Jika ada keluhan/komplain serius → eskalasi ke staf.
-7. SELALU balas dalam format JSON:
+1. Jawab berdasarkan knowledge base dan katalog resmi di atas.
+2. Kamu BISA dan BOLEH melakukan perhitungan matematika (misalnya menghitung total harga beberapa menu jika ditanyakan).
+3. Pahami sinonim, singkatan, dan bahasa santai sehari-hari (contoh: "esteh" = "Es Teh", "nasgor" = "Nasi Goreng Spesial", "jeruk peras" = "Jeruk Peras", "suite" = "Presidential Suite").
+4. Jawab dalam Bahasa Indonesia yang sopan, ramah, singkat dan padat (maksimal 3-4 kalimat).
+5. HANYA lakukan eskalasi jika:
+   - User secara jelas meminta bicara dengan manusia/staf/admin/CS.
+   - User menyampaikan keluhan/komplain berat/marah/darurat.
+   - Pertanyaan benar-benar tidak ada hubungannya sama sekali dengan hotel, kafe, atau layanan SapaTamu.
+6. SELALU balas dalam format JSON murni:
    - Jawaban normal : {"jawaban": "...", "eskalasi": false}
    - Eskalasi       : {"eskalasi": true, "alasan": "di_luar_jangkauan" | "minta_manusia" | "komplain"}`;
 

@@ -375,6 +375,41 @@ router.post('/', async (req, res) => {
       return;
     }
 
+    const lowerContent = content.toLowerCase().trim();
+
+    // ═══ GLOBAL INTERCEPTOR: Escalation & CS Requests ════════════════════════
+    const isEscalationKeyword =
+      /\b(cs|staf|staff|manusia|admin|operator|agent|orang asli|bantuan|komplain|darurat|alergi|refund)\b/i.test(content) ||
+      lowerContent.includes('customer service') ||
+      lowerContent.includes('ngomong ama cs') ||
+      lowerContent.includes('bicara sama cs') ||
+      lowerContent.includes('bicara dengan staf') ||
+      cekEskalasi(content, config.escalationKeywords);
+
+    if (isEscalationKeyword) {
+      console.log(`🚨 [GLOBAL ESCALATION] Conv ${convId} triggered by: "${content}"`);
+      clearDraft(convId);
+      await eksekusiEskalasi(convId, 'global_keyword');
+      return;
+    }
+
+    // ═══ GLOBAL INTERCEPTOR: Main Menu / Reset Navigation ════════════════════
+    if (
+      lowerContent === 'menu' ||
+      lowerContent === 'menu utama' ||
+      lowerContent === 'kembali' ||
+      lowerContent === 'batal' ||
+      lowerContent === 'batalkan' ||
+      lowerContent === 'exit' ||
+      lowerContent === 'stop'
+    ) {
+      console.log(`🔙 [GLOBAL RESET] Conv ${convId} resetting to main menu`);
+      clearDraft(convId);
+      setStatus(convId, 'ai_active');
+      await sendWelcomeWithImage(convId, senderPhone);
+      return;
+    }
+
     // ═══ CAFÉ: "Meja XX" QR scan entry ═══════════════════════════════════════
     const mejaMatch = detectMeja(content);
     if (mejaMatch && (session === 'idle' || session === 'ai_active')) {

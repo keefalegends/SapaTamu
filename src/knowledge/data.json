@@ -29,7 +29,27 @@
   },
   {
     "topik": "menu kafe",
-    "jawaban": "Menu Kafe SapaTamu: Minuman — Espresso Rp 22.000, Caffe Latte Rp 28.000, Matcha Latte Rp 25.000, Es Teh Rp 15.000. Makanan — Butter Croissant Rp 20.000, Roti Bakar Spesial Rp 18.000, Spaghetti Carbonara Rp 45.000, Nasi Goreng Spesial Rp 35.000."
+    "jawaban": "Menu Kafe SapaTamu: Minuman — Espresso Rp 22.000, Americano Rp 22.000, Caffe Latte Rp 28.000, Cappuccino Rp 28.000, Matcha Latte Rp 25.000, Es Teh (Esteh) Rp 15.000, Jeruk Peras Rp 15.000. Makanan — Butter Croissant Rp 20.000, Roti Bakar Spesial Rp 18.000, Spaghetti Carbonara Rp 45.000, Nasi Goreng Spesial Rp 35.000."
+  },
+  {
+    "topik": "detail menu minuman kafe",
+    "jawaban": "Daftar & harga minuman Kafe SapaTamu: 1) Espresso: Rp 22.000 (single origin arabica pekat). 2) Americano: Rp 22.000 (espresso + air hangat/dingin). 3) Caffe Latte: Rp 28.000 (espresso + steamed fresh milk creamy). 4) Cappuccino: Rp 28.000 (espresso + milk foam tebal). 5) Matcha Latte: Rp 25.000 (matcha murni Jepang + susu). 6) Es Teh (Esteh): Rp 15.000 (teh melati segar manis). 7) Jeruk Peras: Rp 15.000 (jeruk murni segar peras asli)."
+  },
+  {
+    "topik": "detail menu makanan kafe",
+    "jawaban": "Daftar & harga makanan Kafe SapaTamu: 1) Butter Croissant: Rp 20.000 (pastry renyah wangi butter premium). 2) Roti Bakar Spesial: Rp 18.000 (isian cokelat, keju, & susu lumer). 3) Spaghetti Carbonara: Rp 45.000 (pasta creamy saus telur, keju parmesan, & smoked beef). 4) Nasi Goreng Spesial: Rp 35.000 (nasi goreng khas bumbu rempah dengan telur mata sapi, ayam suwir, & kerupuk)."
+  },
+  {
+    "topik": "rekomendasi dan best seller kafe",
+    "jawaban": "Menu paling favorit & best seller di Kafe SapaTamu: Untuk minuman adalah Caffe Latte (Rp 28.000) dan Matcha Latte (Rp 25.000). Untuk makanan favorit adalah Spaghetti Carbonara (Rp 45.000) dan Nasi Goreng Spesial (Rp 35.000)."
+  },
+  {
+    "topik": "self ordering kafe dan scan qr meja",
+    "jawaban": "Untuk pesan makan di tempat (Dine-in), pengunjung cukup scan QR Code yang ada di atas meja menggunakan kamera HP. Pesanan akan otomatis terhubung ke nomor meja Anda dan langsung diproses oleh barista & dapur."
+  },
+  {
+    "topik": "loyalty points kafe",
+    "jawaban": "Setiap transaksi pemesanan kafe minimal kelipatan Rp 10.000 akan otomatis mendapatkan 1 Poin Loyalitas (Loyalty Points) yang terakumulasi ke nomor WhatsApp Anda."
   },
   {
     "topik": "reservasi meja kafe",

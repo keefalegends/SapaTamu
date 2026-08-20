@@ -7,6 +7,18 @@ const cafeService = require('./service');
 const renderer = require('./menuRenderer');
 const { formatRupiah } = require('../booking/service');
 
+const MENU_UTAMA = {
+  text:
+    '👋 *Selamat Datang di SapaTamu!*\n\n' +
+    'Halo! Saya asisten virtual SapaTamu, siap membantu Anda 24/7.\n\n' +
+    'Pilih layanan yang Anda butuhkan:',
+  items: [
+    { title: '☕ Kafe',             value: 'menu_kafe'   },
+    { title: '🏨 Hotel',            value: 'menu_hotel'  },
+    { title: '🎧 Customer Service', value: 'menu_cs'     },
+  ],
+};
+
 // ─── Button Detection (café-specific) ───────────────────────────────────────
 
 const CAFE_VALUES = new Set([
@@ -138,11 +150,10 @@ async function handleChooseType(convId, contactId, senderPhone, text, senderName
 
   if (action === 'cafe_dinein') {
     await sendMessage(convId,
-      '🍽️ Dine-in\n\n' +
-      'Silakan scan QR Code di meja Anda,\n' +
-      'atau ketik nomor meja (contoh: *Meja 05*)'
+      '🍽️ *Makan di Tempat (Dine-in)*\n\n' +
+      'Silakan scan QR Code yang tertera di meja Anda untuk mulai memesan. ☕✨'
     );
-    // Stay in kafe_choose_type — next message parsed as "Meja XX"
+    // Stay in kafe_choose_type — next message parsed as "Meja XX" from QR scan
     return;
   }
 
@@ -170,8 +181,23 @@ async function handleChooseType(convId, contactId, senderPhone, text, senderName
     return;
   }
 
-  // Unrecognized — show options again
-  await sendMenuMessage(convId, 'Pilih layanan:', [
+  // Try AI response for questions like "jam berapa buka?", "lokasi di mana?"
+  const { jawab } = require('../ai/handler');
+  const { eksekusiEskalasi } = require('../escalation/service');
+  console.log(`🤖 [CAFÉ AI] Answering question during choose type: "${text}"`);
+  const aiResp = await jawab(text);
+
+  if (aiResp.eskalasi) {
+    await eksekusiEskalasi(convId, 'ai_unhandled');
+    return;
+  }
+
+  if (aiResp.jawaban) {
+    await sendMessage(convId, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
+  }
+
+  // Show options again
+  await sendMenuMessage(convId, 'Pilih layanan kafe:', [
     { title: '🍽️ Makan di Tempat', value: 'cafe_dinein' },
     { title: '🛍️ Takeaway',        value: 'cafe_takeaway' },
     { title: '📅 Reservasi Meja',   value: 'cafe_reservasi' },
@@ -251,7 +277,8 @@ async function handleOrdering(convId, text) {
   if (action === 'cart_cancel') {
     clearDraft(convId);
     setStatus(convId, 'ai_active');
-    await sendMessage(convId, '❌ Pesanan dibatalkan.\n\nKetik *menu* kapan saja untuk mulai lagi!');
+    await sendMessage(convId, '❌ *Pesanan kafe telah dibatalkan.*');
+    await sendMenuMessage(convId, MENU_UTAMA.text, MENU_UTAMA.items);
     return;
   }
 
@@ -264,6 +291,27 @@ async function handleOrdering(convId, text) {
     return;
   }
 
+  // Free-text: Call AI to answer user question!
+  const { jawab } = require('../ai/handler');
+  const { eksekusiEskalasi } = require('../escalation/service');
+  console.log(`🤖 [CAFÉ AI] Answering question during ordering: "${text}"`);
+  const aiResp = await jawab(text);
+
+  if (aiResp.eskalasi) {
+    await eksekusiEskalasi(convId, 'ai_unhandled');
+    return;
+  }
+
+  if (aiResp.jawaban) {
+    await sendMessage(convId, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
+    if (draft.cart && draft.cart.length > 0) {
+      await sendMenuMessage(convId, 'Lanjutkan pesanan Anda:', renderer.afterAddButtons());
+    } else {
+      await sendMenuMessage(convId, 'Pilih menu kafe:', renderer.categoryButtons());
+    }
+    return;
+  }
+
   // Unrecognized — show categories
   await sendMessage(convId, '🤔 Tidak mengenali item tersebut.\n\nPilih dari menu:');
   await sendMenuMessage(convId, 'Pilih kategori:', renderer.categoryButtons());
@@ -273,8 +321,43 @@ async function handleOrdering(convId, text) {
 
 async function handleConfirm(convId, contactId, senderPhone, text) {
   const action = detectCafeAction(text);
+  const lower = (text || '').toLowerCase().trim();
 
-  if (action === 'order_confirm') {
+  // Cancel action check
+  if (
+    action === 'order_cancel' ||
+    action === 'cart_cancel' ||
+    action === 'cafe_pay_cancel' ||
+    action === 'book_cancel' ||
+    lower.includes('batal')
+  ) {
+    clearDraft(convId);
+    setStatus(convId, 'ai_active');
+    await sendMessage(convId, '❌ *Pesanan kafe telah dibatalkan.*');
+    await sendMenuMessage(convId, MENU_UTAMA.text, MENU_UTAMA.items);
+    return;
+  }
+
+  // Edit action check
+  if (
+    action === 'order_edit' ||
+    lower.includes('ubah') ||
+    lower.includes('edit')
+  ) {
+    setStatus(convId, 'kafe_ordering');
+    const draft = getDraft(convId);
+    await sendMessage(convId, renderer.formatFullCart(draft));
+    await sendMenuMessage(convId, 'Pilih aksi:', renderer.cartActionButtons());
+    return;
+  }
+
+  // Confirm action check
+  if (
+    action === 'order_confirm' ||
+    action === 'book_confirm' ||
+    lower.includes('konfirmasi') ||
+    lower.includes('confirm')
+  ) {
     const draft = getDraft(convId);
     if (!draft || !draft.cart || draft.cart.length === 0) {
       setStatus(convId, 'ai_active');
@@ -310,22 +393,22 @@ async function handleConfirm(convId, contactId, senderPhone, text) {
     return;
   }
 
-  if (action === 'order_edit') {
-    setStatus(convId, 'kafe_ordering');
-    const draft = getDraft(convId);
-    await sendMessage(convId, renderer.formatFullCart(draft));
-    await sendMenuMessage(convId, 'Pilih aksi:', renderer.cartActionButtons());
+  // Unrecognized text / questions / greetings: try AI!
+  const { jawab } = require('../ai/handler');
+  const { eksekusiEskalasi } = require('../escalation/service');
+  console.log(`🤖 [CAFÉ AI] Answering question during confirm: "${text}"`);
+  const aiResp = await jawab(text);
+
+  if (aiResp.eskalasi) {
+    await eksekusiEskalasi(convId, 'ai_unhandled');
     return;
   }
 
-  if (action === 'order_cancel') {
-    clearDraft(convId);
-    setStatus(convId, 'ai_active');
-    await sendMessage(convId, '❌ Pesanan dibatalkan.\n\nKetik *menu* kapan saja untuk mulai lagi!');
-    return;
+  if (aiResp.jawaban) {
+    await sendMessage(convId, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
   }
 
-  // Unrecognized
+  // Resend confirmation options
   await sendMenuMessage(convId, 'Konfirmasi pesanan:', [
     { title: '✅ Konfirmasi',  value: 'order_confirm' },
     { title: '✏️ Ubah',       value: 'order_edit' },
@@ -337,8 +420,14 @@ async function handleConfirm(convId, contactId, senderPhone, text) {
 
 async function handlePayment(convId, contactId, senderPhone, text) {
   const action = detectCafeAction(text);
+  const lower = (text || '').toLowerCase().trim();
 
-  if (action === 'cafe_pay_done') {
+  if (
+    action === 'cafe_pay_done' ||
+    lower.includes('sudah bayar') ||
+    lower.includes('bayar') ||
+    lower.includes('lunas')
+  ) {
     const draft = getDraft(convId);
     if (!draft || !draft.orderCode) {
       setStatus(convId, 'ai_active');
@@ -375,14 +464,33 @@ async function handlePayment(convId, contactId, senderPhone, text) {
     return;
   }
 
-  if (action === 'cafe_pay_cancel') {
+  if (
+    action === 'cafe_pay_cancel' ||
+    action === 'order_cancel' ||
+    action === 'cart_cancel' ||
+    lower.includes('batal')
+  ) {
     clearDraft(convId);
     setStatus(convId, 'ai_active');
-    await sendMessage(convId, '❌ Pesanan dibatalkan.\n\nKetik *menu* kapan saja untuk mulai lagi!');
+    await sendMessage(convId, '❌ *Pesanan kafe telah dibatalkan.*');
+    await sendMenuMessage(convId, MENU_UTAMA.text, MENU_UTAMA.items);
     return;
   }
 
-  // Unrecognized
+  // Unrecognized: try AI
+  const { jawab } = require('../ai/handler');
+  const { eksekusiEskalasi } = require('../escalation/service');
+  const aiResp = await jawab(text);
+
+  if (aiResp.eskalasi) {
+    await eksekusiEskalasi(convId, 'ai_unhandled');
+    return;
+  }
+
+  if (aiResp.jawaban) {
+    await sendMessage(convId, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
+  }
+
   await sendMessage(convId, 'Silakan selesaikan pembayaran, lalu tekan *Sudah Bayar*.');
   await sendMenuMessage(convId, 'Status pembayaran:', [
     { title: '✅ Sudah Bayar', value: 'cafe_pay_done' },
@@ -488,7 +596,8 @@ async function handleBookConfirm(convId, contactId, text) {
   if (action === 'book_cancel' || action === 'order_cancel' || action === 'cart_cancel' || lower.includes('batal')) {
     clearDraft(convId);
     setStatus(convId, 'ai_active');
-    await sendMessage(convId, '❌ Reservasi dibatalkan.\n\nKetik *menu* kapan saja untuk mulai lagi!');
+    await sendMessage(convId, '❌ *Reservasi kafe telah dibatalkan.*');
+    await sendMenuMessage(convId, MENU_UTAMA.text, MENU_UTAMA.items);
     return;
   }
 
