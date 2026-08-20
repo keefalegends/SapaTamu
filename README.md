@@ -57,102 +57,92 @@ Meta Cloud API ──► Chatwoot (port 3001) ──► SapaTamu Backend (port 3
 ## 🚀 Cara Menjalankan (Startup Guide)
 
 ### Prasyarat
+- Docker Desktop aktif (untuk Chatwoot)
 - Node.js ≥ 18
-- Chatwoot sudah terinstall dan dikonfigurasi
 - `cloudflared` CLI terinstall
-- 9router aktif di VPS (hubungi admin)
+- 9router AI aktif di VPS
 
 ---
 
-### Step 1 — Jalankan Chatwoot
+### 📋 Ringkasan 4 Langkah Cepat
 
-```powershell
-cd C:\kerjaanwoe\PKL-Desnet\chatwoot
-bundle exec rails s -p 3001
+```
+Terminal 1 (Docker)   : docker compose up -d
+Terminal 2 (Backend)  : npm run dev
+Terminal 3 (Tunnel 1) : cloudflared tunnel --url http://localhost:3000
+Terminal 4 (Tunnel 2) : cloudflared tunnel --url http://localhost:3001
+Terminal 5 (Sync)     : node setup.js <URL_TUNNEL_3000> <URL_TUNNEL_3001>
 ```
 
-> Tunggu: `Listening on http://[::]:3001`
+---
+
+### Step 1 — Jalankan Chatwoot (Docker)
+
+Pastikan Docker Desktop aktif, lalu jalankan:
+```powershell
+docker compose up -d
+```
+> Cek status: `docker ps` (pastikan container `chatwoot-rails-1`, `chatwoot-sidekiq-1`, dll. berstatus `Up`).
 
 ---
 
 ### Step 2 — Jalankan SapaTamu Backend
 
+Buka terminal di folder project:
 ```powershell
 cd C:\kerjaanwoe\PKL-Desnet\SapaTamu
 npm run dev
 ```
-
-> Tunggu: `✅ Server berjalan di port 3000`
+> Tunggu pesan: `✅ SapaTamu Backend berjalan di http://localhost:3000`
 
 ---
 
-### Step 3 — Buka Dua Tunnel
+### Step 3 — Buka Dua Tunnel Cloudflare
 
-> ⚠️ **URL tunnel berubah setiap sesi** — harus diupdate di Meta & Chatwoot!
+> ⚠️ *URL tunnel selalu berganti baru setiap kali dijalankan.*
 
-**Tunnel Backend** (untuk Meta webhook):
+**Terminal A — Tunnel Backend (Port 3000):**
 ```powershell
 cloudflared tunnel --url http://localhost:3000
 ```
+*(Copy URL yang muncul, contoh: `https://contoh-backend.trycloudflare.com`)*
 
-**Tunnel Chatwoot** (untuk WhatsApp Cloud API):
+**Terminal B — Tunnel Chatwoot (Port 3001):**
 ```powershell
 cloudflared tunnel --url http://localhost:3001
 ```
+*(Copy URL yang muncul, contoh: `https://contoh-chatwoot.trycloudflare.com`)*
 
 ---
 
-### Step 4 — Update Webhook URL
+### Step 4 — Sinkronisasi Otomatis (1 Perintah Saja)
 
-Setiap sesi baru, update 3 URL berikut:
-
-| Target | URL |
-|---|---|
-| **Meta WABA Webhook** | `https://<tunnel-backend>/webhook/meta` |
-| **Chatwoot → Backend Webhook** | `https://<tunnel-backend>/webhook/chatwoot` |
-| **Chatwoot WhatsApp Inbox** | `https://<tunnel-chatwoot>` |
-
-**Cara update Meta:**
-1. [Meta Business Suite](https://business.facebook.com) → WhatsApp → Configuration → Webhook
-2. Update Callback URL → Verify & Save
-
-**Cara update Chatwoot webhook:**
-1. Settings → Integrations → Webhooks → Edit URL
-
-**Cara update Chatwoot inbox:**
-1. Settings → Inboxes → SapaTamu → Configuration
-
----
-
-### Step 5 — Pastikan 9router Aktif
+Buka terminal baru, jalankan script setup dengan kedua URL tunnel tadi:
 
 ```powershell
-cd C:\kerjaanwoe\PKL-Desnet\SapaTamu
-node -e "
-require('dotenv').config();
-const axios = require('axios');
-axios.post(process.env.NINER_ROUTER_URL + '/chat/completions', {
-  model: process.env.NINER_ROUTER_MODEL,
-  messages: [{role:'user', content:'test'}]
-}, { headers: { Authorization: 'Bearer ' + process.env.NINER_ROUTER_KEY }, timeout:10000 })
-.then(() => console.log('✅ 9router OK'))
-.catch(e => console.error('❌ 9router DOWN:', e.message));
-"
+node setup.js <URL_TUNNEL_3000> <URL_TUNNEL_3001>
 ```
+
+**Contoh:**
+```powershell
+node setup.js https://contoh-backend.trycloudflare.com https://contoh-chatwoot.trycloudflare.com
+```
+
+Script ini otomatis mengerjakan semua setup:
+- [1/4] Update Webhook Agent Bot di Chatwoot
+- [2/4] Update Webhook WhatsApp Cloud API di Meta Graph
+- [3/4] Test & Validasi Koneksi AI 9router
+- [4/4] Reset Session percakapan lama ke status bersih
 
 ---
 
-### Step 6 — (Opsional) Reset Session
-
-Kalau ada conversation stuck / state salah:
-
-```powershell
-node -e "
-const {getDb} = require('./src/db/session');
-getDb().prepare('DELETE FROM session_state').run();
-console.log('✅ Session direset');
-"
-```
+### ⚠️ Jika AI 9router Timeout / Down (Error 530)
+1. Hubungi admin VPS 9router untuk memastikan tunnel / service 9router di VPS aktif.
+2. Jika URL 9router diperbarui, edit `.env`:
+   ```env
+   NINER_ROUTER_URL=https://URL-BARU-DARI-VPS/v1
+   ```
+3. Jalankan ulang `node setup.js ...` untuk verifikasi.
 
 ---
 

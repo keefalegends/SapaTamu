@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const express       = require('express');
+const path          = require('path');
 const config        = require('./src/config/env');
 const { getDb }     = require('./src/db/session');
 const chatwootRoute = require('./src/routes/chatwootWebhook');
@@ -10,6 +11,10 @@ const app = express();
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ─── Static files (Gambar Menu, Foto Kamar, dll.) ─────────────────────────────
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);

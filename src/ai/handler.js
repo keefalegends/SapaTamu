@@ -119,4 +119,80 @@ async function jawab(pertanyaan) {
   }
 }
 
-module.exports = { jawab };
+/**
+ * Ekstrak entitas booking (tanggal, malam, nama, tipe kamar) dari input teks bebas
+ */
+async function parseBookingInput(text) {
+  const t = text.trim();
+  const lower = t.toLowerCase();
+
+  const result = {
+    nights: 1,
+    checkInDate: null,
+    checkOutDate: null,
+    customerName: null,
+  };
+
+  // 1. Ekstrak tipe kamar (hanya set jika eksplisit ditemukan)
+  if (lower.includes('presidential') || lower.includes('suite') || lower.includes('presiden')) {
+    result.roomKey = 'suite';
+  } else if (lower.includes('executive') || lower.includes('eksekutif')) {
+    result.roomKey = 'executive';
+  } else if (lower.includes('deluxe')) {
+    result.roomKey = 'deluxe';
+  }
+
+  // 2. Ekstrak rentang tanggal: "19 Agustus sampai 20 Agustus" atau "19 - 21 Agustus"
+  const rangeMatch = t.match(/(\d{1,2})\s*(?:[A-Za-z]+)?\s*(?:sampai|-|s\/d|hingga)\s*(\d{1,2})\s*([A-Za-z]+(?:\s+\d{2,4})?)/i);
+  if (rangeMatch) {
+    const d1 = parseInt(rangeMatch[1]);
+    const d2 = parseInt(rangeMatch[2]);
+    const monthYear = rangeMatch[3];
+    if (d2 > d1) {
+      result.nights = d2 - d1;
+    }
+    result.checkInDate = `${d1} ${monthYear}`;
+    result.checkOutDate = `${d2} ${monthYear}`;
+  } else {
+    // Tanggal tunggal
+    const dateMatch = t.match(/(\d{1,2}\s+(?:jan|feb|mar|apr|mei|jun|jul|agu|agt|sep|okt|nov|des)[a-z]*(?:\s+\d{2,4})?|\d{1,2}[-/]\d{1,2}(?:[-/]\d{2,4})?|besok|lusa|hari ini)/i);
+    if (dateMatch) {
+      result.checkInDate = dateMatch[1].trim();
+    }
+  }
+
+  // 3. Ekstrak durasi jika ditulis eksplisit: "X malam" / "X hari"
+  const nightMatch = lower.match(/(\d+)\s*(malam|hari|night)/i);
+  if (nightMatch) {
+    result.nights = parseInt(nightMatch[1]) || 1;
+  }
+
+  // 4. Ekstrak nama
+  // Pola A: "atas nama X" / "nama: X" / "a/n X"
+  const explicitName = t.match(/\b(?:atas\s+nama|a\/n|nama)\b\s*[:=]?\s*([A-Za-z\s]{2,30})/i);
+  if (explicitName) {
+    result.customerName = explicitName[1].trim();
+  } else if (rangeMatch) {
+    // Pola B & C dari rentang tanggal: hilangkan bagian tanggal & kata pelengkap, sisanya adalah nama
+    const remaining = t.replace(rangeMatch[0], '').replace(/\b(?:malam|hari|night|buat|untuk|pada|tgl|tanggal)\b/gi, '').replace(/[,\-:]+$/, '').trim();
+    if (remaining.length >= 2 && !/^(deluxe|executive|suite|kamar)\b/i.test(remaining)) {
+      result.customerName = remaining;
+    }
+  } else if (result.checkInDate) {
+    // Pola B & C dari tanggal tunggal
+    const singleDateStr = result.checkInDate;
+    const remaining = t.replace(singleDateStr, '').replace(/\b(?:malam|hari|night|buat|untuk|pada|tgl|tanggal|\d+)\b/gi, '').replace(/[,\-:]+$/, '').trim();
+    if (remaining.length >= 2 && !/^(deluxe|executive|suite|kamar)\b/i.test(remaining)) {
+      result.customerName = remaining;
+    }
+  }
+
+  // Fallback tanggal jika tidak terdeteksi
+  if (!result.checkInDate && t.length < 40 && !result.customerName) {
+    result.checkInDate = t;
+  }
+
+  return result;
+}
+
+module.exports = { jawab, parseBookingInput };
