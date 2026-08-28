@@ -1,9 +1,13 @@
-node_modules/
+﻿node_modules/
 .env
 .DS_Store
 *.log
-session.db
+session.db*
 *.db*
+*.zip
+
+# Generated QR codes
+output/
 
 # RSA Keys — jangan pernah di-commit!
 flow_private_key.pem

@@ -1,4 +1,6 @@
-﻿const express = require('express');
+﻿require('dotenv').config();
+
+const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const config = require('./src/config/env');
@@ -13,9 +15,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve Public Frontend (Custom Admin Dashboard)
+// ─── Static files (Dashboard Admin, Gambar Menu, Foto Kamar, dll.) ───────────
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 // API Routes
 app.use('/api/webhook/openkoneksi', webhookHandler);
