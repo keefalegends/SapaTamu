@@ -182,8 +182,119 @@ Format JSON yang diharapkan:
   }
 }
 
+/**
+ * Benchmark latency dan status koneksi 9Router
+ */
+async function benchmarkAI() {
+  const start = Date.now();
+  try {
+    const res = await client.chat.completions.create({
+      model: config.ai.model,
+      messages: [{ role: 'user', content: 'ping' }],
+      max_tokens: 5,
+    });
+    const latencyMs = Date.now() - start;
+    return {
+      status: 'online',
+      model: config.ai.model,
+      baseUrl: config.ai.baseUrl,
+      latencyMs,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (err) {
+    const latencyMs = Date.now() - start;
+    return {
+      status: 'offline',
+      model: config.ai.model,
+      baseUrl: config.ai.baseUrl,
+      latencyMs,
+      error: err.message,
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * Diagnostic chat untuk Playground: Mendeteksi In-Topic, Out-of-Topic, dan Eskalasi
+ */
+async function diagnoseAIChat(userText) {
+  const start = Date.now();
+  try {
+    const response = await client.chat.completions.create({
+      model: config.ai.model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userText },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.2,
+    });
+
+    const latencyMs = Date.now() - start;
+    const content = response.choices[0]?.message?.content;
+    const parsed = safeJsonParse(content) || {};
+
+    let type = 'in_topic';
+    if (parsed.eskalasi === true) {
+      if (parsed.alasan === 'di_luar_jangkauan') {
+        type = 'out_of_topic';
+      } else {
+        type = 'escalation';
+      }
+    }
+
+    return {
+      success: true,
+      type,
+      jawaban: parsed.jawaban || null,
+      alasan: parsed.alasan || null,
+      eskalasi: parsed.eskalasi === true,
+      rawJson: parsed,
+      model: config.ai.model,
+      baseUrl: config.ai.baseUrl,
+      latencyMs,
+      source: '9router_gemini',
+    };
+  } catch (err) {
+    const latencyMs = Date.now() - start;
+    // Cek local knowledge cache
+    const topics = topicsCache;
+    const lower = userText.toLowerCase().replace(/[-_]/g, ' ');
+    const match = topics.find(t => {
+      const top = t.topik.toLowerCase().replace(/[-_]/g, ' ');
+      return lower.includes(top) || top.split(' ').some(w => w.length >= 4 && lower.includes(w));
+    });
+
+    if (match) {
+      return {
+        success: true,
+        type: 'in_topic',
+        jawaban: match.jawaban,
+        alasan: 'local_knowledge_fallback',
+        eskalasi: false,
+        rawJson: { jawaban: match.jawaban, eskalasi: false, fallback: true },
+        model: `${config.ai.model} (Fallback Local)`,
+        baseUrl: config.ai.baseUrl,
+        latencyMs,
+        source: 'local_cache',
+      };
+    }
+
+    return {
+      success: false,
+      error: err.message,
+      latencyMs,
+      type: 'error',
+      model: config.ai.model,
+      baseUrl: config.ai.baseUrl,
+    };
+  }
+}
+
 module.exports = {
   jawabAI,
   parseHotelBookingInput,
+  benchmarkAI,
+  diagnoseAIChat,
   reloadPrompt: () => { SYSTEM_PROMPT = buildSystemPrompt(); },
 };

@@ -48,6 +48,13 @@
           <span class="text-white font-mono text-[11px]" id="nav-db-status">Online</span>
         </div>
 
+        <!-- AI 9Router Status & Link to Playground (Sebelah Kiri Gateway) -->
+        <button onclick="switchTab('tab-ai-playground')" class="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded-md border border-slate-700 text-xs text-white transition-colors cursor-pointer" id="nav-ai-badge" title="Klik untuk membuka AI 9Router Playground & Diagnostics">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" id="nav-ai-dot"></span>
+          <span class="text-slate-300">AI:</span>
+          <span class="font-semibold text-emerald-300 font-mono text-[11px]" id="nav-ai-status">9Router (Aktif)</span>
+        </button>
+
         <!-- OpenKoneksi Gateway Status -->
         <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs" id="nav-gateway-badge">
           <span class="w-2 h-2 rounded-full bg-amber-400" id="nav-gateway-dot"></span>
@@ -159,6 +166,10 @@
         <button onclick="switchTab('tab-gateway')" id="btn-tab-gateway" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 text-slate-600 hover:bg-slate-100">
           <i data-lucide="network" class="w-3.5 h-3.5"></i>
           <span>Gateway & Webhook API</span>
+        </button>
+        <button onclick="switchTab('tab-ai-playground')" id="btn-tab-ai-playground" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 text-slate-600 hover:bg-slate-100">
+          <i data-lucide="bot" class="w-3.5 h-3.5 text-indigo-600"></i>
+          <span>AI 9Router Playground</span>
         </button>
       </nav>
     </div>
@@ -390,6 +401,135 @@
             Memeriksa status koneksi...
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ══ TAB 7: AI 9ROUTER PLAYGROUND & DIAGNOSTICS ═══════════════════════ -->
+    <div id="tab-ai-playground" class="tab-content hidden space-y-6">
+      <!-- Section 1: Live Benchmark & Engine Health Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1: Connection Status -->
+        <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-medium uppercase tracking-wider">Status 9Router</span>
+            <i data-lucide="activity" class="w-4 h-4 text-emerald-500"></i>
+          </div>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" id="ai-card-dot"></span>
+            <div class="text-base font-bold text-slate-900" id="ai-card-status">Online (Active)</div>
+          </div>
+          <div class="text-[11px] text-slate-400 mt-1" id="ai-card-time">Checked just now</div>
+        </div>
+
+        <!-- Card 2: Model Name -->
+        <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-medium uppercase tracking-wider">Model LLM Aktif</span>
+            <i data-lucide="cpu" class="w-4 h-4 text-indigo-500"></i>
+          </div>
+          <div class="text-xs font-bold font-mono text-slate-900 truncate mt-1" id="ai-card-model">
+            ag/gemini-3.7-flash-medium
+          </div>
+          <div class="text-[11px] text-slate-400 mt-1 truncate" id="ai-card-endpoint">Via 9Router Gateway</div>
+        </div>
+
+        <!-- Card 3: Measured Latency (ms) -->
+        <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-medium uppercase tracking-wider">Kecepatan Respons</span>
+            <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+          </div>
+          <div class="text-2xl font-bold font-mono text-slate-900 mt-0.5" id="ai-card-latency">
+            - ms
+          </div>
+          <div class="text-[11px] text-emerald-600 font-medium mt-0.5">Real HTTP Latency</div>
+        </div>
+
+        <!-- Card 4: Action Button -->
+        <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col justify-between">
+          <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Benchmark Instan</div>
+          <button onclick="runAIPing()" id="btn-ai-ping" class="mt-2 w-full px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="icon-ai-ping"></i>
+            <span>Test Ping Latensi</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Section 2: Interactive Chat & Out of Topic Testing Sandbox -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Input Prompt & Quick Test Chips (5 cols) -->
+        <div class="lg:col-span-5 bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="terminal" class="w-4 h-4 text-indigo-600"></i>
+                <span>Testing Sandbox</span>
+              </h3>
+              <span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded">LIVE FETCH</span>
+            </div>
+            <p class="text-xs text-slate-500 mb-4 leading-relaxed">
+              Ketik pertanyaan bebas atau gunakan tombol uji cepat untuk melihat respon model, kecepatan, dan klasifikasi topik secara langsung.
+            </p>
+
+            <!-- Quick Test Chips -->
+            <div class="mb-4">
+              <span class="text-[11px] font-semibold text-slate-600 block mb-2">Preset Pertanyaan Uji Cepat:</span>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" onclick="setAIPrompt('Berapa harga kamar Executive Suite dan apa fasilitasnya?')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-md transition-colors flex items-center gap-1 cursor-pointer">
+                  <span>🏨 Tarif Kamar</span>
+                </button>
+                <button type="button" onclick="setAIPrompt('Menu kopi apa saja yang tersedia di kafe?')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-md transition-colors flex items-center gap-1 cursor-pointer">
+                  <span>☕ Menu Kafe</span>
+                </button>
+                <button type="button" onclick="setAIPrompt('Siapa presiden pertama Amerika Serikat?')" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs rounded-md font-medium transition-colors flex items-center gap-1 cursor-pointer">
+                  <span>❓ Out of Topic</span>
+                </button>
+                <button type="button" onclick="setAIPrompt('Berapa hasil dari 55 dikali 12?')" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs rounded-md font-medium transition-colors flex items-center gap-1 cursor-pointer">
+                  <span>🔢 Out of Topic</span>
+                </button>
+                <button type="button" onclick="setAIPrompt('AC kamar saya bocor dan dinginnya mati, saya mau bicara dengan staf CS sekarang.')" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs rounded-md font-medium transition-colors flex items-center gap-1 cursor-pointer">
+                  <span>👨‍💼 Komplain / CS</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Chat Form -->
+            <form onsubmit="submitAITest(event)" class="space-y-3">
+              <div>
+                <label for="ai-prompt-input" class="block text-xs font-semibold text-slate-700 mb-1">Pertanyaan / Input Chat:</label>
+                <textarea id="ai-prompt-input" rows="4" class="w-full text-xs p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 resize-none font-sans" placeholder="Ketik pertanyaan untuk AI..."></textarea>
+              </div>
+              <button type="submit" id="btn-submit-ai-test" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                <span id="btn-submit-ai-label">Kirim & Analisis AI</span>
+              </button>
+            </form>
+          </div>
+
+          <div class="text-[11px] text-slate-400 bg-slate-50 p-3 rounded-lg border border-slate-100">
+            💡 <strong>Catatan Pengujian:</strong> Sandbox ini memanggil 9Router langsung tanpa mengubah status sesi kontak WhatsApp asli.
+          </div>
+        </div>
+
+        <!-- Right Column: Visual Result, Out of Topic Alert & Raw Metadata (7 cols) -->
+        <div class="lg:col-span-7 bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col h-full min-h-[420px]">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-bold text-slate-900">Hasil Analisis & Respons AI</h3>
+            </div>
+            <div id="ai-result-badge-container">
+              <span class="px-2.5 py-1 bg-slate-100 text-slate-500 text-[11px] font-semibold rounded-md">Menunggu Pengujian</span>
+            </div>
+          </div>
+
+          <!-- Result Body -->
+          <div id="ai-result-body" class="flex-1 flex flex-col justify-center items-center text-center p-6 text-slate-400">
+            <i data-lucide="sparkles" class="w-10 h-10 mb-2 opacity-30 text-slate-400"></i>
+            <p class="text-xs max-w-sm">Pilih salah satu preset uji cepat di sebelah kiri atau ketik pertanyaan bebas lalu klik <strong>"Kirim & Analisis AI"</strong>.</p>
+          </div>
+        </div>
+
       </div>
     </div>
 

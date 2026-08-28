@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) lucide.createIcons();
   refreshAll();
   checkSystemStatus();
+  checkAIStatus();
 
   // Polling data berkala
   setInterval(() => {
@@ -16,8 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 3000);
 
-  // Polling status gateway
+  // Polling status gateway & AI benchmark
   setInterval(checkSystemStatus, 8000);
+  setInterval(checkAIStatus, 15000);
 });
 
 function refreshAll() {
@@ -28,6 +30,7 @@ function refreshAll() {
   loadReservations();
   loadCatalog();
   checkSystemStatus();
+  checkAIStatus();
 }
 
 // ─── TAB NAVIGATION ─────────────────────────────────────────────────────────
@@ -866,4 +869,261 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.innerText = text;
   return div.innerHTML;
+}
+
+// ─── AI 9ROUTER PLAYGROUND & DIAGNOSTICS ────────────────────────────────────
+
+async function checkAIStatus() {
+  try {
+    const res = await fetch('/api/admin/ai-benchmark');
+    const data = await res.json();
+    if (!data.success || !data.benchmark) return;
+
+    const b = data.benchmark;
+    const navAiStatus = document.getElementById('nav-ai-status');
+    const navAiDot = document.getElementById('nav-ai-dot');
+    const aiCardStatus = document.getElementById('ai-card-status');
+    const aiCardDot = document.getElementById('ai-card-dot');
+    const aiCardModel = document.getElementById('ai-card-model');
+    const aiCardLatency = document.getElementById('ai-card-latency');
+    const aiCardEndpoint = document.getElementById('ai-card-endpoint');
+    const aiCardTime = document.getElementById('ai-card-time');
+
+    if (b.status === 'online') {
+      if (navAiStatus) navAiStatus.innerText = `9Router (${b.latencyMs}ms)`;
+      if (navAiDot) navAiDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+      if (aiCardStatus) aiCardStatus.innerText = 'Online (Active)';
+      if (aiCardDot) aiCardDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+      if (aiCardLatency) aiCardLatency.innerText = `${b.latencyMs} ms`;
+    } else {
+      if (navAiStatus) navAiStatus.innerText = '9Router (Offline)';
+      if (navAiDot) navAiDot.className = 'w-2 h-2 rounded-full bg-red-400';
+      if (aiCardStatus) aiCardStatus.innerText = 'Offline (Fallback Ready)';
+      if (aiCardDot) aiCardDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500';
+      if (aiCardLatency) aiCardLatency.innerText = 'Timeout / Err';
+    }
+
+    if (aiCardModel && b.model) aiCardModel.innerText = b.model;
+    if (aiCardEndpoint && b.baseUrl) aiCardEndpoint.innerText = b.baseUrl;
+    if (aiCardTime) aiCardTime.innerText = `Dicek: ${new Date().toLocaleTimeString('id-ID')}`;
+  } catch (err) {
+    console.error('Gagal benchmark AI:', err);
+  }
+}
+
+async function runAIPing() {
+  const btn = document.getElementById('btn-ai-ping');
+  const icon = document.getElementById('icon-ai-ping');
+  if (btn) btn.disabled = true;
+  if (icon) icon.classList.add('animate-spin');
+
+  try {
+    const res = await fetch('/api/admin/ai-benchmark');
+    const data = await res.json();
+    if (data.success && data.benchmark) {
+      checkAIStatus();
+      showToast(`Benchmark 9Router berhasil: Latensi ${data.benchmark.latencyMs} ms`, data.benchmark.status === 'online' ? 'success' : 'warning');
+    } else {
+      showToast('Gagal melakukan ping AI: ' + (data.error || 'Unknown error'), 'error');
+    }
+  } catch (err) {
+    showToast('Error koneksi ke 9Router: ' + err.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+    if (icon) icon.classList.remove('animate-spin');
+    if (window.lucide) lucide.createIcons();
+  }
+}
+
+function setAIPrompt(text) {
+  const input = document.getElementById('ai-prompt-input');
+  if (input) {
+    input.value = text;
+    input.focus();
+  }
+}
+
+async function submitAITest(e) {
+  if (e) e.preventDefault();
+  const input = document.getElementById('ai-prompt-input');
+  const prompt = input ? input.value.trim() : '';
+  if (!prompt) {
+    showToast('Ketik atau pilih pertanyaan terlebih dahulu', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-ai-test');
+  const btnLabel = document.getElementById('btn-submit-ai-label');
+  const resultBody = document.getElementById('ai-result-body');
+  const badgeContainer = document.getElementById('ai-result-badge-container');
+
+  if (btn) btn.disabled = true;
+  if (btnLabel) btnLabel.innerText = 'Menghubungi 9Router...';
+
+  // Loading skeleton
+  resultBody.innerHTML = `
+    <div class="w-full py-12 flex flex-col items-center justify-center space-y-3">
+      <div class="w-8 h-8 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+      <p class="text-xs text-slate-600 font-medium">Mengirim prompt ke 9Router (${document.getElementById('ai-card-model')?.innerText || 'LLM'})...</p>
+      <span class="text-[10px] text-slate-400 font-mono">Mengukur latensi dan mengevaluasi konteks topik</span>
+    </div>
+  `;
+  badgeContainer.innerHTML = `<span class="px-2.5 py-1 bg-slate-100 text-slate-500 text-[11px] font-semibold rounded-md">Menganalisis...</span>`;
+
+  try {
+    const res = await fetch('/api/admin/ai-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+    });
+    const data = await res.json();
+
+    if (!data.success && data.type === 'error') {
+      badgeContainer.innerHTML = `<span class="px-2.5 py-1 bg-red-100 text-red-700 text-[11px] font-bold rounded-md">Error Gateway</span>`;
+      resultBody.innerHTML = `
+        <div class="w-full text-left p-4 bg-red-50 border border-red-200 rounded-xl space-y-2">
+          <div class="flex items-center gap-2 text-red-800 font-bold text-xs">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-red-600"></i>
+            <span>Gagal Menghubungi Model 9Router</span>
+          </div>
+          <p class="text-xs text-red-700 font-mono">${escapeHtml(data.error || 'Unknown error')}</p>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    renderAIPlaygroundResult(data, prompt);
+
+  } catch (err) {
+    showToast('Error request AI test: ' + err.message, 'error');
+    resultBody.innerHTML = `<div class="p-4 text-xs text-red-600">Gagal request: ${escapeHtml(err.message)}</div>`;
+  } finally {
+    if (btn) btn.disabled = false;
+    if (btnLabel) btnLabel.innerText = 'Kirim & Analisis AI';
+    if (window.lucide) lucide.createIcons();
+  }
+}
+
+function renderAIPlaygroundResult(data, prompt) {
+  const resultBody = document.getElementById('ai-result-body');
+  const badgeContainer = document.getElementById('ai-result-badge-container');
+
+  const latencyBadge = `
+    <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500 font-mono">
+      <span class="flex items-center gap-1 text-emerald-700 font-semibold"><i data-lucide="zap" class="w-3 h-3"></i> ${data.latencyMs} ms</span>
+      <span>•</span>
+      <span class="truncate">Model: ${escapeHtml(data.model)}</span>
+      <span>•</span>
+      <span>Source: ${data.source === 'local_cache' ? 'Local Knowledge Fallback' : '9Router Live'}</span>
+    </div>
+  `;
+
+  const rawJsonAccordion = `
+    <details class="w-full text-left mt-3 bg-slate-50 border border-slate-200 rounded-lg text-xs overflow-hidden">
+      <summary class="px-3 py-2 cursor-pointer font-mono text-[11px] text-slate-600 font-semibold hover:bg-slate-100 transition-colors flex items-center justify-between">
+        <span>Raw JSON Model Payload</span>
+        <span class="text-[10px] text-slate-400 font-sans">Klik untuk buka/tutup</span>
+      </summary>
+      <pre class="p-3 text-[10px] font-mono text-slate-100 bg-slate-900 overflow-x-auto">${escapeHtml(JSON.stringify(data.rawJson || data, null, 2))}</pre>
+    </details>
+  `;
+
+  if (data.type === 'in_topic') {
+    badgeContainer.innerHTML = `
+      <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded-md flex items-center gap-1.5 shadow-sm">
+        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+        <span>IN-TOPIC (Layanan Hotel & Resto)</span>
+      </span>
+    `;
+
+    resultBody.innerHTML = `
+      <div class="w-full text-left space-y-3">
+        <div class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+              <i data-lucide="bot" class="w-3.5 h-3.5 text-emerald-700"></i>
+              Jawaban AI Resmi SapaTamu
+            </span>
+            <span class="text-[10px] font-semibold px-2 py-0.5 bg-emerald-200 text-emerald-900 rounded">Valid Context</span>
+          </div>
+          <div class="text-xs text-slate-800 leading-relaxed font-sans whitespace-pre-wrap">${escapeHtml(data.jawaban || '-')}</div>
+        </div>
+        ${latencyBadge}
+        ${rawJsonAccordion}
+      </div>
+    `;
+
+  } else if (data.type === 'out_of_topic') {
+    badgeContainer.innerHTML = `
+      <span class="px-2.5 py-1 bg-red-100 text-red-800 text-[11px] font-bold rounded-md flex items-center gap-1.5 shadow-sm">
+        <i data-lucide="alert-octagon" class="w-3.5 h-3.5 text-red-600"></i>
+        <span>PERINGATAN: OUT OF TOPIC</span>
+      </span>
+    `;
+
+    resultBody.innerHTML = `
+      <div class="w-full text-left space-y-3">
+        <div class="p-4 bg-red-50 border border-red-200 rounded-xl space-y-3">
+          <div class="flex items-center gap-2 text-red-800 font-bold text-xs">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-red-600 shrink-0"></i>
+            <span>PERINGATAN SISTEM: PERTANYAAN DI LUAR LINGKUP SAPATAMU</span>
+          </div>
+          
+          <p class="text-xs text-red-800 leading-relaxed">
+            Model AI mengklasifikasikan pertanyaan ini <strong>DI LUAR LINGKUP LAYANAN HOTEL & RESTORAN</strong> (Alasan: <code class="px-1.5 py-0.5 bg-red-100 rounded font-mono font-bold text-red-900">${data.alasan || 'di_luar_jangkauan'}</code>).
+          </p>
+
+          <div class="p-3 bg-white/90 border border-red-200 rounded-lg text-xs space-y-1.5 text-slate-700">
+            <div class="font-bold text-red-900 flex items-center gap-1.5">
+              <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-red-600"></i>
+              <span>Perilaku di Sesi WhatsApp Tamu Riil:</span>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed">
+              Jika pertanyaan ini dikirimkan oleh tamu melalui WhatsApp, AI <strong>tidak akan berhalusinasi atau meladeni topik acak</strong>. Bot secara otomatis mengalihkan tamu ke <strong>Customer Service Staf Manusia (*Human CS Takeover*)</strong> agar layanan tetap sopan dan profesional.
+            </p>
+          </div>
+        </div>
+        ${latencyBadge}
+        ${rawJsonAccordion}
+      </div>
+    `;
+
+  } else if (data.type === 'escalation') {
+    badgeContainer.innerHTML = `
+      <span class="px-2.5 py-1 bg-amber-100 text-amber-900 text-[11px] font-bold rounded-md flex items-center gap-1.5 shadow-sm">
+        <i data-lucide="headphones" class="w-3.5 h-3.5 text-amber-700"></i>
+        <span>PERMINTAAN ESKALASI CS</span>
+      </span>
+    `;
+
+    resultBody.innerHTML = `
+      <div class="w-full text-left space-y-3">
+        <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+          <div class="flex items-center gap-2 text-amber-900 font-bold text-xs">
+            <i data-lucide="user-check" class="w-4 h-4 text-amber-700 shrink-0"></i>
+            <span>PERMINTAAN STAF MANUSIA / KOMPLAIN TERDETEKSI</span>
+          </div>
+
+          <p class="text-xs text-amber-800 leading-relaxed">
+            Pesan tamu meminta bantuan staf manusia atau menyampaikan keluhan darurat (Alasan: <code class="px-1.5 py-0.5 bg-amber-100 rounded font-mono font-bold text-amber-900">${data.alasan || 'minta_manusia'}</code>).
+          </p>
+
+          <div class="p-3 bg-white/90 border border-amber-200 rounded-lg text-xs space-y-1.5 text-slate-700">
+            <div class="font-bold text-amber-900 flex items-center gap-1.5">
+              <i data-lucide="info" class="w-3.5 h-3.5 text-amber-700"></i>
+              <span>Perilaku di Sesi WhatsApp Tamu Riil:</span>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed">
+              Bot langsung dimatikan seketika (*silenced*), status kontak diubah menjadi <code>human</code>, dan staf hotel/resto dapat langsung membalas chat tamu dari tab <strong>Live Chat & CS</strong>.
+            </p>
+          </div>
+        </div>
+        ${latencyBadge}
+        ${rawJsonAccordion}
+      </div>
+    `;
+  }
+
+  if (window.lucide) lucide.createIcons();
 }

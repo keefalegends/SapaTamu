@@ -255,4 +255,30 @@ router.get('/system-status', (req, res) => {
   }
 });
 
+// 13. AI Benchmark & Connection Test
+router.get('/ai-benchmark', async (req, res) => {
+  try {
+    const aiService = require('../bot/aiService');
+    const benchmark = await aiService.benchmarkAI();
+    res.json({ success: true, benchmark });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 14. AI Diagnostic Playground Test (Detect In-Topic, Out-of-Topic, Escalation)
+router.post('/ai-test', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt || !prompt.trim()) {
+      return res.status(400).json({ success: false, error: 'Prompt pertanyaan tidak boleh kosong' });
+    }
+    const aiService = require('../bot/aiService');
+    const result = await aiService.diagnoseAIChat(prompt.trim());
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
