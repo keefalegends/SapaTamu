@@ -88,9 +88,10 @@ router.get('/bookings', (req, res) => {
 // Hapus Reservasi Kamar Hotel
 router.delete('/bookings/:code', (req, res) => {
   try {
-    const code = req.params.code;
-    db.db.prepare('DELETE FROM hotel_bookings WHERE booking_code = ?').run(code);
-    res.json({ success: true, message: `Booking #${code} berhasil dihapus` });
+    const rawCode = req.params.code;
+    const cleanCode = rawCode.replace(/^#/, '');
+    const result = db.db.prepare('DELETE FROM hotel_bookings WHERE booking_code = ? OR booking_code = ?').run(rawCode, cleanCode);
+    res.json({ success: true, message: `Booking #${cleanCode} berhasil dihapus`, changes: result.changes });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -116,10 +117,11 @@ router.get('/orders', (req, res) => {
 // Hapus Pesanan Kafe & Item Terkait
 router.delete('/orders/:code', (req, res) => {
   try {
-    const code = req.params.code;
-    db.db.prepare('DELETE FROM cafe_order_items WHERE order_code = ?').run(code);
-    db.db.prepare('DELETE FROM cafe_orders WHERE order_code = ?').run(code);
-    res.json({ success: true, message: `Pesanan #${code} berhasil dihapus` });
+    const rawCode = req.params.code;
+    const cleanCode = rawCode.replace(/^#/, '');
+    db.db.prepare('DELETE FROM cafe_order_items WHERE order_code = ? OR order_code = ?').run(rawCode, cleanCode);
+    const result = db.db.prepare('DELETE FROM cafe_orders WHERE order_code = ? OR order_code = ?').run(rawCode, cleanCode);
+    res.json({ success: true, message: `Pesanan #${cleanCode} berhasil dihapus`, changes: result.changes });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -138,9 +140,10 @@ router.get('/reservations', (req, res) => {
 // Hapus Reservasi Meja
 router.delete('/reservations/:id', (req, res) => {
   try {
-    const id = req.params.id;
-    db.db.prepare('DELETE FROM cafe_reservations WHERE id = ?').run(id);
-    res.json({ success: true, message: `Reservasi #${id} berhasil dihapus` });
+    const rawId = req.params.id;
+    const cleanId = rawId.replace(/^#/, '');
+    const result = db.db.prepare('DELETE FROM cafe_reservations WHERE id = ? OR id = ?').run(rawId, cleanId);
+    res.json({ success: true, message: `Reservasi #${cleanId} berhasil dihapus`, changes: result.changes });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

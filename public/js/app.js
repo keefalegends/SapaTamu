@@ -300,6 +300,64 @@ async function sendManualReply(e) {
 
 // ─── HOTEL BOOKINGS ─────────────────────────────────────────────────────────
 
+// ─── CUSTOM MODAL & TOAST UI ────────────────────────────────────────────────
+
+let confirmActionCallback = null;
+
+function showConfirmModal(title, message, onConfirm) {
+  document.getElementById('modal-title').innerText = title;
+  document.getElementById('modal-message').innerHTML = message;
+  confirmActionCallback = onConfirm;
+
+  const confirmBtn = document.getElementById('modal-btn-confirm');
+  confirmBtn.onclick = async () => {
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<span>Menghapus...</span>';
+    try {
+      if (confirmActionCallback) await confirmActionCallback();
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = '<i data-lucide="trash-2" class="w-3.5 h-3.5"></i><span>Hapus Sekarang</span>';
+      closeConfirmModal();
+      if (window.lucide) lucide.createIcons();
+    }
+  };
+
+  document.getElementById('confirm-modal').classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirm-modal').classList.add('hidden');
+  confirmActionCallback = null;
+}
+
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  const isErr = type === 'error';
+  const isWarn = type === 'warning';
+
+  const bgColor = isErr ? 'bg-red-950/90 border-red-800 text-red-200' : (isWarn ? 'bg-amber-950/90 border-amber-800 text-amber-200' : 'bg-slate-900/95 border-slate-700 text-emerald-300');
+  const iconName = isErr ? 'alert-circle' : (isWarn ? 'alert-triangle' : 'check-circle-2');
+
+  toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-sm text-xs font-medium transform transition-all duration-200 animate-in fade-in slide-in-from-bottom-2 ${bgColor}`;
+  toast.innerHTML = `
+    <i data-lucide="${iconName}" class="w-4 h-4 shrink-0"></i>
+    <span class="leading-relaxed">${message}</span>
+  `;
+
+  container.appendChild(toast);
+  if (window.lucide) lucide.createIcons();
+
+  setTimeout(() => {
+    toast.classList.add('opacity-0', 'translate-y-2');
+    setTimeout(() => toast.remove(), 250);
+  }, 3500);
+}
+
 // ─── HOTEL BOOKINGS ─────────────────────────────────────────────────────────
 
 async function loadBookings() {
@@ -335,19 +393,29 @@ async function loadBookings() {
   }
 }
 
-async function deleteBooking(code) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus data booking #${code}?`)) return;
-  try {
-    const res = await fetch(`/api/admin/bookings/${code}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (data.success) {
-      refreshAll();
-    } else {
-      alert('Gagal menghapus: ' + data.error);
+function deleteBooking(code) {
+  showConfirmModal(
+    'Hapus Reservasi Kamar',
+    `Apakah Anda yakin ingin menghapus data booking <strong>#${code}</strong>? Tindakan ini akan menghapus data dari database sistem.`,
+    async () => {
+      try {
+        const res = await fetch(`/api/admin/bookings/${encodeURIComponent(code)}`, { method: 'DELETE' });
+        if (!res.ok) {
+          showToast(`Server perlu di-restart untuk memuat rute hapus. Silakan restart server di terminal (Ctrl+C lalu npm start).`, 'error');
+          return;
+        }
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Booking #${code} berhasil dihapus.`, 'success');
+          refreshAll();
+        } else {
+          showToast('Gagal menghapus: ' + data.error, 'error');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     }
-  } catch (err) {
-    alert('Error: ' + err.message);
-  }
+  );
 }
 
 // ─── CAFE ORDERS ────────────────────────────────────────────────────────────
@@ -389,19 +457,29 @@ async function loadCafeOrders() {
   }
 }
 
-async function deleteOrder(code) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus data pesanan #${code}?`)) return;
-  try {
-    const res = await fetch(`/api/admin/orders/${code}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (data.success) {
-      refreshAll();
-    } else {
-      alert('Gagal menghapus: ' + data.error);
+function deleteOrder(code) {
+  showConfirmModal(
+    'Hapus Pesanan Restoran',
+    `Apakah Anda yakin ingin menghapus pesanan <strong>#${code}</strong> beserta rincian itemnya?`,
+    async () => {
+      try {
+        const res = await fetch(`/api/admin/orders/${encodeURIComponent(code)}`, { method: 'DELETE' });
+        if (!res.ok) {
+          showToast(`Server perlu di-restart untuk memuat rute hapus. Silakan restart server di terminal (Ctrl+C lalu npm start).`, 'error');
+          return;
+        }
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Pesanan #${code} berhasil dihapus.`, 'success');
+          refreshAll();
+        } else {
+          showToast('Gagal menghapus: ' + data.error, 'error');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     }
-  } catch (err) {
-    alert('Error: ' + err.message);
-  }
+  );
 }
 
 // ─── CAFE RESERVATIONS ──────────────────────────────────────────────────────
@@ -437,19 +515,29 @@ async function loadReservations() {
   }
 }
 
-async function deleteReservation(id) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus data reservasi #${id}?`)) return;
-  try {
-    const res = await fetch(`/api/admin/reservations/${id}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (data.success) {
-      refreshAll();
-    } else {
-      alert('Gagal menghapus: ' + data.error);
+function deleteReservation(id) {
+  showConfirmModal(
+    'Hapus Reservasi Meja',
+    `Apakah Anda yakin ingin menghapus data reservasi meja <strong>#${id}</strong>?`,
+    async () => {
+      try {
+        const res = await fetch(`/api/admin/reservations/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (!res.ok) {
+          showToast(`Server perlu di-restart untuk memuat rute hapus. Silakan restart server di terminal (Ctrl+C lalu npm start).`, 'error');
+          return;
+        }
+        const data = await res.json();
+        if (data.success) {
+          showToast(`Reservasi #${id} berhasil dihapus.`, 'success');
+          refreshAll();
+        } else {
+          showToast('Gagal menghapus: ' + data.error, 'error');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     }
-  } catch (err) {
-    alert('Error: ' + err.message);
-  }
+  );
 }
 
 // ─── CATALOG & TARIFFS ──────────────────────────────────────────────────────
