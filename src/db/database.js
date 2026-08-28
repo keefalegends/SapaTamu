@@ -269,6 +269,8 @@ function getStats() {
 
 module.exports = {
   db,
+  prepare: (...args) => db.prepare(...args),
+  transaction: (fn) => db.transaction(fn),
   getConversation,
   upsertConversation,
   setBotStatus,

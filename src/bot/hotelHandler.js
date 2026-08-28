@@ -182,7 +182,7 @@ async function handleHotelFlow(phone, text, session) {
   }
 
   // 6. Konfirmasi Lunas ➡️ E-Voucher Resmi
-  if (session.status === 'hotel_await_payment' && (lower === 'hotel_pay_confirm' || lower.includes('sudah bayar'))) {
+  if (['hotel_confirm_draft', 'hotel_select_payment', 'hotel_await_payment'].includes(session.status) && (lower === 'hotel_pay_confirm' || lower.includes('sudah bayar'))) {
     const draft = session.draft;
     const now = new Date();
     const ymd = now.toISOString().slice(2, 10).replace(/-/g, '');

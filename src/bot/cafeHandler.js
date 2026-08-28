@@ -26,9 +26,25 @@ function getMenuCatalog() {
 }
 
 function findMenuItem(query) {
-  const lower = query.toLowerCase().trim();
-  const rows = db.prepare('SELECT * FROM menu_catalog').all();
-  return rows.find(r => r.name.toLowerCase() === lower || lower.includes(r.name.toLowerCase()) || r.id === lower);
+  const lower = (query || '').toLowerCase().replace(/[0-9x×+]/g, '').trim();
+  const rows = db.db.prepare('SELECT * FROM menu_catalog').all();
+
+  // 1. Direct exact or substring match
+  let match = rows.find(r => {
+    const rName = r.name.toLowerCase();
+    return rName === lower || lower.includes(rName) || rName.includes(lower) || r.id === lower;
+  });
+  if (match) return match;
+
+  // 2. Multi-word partial matching (contoh: "nasi goreng" cocok dengan "Nasi Goreng Spesial")
+  const words = lower.split(/\s+/).filter(w => w.length >= 3);
+  if (words.length > 0) {
+    match = rows.find(r => {
+      const rName = r.name.toLowerCase();
+      return words.every(w => rName.includes(w));
+    });
+  }
+  return match;
 }
 
 async function handleCafeFlow(phone, text, session) {
@@ -246,8 +262,19 @@ function isQuestion(text) {
   }
 
   // 7. Konfirmasi Pesanan ➡️ Kode Pesanan & Catat ke DB
-  if (session.status === 'cafe_confirm_order' && (lower === 'order_confirm' || lower.includes('konfirmasi'))) {
-    const draft = session.draft;
+  if ((session.status === 'cafe_confirm_order' || session.status === 'cafe_ordering') && (lower === 'order_confirm' || lower.includes('konfirmasi'))) {
+    const draft = session.draft || { cart: [] };
+    if (!draft.cart || draft.cart.length === 0) {
+      await gateway.sendButtons(phone, '🛒 Keranjang Anda masih kosong. Silakan pilih menu:', [
+        { id: 'cat_minuman', title: '☕ Minuman' },
+        { id: 'cat_makanan', title: '🍳 Makanan' },
+        { id: 'goto_main',   title: '🔙 Menu Utama' },
+      ]);
+      return true;
+    }
+    if (!draft.totalAmount) {
+      draft.totalAmount = draft.cart.reduce((sum, item) => sum + (item.subtotal || (item.price * item.qty)), 0);
+    }
     const now = new Date();
     const ymd = now.toISOString().slice(2, 10).replace(/-/g, '');
     const rand = Math.random().toString(16).slice(2, 6).toUpperCase();

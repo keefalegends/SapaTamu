@@ -128,11 +128,36 @@ Format JSON yang diharapkan:
 
     return JSON.parse(res.choices[0]?.message?.content || '{}');
   } catch (e) {
+    // Fallback Regex parser jika remote LLM tidak merespons
+    let nights = 1;
+    const nightMatch = text.match(/(\d+)\s*malam/i);
+    if (nightMatch) nights = parseInt(nightMatch[1], 10);
+
+    let customerName = null;
+    const nameMatch = text.match(/(?:nama|an|a\.n\.?)\s*:?\s*([A-Za-z\s]+)/i);
+    if (nameMatch) {
+      customerName = nameMatch[1].trim();
+    } else {
+      const words = text.split(/\s+/).filter(w => !/\b(besok|hari|malam|ini|lusa|\d+)\b/i.test(w));
+      if (words.length > 0) customerName = words.join(' ');
+    }
+
+    let checkInDate = 'Besok';
+    if (/hari ini/i.test(text)) checkInDate = 'Hari Ini';
+    else if (/lusa/i.test(text)) checkInDate = 'Lusa';
+    const dateMatch = text.match(/(\d{1,2}\s+[A-Za-z]+(?:\s+\d{4})?)/);
+    if (dateMatch) checkInDate = dateMatch[1];
+
+    let roomKey = null;
+    if (/deluxe/i.test(text)) roomKey = 'deluxe';
+    if (/executive/i.test(text)) roomKey = 'executive';
+    if (/suite|presidential/i.test(text)) roomKey = 'suite';
+
     return {
-      customerName: null,
-      nights: 1,
-      checkInDate: 'Hari Ini',
-      roomKey: null,
+      customerName: customerName || 'Tamu Terhormat',
+      nights: nights || 1,
+      checkInDate: checkInDate,
+      roomKey: roomKey,
     };
   }
 }

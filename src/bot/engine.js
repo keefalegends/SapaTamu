@@ -1,4 +1,4 @@
-﻿const gateway = require('../gateway/openkoneksiClient');
+const gateway = require('../gateway/openkoneksiClient');
 const db = require('../db/database');
 const { handleHotelFlow } = require('./hotelHandler');
 const { handleCafeFlow } = require('./cafeHandler');
@@ -76,13 +76,13 @@ async function processInboundMessage(phone, senderName, text, rawPayload = null)
   const session = db.getSession(cleanPhone);
 
   // 6. Router Alur Hotel
-  if (session.status.startsWith('hotel_') || lower === 'menu_hotel' || lower.includes('kamar')) {
+  if (session.status.startsWith('hotel_') || lower.startsWith('hotel_') || lower.startsWith('room_') || lower === 'menu_hotel' || lower.includes('kamar') || lower.includes('hotel') || lower.includes('menginap')) {
     const handled = await handleHotelFlow(cleanPhone, cleanText, session);
     if (handled) return;
   }
 
   // 7. Router Alur Kafe
-  if (session.status.startsWith('cafe_') || lower === 'menu_kafe' || lower.includes('meja') || lower.includes('makan') || lower.includes('minum')) {
+  if (session.status.startsWith('cafe_') || lower.startsWith('cafe_') || lower.startsWith('cat_') || lower.startsWith('add_') || lower === 'cart_view' || lower === 'order_confirm' || lower === 'menu_kafe' || lower.includes('meja') || lower.includes('makan') || lower.includes('minum') || lower.includes('kafe') || lower.includes('kopi')) {
     const handled = await handleCafeFlow(cleanPhone, cleanText, session);
     if (handled) return;
   }
