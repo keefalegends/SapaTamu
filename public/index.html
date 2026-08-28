@@ -395,6 +395,39 @@
 
   </main>
 
+  <!-- ── Detailed Information Modal (E-Voucher & Order Receipt) ─────────────── -->
+  <div id="detail-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 transform transition-all animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-bold" id="detail-modal-icon">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900" id="detail-modal-title">Rincian Lengkap</h3>
+            <p class="text-[11px] text-slate-400" id="detail-modal-subtitle">Informasi operasional sistem</p>
+          </div>
+        </div>
+        <button onclick="closeDetailModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Injected Body Content -->
+      <div id="detail-modal-content" class="space-y-4 text-xs">
+        <!-- Dynamic content injected by app.js -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between border-t border-slate-100 pt-4 mt-5" id="detail-modal-footer">
+        <button onclick="closeDetailModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          Tutup
+        </button>
+        <div id="detail-modal-actions" class="flex gap-2"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Custom Confirmation Modal (Modern UI) ──────────────────────────────── -->
   <div id="confirm-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 transform transition-all animate-in fade-in zoom-in-95 duration-150">

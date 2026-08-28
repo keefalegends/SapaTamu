@@ -97,6 +97,18 @@ router.delete('/bookings/:code', (req, res) => {
   }
 });
 
+// Update Status Booking Kamar (Confirmed / Checked In / Checked Out)
+router.patch('/bookings/:code/status', (req, res) => {
+  try {
+    const cleanCode = req.params.code.replace(/^#/, '');
+    const { status } = req.body;
+    db.db.prepare('UPDATE hotel_bookings SET status = ? WHERE booking_code = ? OR booking_code = ?').run(status, req.params.code, cleanCode);
+    res.json({ success: true, message: `Status booking #${cleanCode} berhasil diubah ke ${status}` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 7. Daftar Pesanan Kafe & Rincian Item
 router.get('/orders', (req, res) => {
   try {
@@ -122,6 +134,18 @@ router.delete('/orders/:code', (req, res) => {
     db.db.prepare('DELETE FROM cafe_order_items WHERE order_code = ? OR order_code = ?').run(rawCode, cleanCode);
     const result = db.db.prepare('DELETE FROM cafe_orders WHERE order_code = ? OR order_code = ?').run(rawCode, cleanCode);
     res.json({ success: true, message: `Pesanan #${cleanCode} berhasil dihapus`, changes: result.changes });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Update Status Pesanan Kafe (Dapur / Selesai)
+router.patch('/orders/:code/status', (req, res) => {
+  try {
+    const cleanCode = req.params.code.replace(/^#/, '');
+    const { status } = req.body;
+    db.db.prepare('UPDATE cafe_orders SET status = ? WHERE order_code = ? OR order_code = ?').run(status, req.params.code, cleanCode);
+    res.json({ success: true, message: `Status pesanan #${cleanCode} berhasil diubah ke ${status}` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

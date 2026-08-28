@@ -360,36 +360,193 @@ function showToast(message, type = 'success') {
 
 // ─── HOTEL BOOKINGS ─────────────────────────────────────────────────────────
 
+let cachedBookings = [];
+let cachedOrders = [];
+
 async function loadBookings() {
   try {
     const res = await fetch('/api/admin/bookings');
     const data = await res.json();
     const tbody = document.getElementById('hotel-bookings-table');
+    cachedBookings = data.bookings || [];
 
-    if (!data.bookings || data.bookings.length === 0) {
+    if (!cachedBookings || cachedBookings.length === 0) {
       tbody.innerHTML = `<tr><td colspan="8" class="px-5 py-8 text-center text-slate-400">Belum ada transaksi reservasi kamar</td></tr>`;
       return;
     }
 
-    tbody.innerHTML = data.bookings.map(b => `
-      <tr class="hover:bg-slate-50 transition-colors">
-        <td class="px-5 py-3.5 font-bold font-mono text-xs text-slate-900">#${b.booking_code}</td>
-        <td class="px-5 py-3.5 font-medium text-slate-900">${b.guest_name}<br><span class="text-[11px] font-mono text-slate-400">+${b.phone_number}</span></td>
-        <td class="px-5 py-3.5"><span class="px-2 py-0.5 bg-slate-100 text-slate-800 font-semibold rounded text-[11px]">${b.room_name}</span></td>
-        <td class="px-5 py-3.5">${b.check_in}</td>
-        <td class="px-5 py-3.5">${b.nights} Malam</td>
-        <td class="px-5 py-3.5 font-bold text-slate-900">Rp ${Number(b.total_price).toLocaleString('id-ID')}</td>
-        <td class="px-5 py-3.5"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded">CONFIRMED</span></td>
-        <td class="px-5 py-3.5 text-right">
-          <button onclick="deleteBooking('${b.booking_code}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Hapus Booking">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
-        </td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = cachedBookings.map(b => {
+      const isCheckedIn = b.status === 'checked_in';
+      const isCompleted = b.status === 'completed' || b.status === 'checked_out';
+      let badgeClass = 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800';
+      let statusLabel = (b.status || 'CONFIRMED').toUpperCase();
+
+      if (isCheckedIn) {
+        badgeClass = 'bg-blue-100 hover:bg-blue-200 text-blue-800';
+        statusLabel = 'CHECKED-IN';
+      } else if (isCompleted) {
+        badgeClass = 'bg-slate-100 hover:bg-slate-200 text-slate-700';
+        statusLabel = 'SELESAI';
+      }
+
+      return `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="px-5 py-3.5 font-bold font-mono text-xs text-slate-900">#${b.booking_code}</td>
+          <td class="px-5 py-3.5 font-medium text-slate-900">${b.guest_name}<br><span class="text-[11px] font-mono text-slate-400">+${b.phone_number}</span></td>
+          <td class="px-5 py-3.5"><span class="px-2 py-0.5 bg-slate-100 text-slate-800 font-semibold rounded text-[11px]">${b.room_name}</span></td>
+          <td class="px-5 py-3.5">${b.check_in}</td>
+          <td class="px-5 py-3.5">${b.nights} Malam</td>
+          <td class="px-5 py-3.5 font-bold text-slate-900">Rp ${Number(b.total_price).toLocaleString('id-ID')}</td>
+          <td class="px-5 py-3.5">
+            <span onclick="showBookingDetail('${b.booking_code}')" class="px-2.5 py-1 ${badgeClass} text-[10px] font-bold rounded cursor-pointer transition-colors inline-flex items-center gap-1 shadow-sm" title="Klik untuk lihat rincian lengkap">
+              <span>${statusLabel}</span>
+              <i data-lucide="external-link" class="w-2.5 h-2.5 opacity-70"></i>
+            </span>
+          </td>
+          <td class="px-5 py-3.5 text-right">
+            <div class="flex items-center justify-end gap-1">
+              <button onclick="showBookingDetail('${b.booking_code}')" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors" title="Lihat Rincian Lengkap">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+              <button onclick="deleteBooking('${b.booking_code}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Hapus Booking">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
     if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.error('Gagal load booking:', err);
+  }
+}
+
+function showBookingDetail(code) {
+  const b = cachedBookings.find(x => x.booking_code === code || x.booking_code === code.replace(/^#/, ''));
+  if (!b) return;
+
+  document.getElementById('detail-modal-title').innerText = 'Rincian Reservasi Kamar';
+  document.getElementById('detail-modal-subtitle').innerText = `Kode Booking: #${b.booking_code}`;
+  document.getElementById('detail-modal-icon').innerHTML = '<i data-lucide="bed" class="w-5 h-5 text-emerald-600"></i>';
+
+  const checkOutDisplay = b.check_out || `Hari ke-${(b.nights || 1) + 1}`;
+
+  document.getElementById('detail-modal-content').innerHTML = `
+    <!-- Card 1: Status & Summary -->
+    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+      <div>
+        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Status Pemesanan</span>
+        <div class="text-xs font-bold text-slate-900 mt-0.5">Terkonfirmasi & Terdaftar</div>
+      </div>
+      <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded text-xs">
+        ${(b.status || 'CONFIRMED').toUpperCase()}
+      </span>
+    </div>
+
+    <!-- Card 2: Tamu & Kontak -->
+    <div class="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+      <h4 class="text-xs font-bold text-slate-900 border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+        <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
+        <span>Informasi Tamu</span>
+      </h4>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <span class="text-slate-400 text-[11px] block">Nama Lengkap:</span>
+          <strong class="text-slate-800">${b.guest_name || 'Tamu'}</strong>
+        </div>
+        <div>
+          <span class="text-slate-400 text-[11px] block">Nomor WhatsApp:</span>
+          <strong class="text-slate-800 font-mono">+${b.phone_number}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Jadwal & Kamar -->
+    <div class="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+      <h4 class="text-xs font-bold text-slate-900 border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
+        <span>Jadwal & Akomodasi</span>
+      </h4>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <span class="text-slate-400 text-[11px] block">Tipe Kamar:</span>
+          <strong class="text-slate-800">${b.room_name}</strong>
+        </div>
+        <div>
+          <span class="text-slate-400 text-[11px] block">Durasi Menginap:</span>
+          <strong class="text-slate-800">${b.nights} Malam</strong>
+        </div>
+        <div>
+          <span class="text-slate-400 text-[11px] block">Check-In:</span>
+          <strong class="text-emerald-700 font-semibold">${b.check_in} (14.00 WIB)</strong>
+        </div>
+        <div>
+          <span class="text-slate-400 text-[11px] block">Check-Out:</span>
+          <strong class="text-slate-800 font-semibold">${checkOutDisplay} (12.00 WIB)</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: Pembayaran -->
+    <div class="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+      <h4 class="text-xs font-bold text-slate-900 border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+        <i data-lucide="credit-card" class="w-3.5 h-3.5 text-slate-400"></i>
+        <span>Rincian Pembayaran</span>
+      </h4>
+      <div class="flex items-center justify-between text-xs pt-1">
+        <span class="text-slate-500">Metode Pembayaran:</span>
+        <span class="font-semibold text-slate-700">${b.payment_method || 'Simulasi QRIS/VA'}</span>
+      </div>
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-slate-500">Status Pembayaran:</span>
+        <span class="text-emerald-700 font-bold">LUNAS (PAID)</span>
+      </div>
+      <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+        <span class="font-bold text-slate-700">Total Biaya:</span>
+        <span class="text-sm font-bold text-slate-900 font-mono">Rp ${Number(b.total_price).toLocaleString('id-ID')}</span>
+      </div>
+    </div>
+  `;
+
+  // Action button in footer
+  const actionsEl = document.getElementById('detail-modal-actions');
+  actionsEl.innerHTML = `
+    ${b.status !== 'checked_in' && b.status !== 'completed' ? `
+      <button onclick="updateBookingStatus('${b.booking_code}', 'checked_in')" class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
+        <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
+        <span>Tandai Check-In</span>
+      </button>
+    ` : ''}
+    ${b.status === 'checked_in' ? `
+      <button onclick="updateBookingStatus('${b.booking_code}', 'completed')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
+        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+        <span>Tandai Selesai (Check-Out)</span>
+      </button>
+    ` : ''}
+  `;
+
+  document.getElementById('detail-modal').classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+}
+
+async function updateBookingStatus(code, newStatus) {
+  try {
+    const res = await fetch(`/api/admin/bookings/${encodeURIComponent(code)}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'Status berhasil diperbarui', 'success');
+      closeDetailModal();
+      refreshAll();
+    } else {
+      showToast('Gagal memperbarui status: ' + data.error, 'error');
+    }
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
   }
 }
 
@@ -425,15 +582,17 @@ async function loadCafeOrders() {
     const res = await fetch('/api/admin/orders');
     const data = await res.json();
     const tbody = document.getElementById('cafe-orders-table');
+    cachedOrders = data.orders || [];
 
-    if (!data.orders || data.orders.length === 0) {
+    if (!cachedOrders || cachedOrders.length === 0) {
       tbody.innerHTML = `<tr><td colspan="7" class="px-5 py-8 text-center text-slate-400">Belum ada pesanan restoran masuk</td></tr>`;
       return;
     }
 
-    tbody.innerHTML = data.orders.map(o => {
+    tbody.innerHTML = cachedOrders.map(o => {
       const itemsList = o.items.map(i => `${i.item_name} (${i.qty}x)`).join(', ');
       const loc = o.order_type === 'dine_in' ? `Meja ${String(o.table_number).padStart(2, '0')}` : 'Takeaway';
+      const isCompleted = o.status === 'completed';
 
       return `
         <tr class="hover:bg-slate-50 transition-colors">
@@ -441,12 +600,22 @@ async function loadCafeOrders() {
           <td class="px-5 py-3.5 font-semibold text-slate-800">${loc}</td>
           <td class="px-5 py-3.5 text-slate-600 text-xs">${itemsList || '-'}</td>
           <td class="px-5 py-3.5 font-bold text-slate-900">Rp ${Number(o.total_amount).toLocaleString('id-ID')}</td>
-          <td class="px-5 py-3.5"><span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">DAPUR</span></td>
+          <td class="px-5 py-3.5">
+            <span onclick="showOrderDetail('${o.order_code}')" class="px-2.5 py-1 ${isCompleted ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800' : 'bg-blue-100 hover:bg-blue-200 text-blue-800'} text-[10px] font-bold rounded cursor-pointer transition-colors inline-flex items-center gap-1 shadow-sm" title="Klik untuk lihat rincian pesanan">
+              <span>${isCompleted ? 'SELESAI' : 'DAPUR'}</span>
+              <i data-lucide="external-link" class="w-2.5 h-2.5 opacity-70"></i>
+            </span>
+          </td>
           <td class="px-5 py-3.5 font-mono text-slate-400 text-[11px]">${o.created_at.slice(11, 16)}</td>
           <td class="px-5 py-3.5 text-right">
-            <button onclick="deleteOrder('${o.order_code}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Hapus Pesanan">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
-            </button>
+            <div class="flex items-center justify-end gap-1">
+              <button onclick="showOrderDetail('${o.order_code}')" class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors" title="Lihat Rincian Pesanan">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+              <button onclick="deleteOrder('${o.order_code}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Hapus Pesanan">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
           </td>
         </tr>
       `;
@@ -455,6 +624,121 @@ async function loadCafeOrders() {
   } catch (err) {
     console.error('Gagal load cafe orders:', err);
   }
+}
+
+function showOrderDetail(code) {
+  const o = cachedOrders.find(x => x.order_code === code || x.order_code === code.replace(/^#/, ''));
+  if (!o) return;
+
+  document.getElementById('detail-modal-title').innerText = 'Rincian Pesanan Restoran & Kafe';
+  document.getElementById('detail-modal-subtitle').innerText = `Kode Pesanan: #${o.order_code}`;
+  document.getElementById('detail-modal-icon').innerHTML = '<i data-lucide="utensils" class="w-5 h-5 text-amber-600"></i>';
+
+  const loc = o.order_type === 'dine_in' ? `Makan di Tempat (Meja ${String(o.table_number).padStart(2, '0')})` : 'Takeaway (Bawa Pulang)';
+  const isCompleted = o.status === 'completed';
+
+  const itemsHtml = (o.items || []).map(i => `
+    <div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 last:border-0">
+      <div>
+        <strong class="text-slate-800">${i.item_name}</strong>
+        <span class="text-slate-400 text-[11px] ml-1">(${i.qty}x @ Rp ${Number(i.price).toLocaleString('id-ID')})</span>
+      </div>
+      <span class="font-mono font-semibold text-slate-900">Rp ${Number(i.subtotal).toLocaleString('id-ID')}</span>
+    </div>
+  `).join('') || '<div class="text-slate-400 py-2">Tidak ada data item</div>';
+
+  document.getElementById('detail-modal-content').innerHTML = `
+    <!-- Card 1: Status & Lokasi -->
+    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+      <div>
+        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Tipe Pesanan / Lokasi</span>
+        <div class="text-xs font-bold text-slate-900 mt-0.5">${loc}</div>
+      </div>
+      <span class="px-2.5 py-1 ${isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'} font-bold rounded text-xs">
+        ${isCompleted ? 'SELESAI SAJI' : 'PROSES DAPUR'}
+      </span>
+    </div>
+
+    <!-- Card 2: Detail Kontak & Waktu -->
+    <div class="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <span class="text-slate-400 text-[11px] block">No. WhatsApp Pemesan:</span>
+          <strong class="text-slate-800 font-mono">+${o.phone_number}</strong>
+        </div>
+        <div>
+          <span class="text-slate-400 text-[11px] block">Waktu Pesanan Masuk:</span>
+          <strong class="text-slate-800 font-mono">${o.created_at || '-'}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Daftar Item Menu -->
+    <div class="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+      <h4 class="text-xs font-bold text-slate-900 border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+        <i data-lucide="shopping-bag" class="w-3.5 h-3.5 text-slate-400"></i>
+        <span>Rincian Item Dipesan</span>
+      </h4>
+      <div class="space-y-1">
+        ${itemsHtml}
+      </div>
+    </div>
+
+    <!-- Card 4: Tagihan Pembayaran -->
+    <div class="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-slate-500">Status Pembayaran:</span>
+        <span class="text-emerald-700 font-bold">LUNAS (${(o.payment_status || 'PAID').toUpperCase()})</span>
+      </div>
+      <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+        <span class="font-bold text-slate-700">Total Pembayaran:</span>
+        <span class="text-sm font-bold text-slate-900 font-mono">Rp ${Number(o.total_amount).toLocaleString('id-ID')}</span>
+      </div>
+    </div>
+  `;
+
+  // Action button in footer
+  const actionsEl = document.getElementById('detail-modal-actions');
+  actionsEl.innerHTML = `
+    ${!isCompleted ? `
+      <button onclick="updateOrderStatus('${o.order_code}', 'completed')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
+        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+        <span>Tandai Selesai Saji</span>
+      </button>
+    ` : `
+      <button onclick="updateOrderStatus('${o.order_code}', 'new')" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
+        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+        <span>Kembalikan ke Dapur</span>
+      </button>
+    `}
+  `;
+
+  document.getElementById('detail-modal').classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+}
+
+async function updateOrderStatus(code, newStatus) {
+  try {
+    const res = await fetch(`/api/admin/orders/${encodeURIComponent(code)}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'Status pesanan diperbarui', 'success');
+      closeDetailModal();
+      refreshAll();
+    } else {
+      showToast('Gagal memperbarui status: ' + data.error, 'error');
+    }
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal').classList.add('hidden');
 }
 
 function deleteOrder(code) {
