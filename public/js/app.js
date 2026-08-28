@@ -876,6 +876,11 @@ function escapeHtml(text) {
 async function checkAIStatus() {
   try {
     const res = await fetch('/api/admin/ai-benchmark');
+    const contentType = res.headers.get('content-type') || '';
+    if (!res.ok || !contentType.includes('application/json')) {
+      console.warn('Backend server belum memuat rute AI (perlu restart server di terminal: Ctrl+C lalu npm start).');
+      return;
+    }
     const data = await res.json();
     if (!data.success || !data.benchmark) return;
 
@@ -919,6 +924,11 @@ async function runAIPing() {
 
   try {
     const res = await fetch('/api/admin/ai-benchmark');
+    const contentType = res.headers.get('content-type') || '';
+    if (!res.ok || !contentType.includes('application/json')) {
+      showToast('Server perlu di-restart untuk memuat rute AI baru. Di terminal tekan Ctrl+C lalu ketik npm start.', 'error');
+      return;
+    }
     const data = await res.json();
     if (data.success && data.benchmark) {
       checkAIStatus();
@@ -976,6 +986,29 @@ async function submitAITest(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt }),
     });
+    const contentType = res.headers.get('content-type') || '';
+    if (!res.ok || !contentType.includes('application/json')) {
+      showToast('Server perlu di-restart untuk memuat rute AI baru. Di terminal tekan Ctrl+C lalu ketik npm start.', 'error');
+      badgeContainer.innerHTML = `<span class="px-2.5 py-1 bg-red-100 text-red-700 text-[11px] font-bold rounded-md">Server Belum Restart</span>`;
+      resultBody.innerHTML = `
+        <div class="w-full text-left p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+          <div class="flex items-center gap-2 text-amber-800 font-bold text-xs">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
+            <span>Server Perlu Di-restart</span>
+          </div>
+          <p class="text-xs text-amber-900 leading-relaxed">
+            Instance server Node.js di terminal masih menjalankan sesi lama sebelum rute AI ditambahkan.
+          </p>
+          <div class="text-[11px] text-amber-800 bg-white/70 p-2.5 rounded-lg border border-amber-200 font-mono">
+            1. Buka terminal VS Code tempat server berjalan<br>
+            2. Tekan <strong>Ctrl + C</strong><br>
+            3. Ketik <strong>npm start</strong>
+          </div>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
     const data = await res.json();
 
     if (!data.success && data.type === 'error') {
