@@ -1,4 +1,4 @@
-﻿const gateway = require('../gateway/openkoneksiClient');
+const gateway = require('../gateway/openkoneksiClient');
 const db = require('../db/database');
 
 const ROOMS = {
@@ -25,8 +25,24 @@ const ROOMS = {
   },
 };
 
+function getRoom(key) {
+  try {
+    const row = db.db.prepare('SELECT * FROM room_catalog WHERE room_key = ?').get(key);
+    if (row) {
+      return {
+        key: row.room_key,
+        name: row.name,
+        price: row.price,
+        desc: row.description,
+        image: row.image || 'kamar_deluxe.jpg',
+      };
+    }
+  } catch (e) {}
+  return ROOMS[key] || ROOMS.deluxe;
+}
+
 function formatRupiah(num) {
-  return 'Rp ' + Number(num).toLocaleString('id-ID');
+  return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
 }
 
 async function handleHotelFlow(phone, text, session) {
@@ -36,15 +52,19 @@ async function handleHotelFlow(phone, text, session) {
   if (session.status === 'hotel_menu' || lower === 'hotel_reservasi' || lower.includes('reservasi kamar') || lower.includes('booking kamar')) {
     db.setSession(phone, 'hotel_pick_room', { roomKey: null });
 
+    const deluxe = getRoom('deluxe');
+    const executive = getRoom('executive');
+    const suite = getRoom('suite');
+
     const menuText =
       '🛏️ *Pilihan Kamar Hotel SapaTamu*\n\n' +
       'Nikmati kenyamanan bintang 4 dengan fasilitas lengkap:\n\n' +
-      '• 🛏️ *Deluxe Room* — Rp 550.000 / malam\n' +
-      '  _Kasur King Size, AC, Smart TV, Balkon_\n\n' +
-      '• 🌟 *Executive Suite* — Rp 950.000 / malam\n' +
-      '  _Ruang Tamu, Jacuzzi, Espresso Maker, Lounge_\n\n' +
-      '• 👑 *Presidential Suite* — Rp 1.800.000 / malam\n' +
-      '  _2 Kamar Tidur, Dining Room, Mini Bar, Butler_\n\n' +
+      `• 🛏️ *${deluxe.name}* — ${formatRupiah(deluxe.price)} / malam\n` +
+      `  _${deluxe.desc}_\n\n` +
+      `• 🌟 *${executive.name}* — ${formatRupiah(executive.price)} / malam\n` +
+      `  _${executive.desc}_\n\n` +
+      `• 👑 *${suite.name}* — ${formatRupiah(suite.price)} / malam\n` +
+      `  _${suite.desc}_\n\n` +
       'Silakan pilih tipe kamar yang Anda inginkan:';
 
     await gateway.sendButtons(phone, menuText, [
@@ -61,7 +81,7 @@ async function handleHotelFlow(phone, text, session) {
     if (lower.includes('executive') || lower === 'room_executive') chosenKey = 'executive';
     if (lower.includes('suite') || lower.includes('presidential') || lower === 'room_suite') chosenKey = 'suite';
 
-    const room = ROOMS[chosenKey];
+    const room = getRoom(chosenKey);
     db.setSession(phone, 'hotel_await_date', { roomKey: chosenKey });
 
     // Kirim foto kamar
@@ -82,7 +102,7 @@ async function handleHotelFlow(phone, text, session) {
     const parsed = await parseHotelBookingInput(text);
 
     const roomKey = session.draft?.roomKey || parsed.roomKey || 'deluxe';
-    const room = ROOMS[roomKey] || ROOMS.deluxe;
+    const room = getRoom(roomKey);
     const nights = Math.max(1, parseInt(parsed.nights || 1, 10));
     const checkIn = parsed.checkInDate || 'Besok';
     const guestName = parsed.customerName || 'Tamu Terhormat';
@@ -213,7 +233,12 @@ async function handleHotelFlow(phone, text, session) {
   if (lower === 'hotel_cancel' || lower.includes('batal')) {
     db.clearSession(phone);
     await gateway.sendText(phone, '❌ *Pemesanan kamar telah dibatalkan.*');
-    return false; // Kembali ke menu utama
+    await gateway.sendButtons(phone, 'Pilihan layanan SapaTamu:', [
+      { id: 'menu_hotel', title: '🏨 Hotel' },
+      { id: 'menu_kafe',  title: '☕ Kafe' },
+      { id: 'menu_cs',    title: '🎧 Hubungi CS' },
+    ]);
+    return true;
   }
 
   return false;

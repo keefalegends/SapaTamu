@@ -1,4 +1,4 @@
-﻿const axios = require('axios');
+const axios = require('axios');
 const config = require('../config/env');
 const db = require('../db/database');
 
@@ -7,7 +7,7 @@ const db = require('../db/database');
  * Mengirim pesan ke pengguna WhatsApp melalui gateway OpenKoneksi.com
  */
 
-async function sendRawOpenKoneksi(payload) {
+async function sendRawOpenKoneksi(payload, sender = 'bot') {
   const apiKey = config.openkoneksi.apiKey;
   const url = `${config.openkoneksi.apiUrl}/messages`;
 
@@ -24,12 +24,12 @@ async function sendRawOpenKoneksi(payload) {
     textPreview = payload.image?.caption || '[Gambar / Foto]';
   }
 
-  db.saveMessage(to, 'outbound', 'bot', msgType, textPreview, payload);
+  db.saveMessage(to, 'outbound', sender, msgType, textPreview, payload);
   db.upsertConversation(to, null, textPreview);
 
   // Jika API Key dummy/demo, log ke console dan anggap berhasil (Mode Simulasi)
   if (!apiKey || apiKey.startsWith('test_') || apiKey === 'YOUR_OPENKONEKSI_API_KEY') {
-    console.log(`📡 [OPENKONEKSI SIMULASI] Outbound ke +${to}: "${textPreview.substring(0, 50)}..."`);
+    console.log(`📡 [OPENKONEKSI SIMULASI] Outbound ke +${to} (${sender}): "${textPreview.substring(0, 50)}..."`);
     return { success: true, simulated: true };
   }
 
@@ -53,7 +53,7 @@ async function sendRawOpenKoneksi(payload) {
 /**
  * Kirim Pesan Teks Standar
  */
-async function sendText(to, text) {
+async function sendText(to, text, sender = 'bot') {
   const payload = {
     messaging_product: 'whatsapp',
     recipient_type: 'individual',
@@ -64,7 +64,7 @@ async function sendText(to, text) {
       body: text,
     },
   };
-  return sendRawOpenKoneksi(payload);
+  return sendRawOpenKoneksi(payload, sender);
 }
 
 /**

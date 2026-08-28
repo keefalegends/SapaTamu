@@ -1,4 +1,4 @@
-﻿const Database = require('better-sqlite3');
+const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
@@ -238,7 +238,7 @@ function saveCafeOrder(orderData, items) {
       orderData.orderCode, orderData.phoneNumber, orderData.tableNumber || null,
       orderData.orderType, orderData.totalAmount
     );
-    for (const item of items) {
+    for (const item of (items || [])) {
       insertItem.run(orderData.orderCode, item.name, item.qty, item.price, item.subtotal);
     }
   });

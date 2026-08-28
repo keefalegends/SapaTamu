@@ -48,11 +48,8 @@ router.post('/chats/:phone/reply', async (req, res) => {
     // Pastikan status kontak adalah human (takeover)
     db.setBotStatus(phone, 'human');
 
-    // Kirim pesan WhatsApp ke nomor user
-    await gateway.sendText(phone, `👨‍💼 *[Staf CS SapaTamu]*\n\n${text}`);
-
-    // Update sender di database menjadi 'admin'
-    db.saveMessage(phone, 'outbound', 'admin', 'text', text);
+    // Kirim pesan WhatsApp ke nomor user dengan identitas sender: 'admin'
+    await gateway.sendText(phone, `👨‍💼 *[Staf CS SapaTamu]*\n\n${text}`, 'admin');
     db.upsertConversation(phone, null, `[Staf]: ${text}`);
 
     res.json({ success: true, message: 'Balasan terkirim ke WhatsApp' });

@@ -1,4 +1,4 @@
-﻿const gateway = require('../gateway/openkoneksiClient');
+const gateway = require('../gateway/openkoneksiClient');
 const db = require('../db/database');
 
 function formatRupiah(num) {
@@ -131,8 +131,32 @@ async function handleCafeFlow(phone, text, session) {
     return true;
   }
 
+function isQuestion(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes('?') ||
+    /\b(berapa|total|apa|gimana|apakah|bisa|rekomendasi|menu|harga|kalo|kalau|kenapa|siapa|kapan|dimana|mana)\b/i.test(lower)
+  );
+}
+
   // 5. Tambah Menu ke Keranjang
   if (lower.startsWith('add_') || session.status === 'cafe_ordering') {
+    // Jika input adalah pertanyaan (misal: "kalo esteh tambah jeruk peras berapa?"), teruskan ke AI
+    if (!lower.startsWith('add_') && isQuestion(text)) {
+      const { jawabAI } = require('./aiService');
+      const aiResp = await jawabAI(text);
+      if (aiResp.jawaban) {
+        await gateway.sendText(phone, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
+      }
+      await gateway.sendButtons(phone, 'Lanjutkan pesanan Anda:', [
+        { id: 'cat_minuman', title: '☕ Minuman' },
+        { id: 'cat_makanan', title: '🍳 Makanan' },
+        { id: 'cart_view',   title: '🛒 Keranjang' },
+      ]);
+      return true;
+    }
+
     let draft = session.draft || { orderType: 'takeaway', cart: [] };
     let addedName = null;
     let addedPrice = 0;
@@ -313,7 +337,12 @@ async function handleCafeFlow(phone, text, session) {
   if (lower === 'cafe_cancel' || lower.includes('batal')) {
     db.clearSession(phone);
     await gateway.sendText(phone, '❌ *Pesanan kafe telah dibatalkan.*');
-    return false;
+    await gateway.sendButtons(phone, 'Pilihan layanan SapaTamu:', [
+      { id: 'menu_kafe',  title: '☕ Kafe' },
+      { id: 'menu_hotel', title: '🏨 Hotel' },
+      { id: 'menu_cs',    title: '🎧 Hubungi CS' },
+    ]);
+    return true;
   }
 
   return false;

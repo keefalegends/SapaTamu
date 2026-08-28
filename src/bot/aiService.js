@@ -1,4 +1,4 @@
-﻿const OpenAI = require('openai');
+const OpenAI = require('openai');
 const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
@@ -79,7 +79,24 @@ async function jawabAI(userText) {
     };
   } catch (err) {
     console.error('❌ [AI ERROR]:', err.message);
-    // Fallback jika AI 9router sedang down
+    // Fallback cerdas jika remote AI gateway sedang offline: cek knowledge base lokal
+    try {
+      const dataPath = path.join(__dirname, '../knowledge/data.json');
+      const topics = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+      const lower = userText.toLowerCase().replace(/[-_]/g, ' ');
+      const match = topics.find(t => {
+        const top = t.topik.toLowerCase().replace(/[-_]/g, ' ');
+        return lower.includes(top) || top.split(' ').some(w => w.length >= 4 && lower.includes(w));
+      });
+      if (match) {
+        return {
+          jawaban: match.jawaban,
+          eskalasi: false,
+          alasan: 'local_knowledge_fallback',
+        };
+      }
+    } catch (e) {}
+
     return {
       jawaban: 'Halo! Ada yang bisa kami bantu seputar Hotel atau Kafe SapaTamu? Silakan pilih menu di bawah ini atau ketik pertanyaan Anda.',
       eskalasi: false,
