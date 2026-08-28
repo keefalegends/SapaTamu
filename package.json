@@ -1,16 +1,16 @@
-{
-  "name": "sapatamu-wazapbro-ai",
-  "version": "2.0.0",
-  "description": "SapaTamu / WazapBro AI Backend — WhatsApp + Gemini AI + Chatwoot",
+﻿{
+  "name": "sapatamu-waba",
+  "version": "3.0.0",
+  "description": "SapaTamu WABA — Direct WhatsApp Cloud API & OpenKoneksi Gateway Architecture with Custom Admin Dashboard",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "axios": "^1.19.0",
     "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^4.22.2",
     "openai": "^7.4.0"

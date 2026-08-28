@@ -3,6 +3,7 @@ node_modules/
 .DS_Store
 *.log
 session.db
+*.db*
 
 # RSA Keys — jangan pernah di-commit!
 flow_private_key.pem
