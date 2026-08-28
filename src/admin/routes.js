@@ -85,6 +85,17 @@ router.get('/bookings', (req, res) => {
   }
 });
 
+// Hapus Reservasi Kamar Hotel
+router.delete('/bookings/:code', (req, res) => {
+  try {
+    const code = req.params.code;
+    db.db.prepare('DELETE FROM hotel_bookings WHERE booking_code = ?').run(code);
+    res.json({ success: true, message: `Booking #${code} berhasil dihapus` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 7. Daftar Pesanan Kafe & Rincian Item
 router.get('/orders', (req, res) => {
   try {
@@ -102,11 +113,34 @@ router.get('/orders', (req, res) => {
   }
 });
 
+// Hapus Pesanan Kafe & Item Terkait
+router.delete('/orders/:code', (req, res) => {
+  try {
+    const code = req.params.code;
+    db.db.prepare('DELETE FROM cafe_order_items WHERE order_code = ?').run(code);
+    db.db.prepare('DELETE FROM cafe_orders WHERE order_code = ?').run(code);
+    res.json({ success: true, message: `Pesanan #${code} berhasil dihapus` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 8. Daftar Reservasi Meja Kafe
 router.get('/reservations', (req, res) => {
   try {
     const reservations = db.db.prepare('SELECT * FROM cafe_reservations ORDER BY created_at DESC LIMIT 100').all();
     res.json({ success: true, reservations });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Hapus Reservasi Meja
+router.delete('/reservations/:id', (req, res) => {
+  try {
+    const id = req.params.id;
+    db.db.prepare('DELETE FROM cafe_reservations WHERE id = ?').run(id);
+    res.json({ success: true, message: `Reservasi #${id} berhasil dihapus` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

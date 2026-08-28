@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -248,10 +248,11 @@
                 <th class="px-5 py-3">Durasi</th>
                 <th class="px-5 py-3">Total Biaya</th>
                 <th class="px-5 py-3">Status</th>
+                <th class="px-5 py-3 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody id="hotel-bookings-table" class="divide-y divide-slate-100">
-              <tr><td colspan="7" class="px-5 py-8 text-center text-slate-400">Memuat data booking...</td></tr>
+              <tr><td colspan="8" class="px-5 py-8 text-center text-slate-400">Memuat data booking...</td></tr>
             </tbody>
           </table>
         </div>
@@ -278,10 +279,11 @@
                 <th class="px-5 py-3">Total</th>
                 <th class="px-5 py-3">Status Dapur</th>
                 <th class="px-5 py-3">Waktu</th>
+                <th class="px-5 py-3 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody id="cafe-orders-table" class="divide-y divide-slate-100">
-              <tr><td colspan="6" class="px-5 py-8 text-center text-slate-400">Memuat pesanan...</td></tr>
+              <tr><td colspan="7" class="px-5 py-8 text-center text-slate-400">Memuat pesanan...</td></tr>
             </tbody>
           </table>
         </div>
@@ -291,9 +293,12 @@
     <!-- ══ TAB 4: RESERVASI MEJA ═══════════════════════════════════════════ -->
     <div id="tab-reservations" class="tab-content hidden">
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-200">
-          <h2 class="text-sm font-bold text-slate-900">Reservasi Meja Restoran</h2>
-          <p class="text-xs text-slate-500">Jadwal kedatangan tamu restoran yang telah dikonfirmasi</p>
+        <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900">Reservasi Meja Restoran</h2>
+            <p class="text-xs text-slate-500">Jadwal kedatangan tamu restoran yang telah dikonfirmasi</p>
+          </div>
+          <button onclick="loadReservations()" class="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-md text-slate-700">Segarkan</button>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs text-slate-700">
@@ -304,10 +309,11 @@
                 <th class="px-5 py-3">Jumlah Pax</th>
                 <th class="px-5 py-3">Waktu Kedatangan</th>
                 <th class="px-5 py-3">Catatan</th>
+                <th class="px-5 py-3 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody id="cafe-res-table" class="divide-y divide-slate-100">
-              <tr><td colspan="5" class="px-5 py-8 text-center text-slate-400">Belum ada data reservasi</td></tr>
+              <tr><td colspan="6" class="px-5 py-8 text-center text-slate-400">Belum ada data reservasi</td></tr>
             </tbody>
           </table>
         </div>

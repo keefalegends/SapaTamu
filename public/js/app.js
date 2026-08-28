@@ -1,4 +1,4 @@
-﻿let currentActivePhone = null;
+let currentActivePhone = null;
 let currentBotStatus = 'bot';
 
 // Inisialisasi
@@ -300,6 +300,8 @@ async function sendManualReply(e) {
 
 // ─── HOTEL BOOKINGS ─────────────────────────────────────────────────────────
 
+// ─── HOTEL BOOKINGS ─────────────────────────────────────────────────────────
+
 async function loadBookings() {
   try {
     const res = await fetch('/api/admin/bookings');
@@ -307,7 +309,7 @@ async function loadBookings() {
     const tbody = document.getElementById('hotel-bookings-table');
 
     if (!data.bookings || data.bookings.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="px-5 py-8 text-center text-slate-400">Belum ada transaksi reservasi kamar</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="px-5 py-8 text-center text-slate-400">Belum ada transaksi reservasi kamar</td></tr>`;
       return;
     }
 
@@ -320,10 +322,31 @@ async function loadBookings() {
         <td class="px-5 py-3.5">${b.nights} Malam</td>
         <td class="px-5 py-3.5 font-bold text-slate-900">Rp ${Number(b.total_price).toLocaleString('id-ID')}</td>
         <td class="px-5 py-3.5"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded">CONFIRMED</span></td>
+        <td class="px-5 py-3.5 text-right">
+          <button onclick="deleteBooking('${b.booking_code}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Hapus Booking">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </td>
       </tr>
     `).join('');
+    if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.error('Gagal load booking:', err);
+  }
+}
+
+async function deleteBooking(code) {
+  if (!confirm(`Apakah Anda yakin ingin menghapus data booking #${code}?`)) return;
+  try {
+    const res = await fetch(`/api/admin/bookings/${code}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      refreshAll();
+    } else {
+      alert('Gagal menghapus: ' + data.error);
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
   }
 }
 
@@ -336,7 +359,7 @@ async function loadCafeOrders() {
     const tbody = document.getElementById('cafe-orders-table');
 
     if (!data.orders || data.orders.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-8 text-center text-slate-400">Belum ada pesanan restoran masuk</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="px-5 py-8 text-center text-slate-400">Belum ada pesanan restoran masuk</td></tr>`;
       return;
     }
 
@@ -352,11 +375,32 @@ async function loadCafeOrders() {
           <td class="px-5 py-3.5 font-bold text-slate-900">Rp ${Number(o.total_amount).toLocaleString('id-ID')}</td>
           <td class="px-5 py-3.5"><span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold rounded">DAPUR</span></td>
           <td class="px-5 py-3.5 font-mono text-slate-400 text-[11px]">${o.created_at.slice(11, 16)}</td>
+          <td class="px-5 py-3.5 text-right">
+            <button onclick="deleteOrder('${o.order_code}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Hapus Pesanan">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </td>
         </tr>
       `;
     }).join('');
+    if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.error('Gagal load cafe orders:', err);
+  }
+}
+
+async function deleteOrder(code) {
+  if (!confirm(`Apakah Anda yakin ingin menghapus data pesanan #${code}?`)) return;
+  try {
+    const res = await fetch(`/api/admin/orders/${code}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      refreshAll();
+    } else {
+      alert('Gagal menghapus: ' + data.error);
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
   }
 }
 
@@ -369,7 +413,7 @@ async function loadReservations() {
     const tbody = document.getElementById('cafe-res-table');
 
     if (!data.reservations || data.reservations.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-8 text-center text-slate-400">Belum ada reservasi meja</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-8 text-center text-slate-400">Belum ada reservasi meja</td></tr>`;
       return;
     }
 
@@ -380,10 +424,31 @@ async function loadReservations() {
         <td class="px-5 py-3.5 font-semibold">${r.pax} Orang</td>
         <td class="px-5 py-3.5">${r.time}</td>
         <td class="px-5 py-3.5 text-slate-500">${r.notes || '-'}</td>
+        <td class="px-5 py-3.5 text-right">
+          <button onclick="deleteReservation('${r.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Hapus Reservasi">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </td>
       </tr>
     `).join('');
+    if (window.lucide) lucide.createIcons();
   } catch (err) {
     console.error('Gagal load reservasi:', err);
+  }
+}
+
+async function deleteReservation(id) {
+  if (!confirm(`Apakah Anda yakin ingin menghapus data reservasi #${id}?`)) return;
+  try {
+    const res = await fetch(`/api/admin/reservations/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      refreshAll();
+    } else {
+      alert('Gagal menghapus: ' + data.error);
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
   }
 }
 
