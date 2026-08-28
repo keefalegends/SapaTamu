@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 const gateway = require('../gateway/openkoneksiClient');
@@ -137,17 +137,61 @@ router.post('/catalog/menu', (req, res) => {
   }
 });
 
-// 11. WhatsApp Simulator (Untuk Live Demo Presentasi)
+// 11. WhatsApp Simulator (Internal API / Testing)
 router.post('/simulate', async (req, res) => {
   try {
     const { phone, senderName, text } = req.body;
     const testPhone = phone || '6281958992884';
-    const testName = senderName || 'Tamu Presentasi';
+    const testName = senderName || 'Tamu';
 
     await processInboundMessage(testPhone, testName, text);
     const messages = db.getMessages(testPhone);
 
     res.json({ success: true, messages });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 12. Real System Health & Gateway Connection Status
+router.get('/system-status', (req, res) => {
+  try {
+    const config = require('../config/env');
+    const t0 = Date.now();
+    let dbStatus = 'ONLINE';
+    let dbLatency = 0;
+    try {
+      db.db.prepare('SELECT 1').get();
+      dbLatency = Date.now() - t0;
+    } catch (e) {
+      dbStatus = 'ERROR: ' + e.message;
+    }
+
+    const wabaApiKey = config.openkoneksi.apiKey;
+    const isKeyConfigured = Boolean(wabaApiKey && !wabaApiKey.startsWith('test_') && wabaApiKey !== 'YOUR_OPENKONEKSI_API_KEY');
+
+    res.json({
+      success: true,
+      system: {
+        db: { status: dbStatus, latencyMs: dbLatency },
+        waba: {
+          connected: isKeyConfigured,
+          status: isKeyConfigured ? 'CONNECTED' : 'DISCONNECTED',
+          message: isKeyConfigured
+            ? 'Terhubung ke OpenKoneksi Gateway'
+            : 'OpenKoneksi API Key belum aktif di .env (Pesan outbound WhatsApp tidak terkirim ke Meta).',
+          apiUrl: config.openkoneksi.apiUrl,
+          phoneId: config.openkoneksi.phoneId || null,
+          webhookEndpoint: '/api/webhook/openkoneksi',
+          verifyToken: config.openkoneksi.webhookSecret || 'sapatamu_waba_secret_2026',
+        },
+        ai: {
+          model: config.ai.model,
+          endpoint: config.ai.baseUrl,
+        },
+        uptime: Math.floor(process.uptime()),
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
