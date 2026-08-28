@@ -7,9 +7,26 @@ const db = require('../db/database');
  * Mengirim pesan ke pengguna WhatsApp melalui gateway OpenKoneksi.com
  */
 
+/**
+ * Normalisasi format nomor telepon ke standar internasional WhatsApp (E.164)
+ * Menjamin nomor 08xx otomatis diubah menjadi 628xx
+ */
+function formatE164(phone) {
+  let clean = String(phone || '').replace(/\D/g, '');
+  if (clean.startsWith('0')) {
+    clean = '62' + clean.slice(1);
+  }
+  return clean;
+}
+
 async function sendRawOpenKoneksi(payload, sender = 'bot') {
   const apiKey = config.openkoneksi.apiKey;
   const url = `${config.openkoneksi.apiUrl}/messages`;
+
+  // Normalisasi nomor tujuan ke E.164
+  if (payload.to) {
+    payload.to = formatE164(payload.to);
+  }
 
   // Simpan ke database lokal agar admin dashboard melihat pesan yang dikirim
   const to = payload.to;
@@ -33,20 +50,32 @@ async function sendRawOpenKoneksi(payload, sender = 'bot') {
     return { success: true, simulated: true };
   }
 
-  // Pengiriman nyata via REST API OpenKoneksi
-  try {
-    const res = await axios.post(url, payload, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      timeout: 10000,
-    });
-    console.log(`✅ [OPENKONEKSI OUTBOUND] Sukses kirim ke +${to} (ID: ${res.data?.id || 'OK'})`);
-    return res.data;
-  } catch (err) {
-    console.error(`❌ [OPENKONEKSI OUTBOUND ERROR] Gagal kirim ke +${to}:`, err.response?.data || err.message);
-    return { success: false, error: err.message };
+  // Pengiriman nyata via REST API OpenKoneksi dengan auto-retry pada HTTP 429
+  const maxRetries = 2;
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    try {
+      const res = await axios.post(url, payload, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 8000,
+      });
+      console.log(`✅ [OPENKONEKSI OUTBOUND] Sukses kirim ke +${to} (ID: ${res.data?.id || 'OK'})`);
+      return res.data;
+    } catch (err) {
+      const isRateLimit = err.response?.status === 429;
+      if (isRateLimit && attempt <= maxRetries) {
+        const delay = attempt * 1000;
+        console.warn(`⏳ [RATE LIMIT 429] Terkena rate limit gateway. Menunggu ${delay}ms sebelum retry...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+      if (attempt > maxRetries) {
+        console.error(`❌ [OPENKONEKSI OUTBOUND ERROR] Gagal kirim ke +${to}:`, err.response?.data || err.message);
+        return { success: false, error: err.message };
+      }
+    }
   }
 }
 
@@ -57,7 +86,7 @@ async function sendText(to, text, sender = 'bot') {
   const payload = {
     messaging_product: 'whatsapp',
     recipient_type: 'individual',
-    to: String(to).replace(/\D/g, ''),
+    to: formatE164(to),
     type: 'text',
     text: {
       preview_url: false,
@@ -82,7 +111,7 @@ async function sendButtons(to, bodyText, buttons) {
   const payload = {
     messaging_product: 'whatsapp',
     recipient_type: 'individual',
-    to: String(to).replace(/\D/g, ''),
+    to: formatE164(to),
     type: 'interactive',
     interactive: {
       type: 'button',
@@ -100,7 +129,7 @@ async function sendList(to, bodyText, buttonText, sections) {
   const payload = {
     messaging_product: 'whatsapp',
     recipient_type: 'individual',
-    to: String(to).replace(/\D/g, ''),
+    to: formatE164(to),
     type: 'interactive',
     interactive: {
       type: 'list',
@@ -118,7 +147,7 @@ async function sendList(to, bodyText, buttonText, sections) {
  * Kirim Gambar dengan Caption
  */
 async function sendImage(to, imageUrlOrFilename, caption) {
-  const cleanTo = String(to).replace(/\D/g, '');
+  const cleanTo = formatE164(to);
   
   // Jika URL lokal, buat URL lengkap atau link media
   let link = imageUrlOrFilename;

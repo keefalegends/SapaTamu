@@ -21,8 +21,29 @@ async function sendWelcomeMenu(phone) {
   await gateway.sendButtons(phone, MENU_UTAMA.text, MENU_UTAMA.buttons);
 }
 
+// Antrean serial per-nomor untuk mencegah race condition keranjang & sesi
+const userQueues = new Map();
+
 async function processInboundMessage(phone, senderName, text, rawPayload = null) {
   const cleanPhone = String(phone).replace(/\D/g, '');
+
+  const previousQueue = userQueues.get(cleanPhone) || Promise.resolve();
+  const currentTask = previousQueue
+    .then(() => _executeInboundMessage(cleanPhone, senderName, text, rawPayload))
+    .catch((err) => {
+      console.error(`❌ [USER QUEUE ERROR] +${cleanPhone}:`, err);
+    })
+    .finally(() => {
+      if (userQueues.get(cleanPhone) === currentTask) {
+        userQueues.delete(cleanPhone);
+      }
+    });
+
+  userQueues.set(cleanPhone, currentTask);
+  return currentTask;
+}
+
+async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) {
   const cleanText = (text || '').trim();
   const lower = cleanText.toLowerCase();
 

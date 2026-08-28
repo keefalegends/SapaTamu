@@ -3,10 +3,13 @@ const path = require('path');
 const fs = require('fs');
 
 const dbPath = path.join(__dirname, '../../sapatamu_waba.db');
-const db = new Database(dbPath);
+const db = new Database(dbPath, { timeout: 7000 });
 
-// Enable WAL mode
+// Enable WAL mode & High-Concurrency Pragmas
 db.pragma('journal_mode = WAL');
+db.pragma('busy_timeout = 7000');
+db.pragma('synchronous = NORMAL');
+db.pragma('temp_store = MEMORY');
 
 // ─── Table Schemas ────────────────────────────────────────────────────────────
 db.exec(`
@@ -143,20 +146,14 @@ function getConversation(phone) {
 }
 
 function upsertConversation(phone, name, lastMessage) {
-  const existing = getConversation(phone);
-  if (existing) {
-    db.prepare(`
-      UPDATE conversations 
-      SET last_message = ?, last_message_at = CURRENT_TIMESTAMP,
-          name = COALESCE(?, name)
-      WHERE phone_number = ?
-    `).run(lastMessage, name || null, phone);
-  } else {
-    db.prepare(`
-      INSERT INTO conversations (phone_number, name, bot_status, last_message, last_message_at)
-      VALUES (?, ?, 'bot', ?, CURRENT_TIMESTAMP)
-    `).run(phone, name || `Tamu (+${phone})`, lastMessage);
-  }
+  db.prepare(`
+    INSERT INTO conversations (phone_number, name, bot_status, last_message, last_message_at)
+    VALUES (?, COALESCE(?, 'Tamu (+' || ? || ')'), 'bot', ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(phone_number) DO UPDATE SET
+      last_message = excluded.last_message,
+      last_message_at = CURRENT_TIMESTAMP,
+      name = CASE WHEN excluded.name IS NOT NULL AND excluded.name != '' THEN excluded.name ELSE conversations.name END
+  `).run(phone, name || null, phone, lastMessage);
 }
 
 function setBotStatus(phone, status) {

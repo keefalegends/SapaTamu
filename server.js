@@ -1,4 +1,13 @@
-﻿require('dotenv').config();
+require('dotenv').config();
+
+// Mencegah server mati mendadak jika terjadi uncaught exception atau unhandled rejection
+process.on('uncaughtException', (err) => {
+  console.error('🚨 [FATAL UNCAUGHT EXCEPTION]:', err.message, err.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 [FATAL UNHANDLED REJECTION]:', reason);
+});
 
 const express = require('express');
 const cors = require('cors');

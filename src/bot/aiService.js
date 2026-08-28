@@ -7,14 +7,35 @@ const { db } = require('../db/database');
 const client = new OpenAI({
   baseURL: config.ai.baseUrl,
   apiKey: config.ai.apiKey,
-  timeout: 30000,
+  timeout: 8000, // Maksimal 8 detik agar respons WhatsApp cepat dan tidak hanging
 });
+
+// Cache knowledge base di memori satu kali saja (mencegah blocking disk I/O)
+const dataPath = path.join(__dirname, '../knowledge/data.json');
+let topicsCache = [];
+try {
+  topicsCache = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+} catch (e) {
+  topicsCache = [];
+}
+
+function safeJsonParse(rawContent) {
+  if (!rawContent) return null;
+  // Bersihkan markdown code block jika model mengembalikannya dalam ```json ... ```
+  const cleaned = String(rawContent)
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    return null;
+  }
+}
 
 function buildSystemPrompt() {
   try {
-    const dataPath = path.join(__dirname, '../knowledge/data.json');
-    const rawData = fs.readFileSync(dataPath, 'utf-8');
-    const topics = JSON.parse(rawData);
+    const topics = topicsCache;
 
     // Ambil katalog kamar & menu dari SQLite database
     const rooms = db.prepare('SELECT * FROM room_catalog').all();
@@ -71,7 +92,7 @@ async function jawabAI(userText) {
     });
 
     const content = response.choices[0]?.message?.content;
-    const parsed = JSON.parse(content);
+    const parsed = safeJsonParse(content) || {};
     return {
       jawaban: parsed.jawaban || null,
       eskalasi: parsed.eskalasi === true,
@@ -79,10 +100,9 @@ async function jawabAI(userText) {
     };
   } catch (err) {
     console.error('❌ [AI ERROR]:', err.message);
-    // Fallback cerdas jika remote AI gateway sedang offline: cek knowledge base lokal
+    // Fallback cerdas jika remote AI gateway sedang offline/timeout: cek knowledge base memori lokal
     try {
-      const dataPath = path.join(__dirname, '../knowledge/data.json');
-      const topics = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+      const topics = topicsCache;
       const lower = userText.toLowerCase().replace(/[-_]/g, ' ');
       const match = topics.find(t => {
         const top = t.topik.toLowerCase().replace(/[-_]/g, ' ');
@@ -126,7 +146,7 @@ Format JSON yang diharapkan:
       temperature: 0.1,
     });
 
-    return JSON.parse(res.choices[0]?.message?.content || '{}');
+    return safeJsonParse(res.choices[0]?.message?.content) || {};
   } catch (e) {
     // Fallback Regex parser jika remote LLM tidak merespons
     let nights = 1;
