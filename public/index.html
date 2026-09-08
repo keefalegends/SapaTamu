@@ -1,578 +1,969 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SapaTamu Console — Hotel & Restaurant Management</title>
+  <title>SapaTamu OS — Hotel & Restaurant Operations</title>
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+          },
+          colors: {
+            sidebar: '#0b0e14',
+            neon: '#d4f65c',
+            neonhover: '#c3e84a',
+            neondark: '#0b0e14',
+          }
+        }
+      }
+    }
+  </script>
+
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Plus Jakarta Sans Font -->
+
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
-    .chat-scroll::-webkit-scrollbar { width: 4px; }
-    .chat-scroll::-webkit-scrollbar-track { background: #f8fafc; }
-    .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .custom-scroll::-webkit-scrollbar,
+    .chat-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track,
+    .chat-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb,
+    .chat-scroll::-webkit-scrollbar-thumb {
+      background: #e2e8f0;
+      border-radius: 9999px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover,
+    .chat-scroll::-webkit-scrollbar-thumb:hover {
+      background: #cbd5e1;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #detail-modal, #detail-modal * {
+        visibility: visible;
+      }
+      #detail-modal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white !important;
+        padding: 0 !important;
+      }
+      #detail-modal-footer, #detail-modal button {
+        display: none !important;
+      }
+    }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+<body class="h-screen w-screen overflow-hidden flex bg-slate-50 text-slate-900 selection:bg-black selection:text-[#d4f65c]">
 
-  <!-- ── Top Navbar ────────────────────────────────────────────────────────── -->
-  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      
-      <!-- Brand & Console Title -->
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold text-base shadow-sm">
-          ST
-        </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-base font-bold text-white tracking-tight">SapaTamu</span>
-            <span class="text-xs font-semibold text-slate-400">Console</span>
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  <!-- ── 1. SIDEBAR: HITAM & HIJAU NEON SAJA ────────────────────────────────── -->
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  <aside class="w-64 bg-[#0b0e14] border-r border-slate-800/80 flex flex-col justify-between shrink-0 select-none z-30 text-white h-full">
+
+    <!-- Top Branding & Navigation Items -->
+    <div class="flex flex-col flex-1 overflow-y-auto no-scrollbar p-3.5">
+
+      <!-- Brand Logo -->
+      <div class="px-2.5 py-3 mb-3 flex items-center justify-between border-b border-slate-800/80">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-[#d4f65c] text-[#0b0e14] flex items-center justify-center font-black text-sm shadow-sm">
+            <i data-lucide="sparkle" class="w-5 h-5 fill-current stroke-none"></i>
           </div>
-          <p class="text-[11px] text-slate-400">Hotel & Restaurant Operational Management</p>
-        </div>
-      </div>
-
-      <!-- Real System Health Status -->
-      <div class="flex items-center gap-2 sm:gap-4">
-        <!-- DB Status -->
-        <div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 rounded-md border border-slate-700 text-xs">
-          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-          <span class="text-slate-300">SQLite:</span>
-          <span class="text-white font-mono text-[11px]" id="nav-db-status">Online</span>
-        </div>
-
-        <!-- AI 9Router Status & Link to Playground (Sebelah Kiri Gateway) -->
-        <button onclick="switchTab('tab-ai-playground')" class="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded-md border border-slate-700 text-xs text-white transition-colors cursor-pointer" id="nav-ai-badge" title="Klik untuk membuka AI 9Router Playground & Diagnostics">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" id="nav-ai-dot"></span>
-          <span class="text-slate-300">AI:</span>
-          <span class="font-semibold text-emerald-300 font-mono text-[11px]" id="nav-ai-status">9Router (Aktif)</span>
-        </button>
-
-        <!-- OpenKoneksi Gateway Status -->
-        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs" id="nav-gateway-badge">
-          <span class="w-2 h-2 rounded-full bg-amber-400" id="nav-gateway-dot"></span>
-          <span class="text-slate-300">Gateway:</span>
-          <span class="font-semibold text-white" id="nav-gateway-status">Memeriksa...</span>
-        </div>
-
-        <!-- Refresh Button -->
-        <button onclick="refreshAll()" class="p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md transition-colors" title="Segarkan Data">
-          <i data-lucide="rotate-cw" class="w-4 h-4"></i>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- ── System Alert Banner (Appears if Gateway has Warning / Disconnected) ── -->
-  <div id="system-alert-banner" class="hidden bg-amber-50 border-b border-amber-200 px-4 py-2.5">
-    <div class="max-w-7xl mx-auto flex items-start sm:items-center justify-between gap-3 text-xs text-amber-900">
-      <div class="flex items-center gap-2">
-        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0"></i>
-        <span id="system-alert-text">Memeriksa status koneksi gateway...</span>
-      </div>
-      <button onclick="switchTab('tab-gateway')" class="font-semibold underline hover:text-amber-700 shrink-0">
-        Lihat Detail Konfigurasi
-      </button>
-    </div>
-  </div>
-
-  <!-- ── Metric Cards ──────────────────────────────────────────────────────── -->
-  <div class="bg-white border-b border-slate-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <!-- Metric 1: Chat -->
-        <div class="p-4 rounded-xl border border-slate-200 bg-white">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-medium uppercase tracking-wider">Percakapan Masuk</span>
-            <i data-lucide="message-square" class="w-4 h-4 text-slate-400"></i>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-base font-extrabold tracking-tight text-white">SapaTamu</span>
+            </div>
+            <p class="text-[10px] text-slate-400 font-medium">Hotel & Bistro Console</p>
           </div>
-          <div class="text-2xl font-bold text-slate-900" id="stat-chats">0</div>
-          <div class="text-[11px] text-slate-400 mt-1">Pelanggan WhatsApp aktif</div>
-        </div>
-
-        <!-- Metric 2: Hotel -->
-        <div class="p-4 rounded-xl border border-slate-200 bg-white">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-medium uppercase tracking-wider">Reservasi Hotel</span>
-            <i data-lucide="bed" class="w-4 h-4 text-slate-400"></i>
-          </div>
-          <div class="flex items-baseline gap-2">
-            <div class="text-2xl font-bold text-slate-900" id="stat-hotel-count">0</div>
-            <span class="text-xs text-slate-500">kamar</span>
-          </div>
-          <div class="text-[11px] font-semibold text-emerald-700 mt-1" id="stat-hotel-rev">Rp 0</div>
-        </div>
-
-        <!-- Metric 3: Cafe -->
-        <div class="p-4 rounded-xl border border-slate-200 bg-white">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-medium uppercase tracking-wider">Pesanan Restoran</span>
-            <i data-lucide="utensils" class="w-4 h-4 text-slate-400"></i>
-          </div>
-          <div class="flex items-baseline gap-2">
-            <div class="text-2xl font-bold text-slate-900" id="stat-cafe-count">0</div>
-            <span class="text-xs text-slate-500">transaksi</span>
-          </div>
-          <div class="text-[11px] font-semibold text-emerald-700 mt-1" id="stat-cafe-rev">Rp 0</div>
-        </div>
-
-        <!-- Metric 4: Reservation -->
-        <div class="p-4 rounded-xl border border-slate-200 bg-white">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-medium uppercase tracking-wider">Reservasi Meja</span>
-            <i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i>
-          </div>
-          <div class="flex items-baseline gap-2">
-            <div class="text-2xl font-bold text-slate-900" id="stat-res-count">0</div>
-            <span class="text-xs text-slate-500">tamu</span>
-          </div>
-          <div class="text-[11px] text-slate-400 mt-1">Jadwal meja dikonfirmasi</div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ── Navigation Tabs ───────────────────────────────────────────────────── -->
-  <div class="bg-white border-b border-slate-200 sticky top-16 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto py-2" id="nav-tabs">
-        <button onclick="switchTab('tab-chats')" id="btn-tab-chats" class="tab-btn active px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 bg-slate-900 text-white">
-          <i data-lucide="messages-square" class="w-3.5 h-3.5"></i>
-          <span>Live Chat & CS</span>
+      <!-- Navigation Menu Tabs (Strictly Black & Neon Green) -->
+      <nav class="space-y-1.5 pt-1" id="nav-tabs" role="tablist">
+
+        <!-- Tab 1: Live Chat & CS -->
+        <button onclick="switchTab('tab-chats')" id="btn-tab-chats" class="tab-btn w-full px-3.5 py-2.5 text-xs font-bold rounded-2xl flex items-center justify-between bg-[#d4f65c] text-[#0b0e14] shadow-sm transition-all cursor-pointer group">
+          <div class="flex items-center gap-3">
+            <i data-lucide="message-square" class="w-4 h-4"></i>
+            <span>Dashboard & Chat</span>
+          </div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#0b0e14] text-[#d4f65c] font-bold" id="sidebar-chat-badge">
+            0
+          </span>
         </button>
-        <button onclick="switchTab('tab-hotel')" id="btn-tab-hotel" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 text-slate-600 hover:bg-slate-100">
-          <i data-lucide="bed-double" class="w-3.5 h-3.5"></i>
-          <span>Reservasi Kamar</span>
+
+        <!-- Tab 2: Reservasi Kamar Hotel -->
+        <button onclick="switchTab('tab-hotel')" id="btn-tab-hotel" class="tab-btn w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl flex items-center justify-between text-slate-400 hover:text-white hover:bg-slate-900 transition-all cursor-pointer group">
+          <div class="flex items-center gap-3">
+            <i data-lucide="bed" class="w-4 h-4 text-slate-400 group-hover:text-white transition-colors"></i>
+            <span>Reservasi Kamar</span>
+          </div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-900 text-slate-300 font-medium" id="sidebar-hotel-badge">
+            0
+          </span>
         </button>
-        <button onclick="switchTab('tab-cafe')" id="btn-tab-cafe" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 text-slate-600 hover:bg-slate-100">
-          <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
-          <span>Pesanan Restoran</span>
+
+        <!-- Tab 3: Pesanan Kafe & Dapur -->
+        <button onclick="switchTab('tab-cafe')" id="btn-tab-cafe" class="tab-btn w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl flex items-center justify-between text-slate-400 hover:text-white hover:bg-slate-900 transition-all cursor-pointer group">
+          <div class="flex items-center gap-3">
+            <i data-lucide="utensils" class="w-4 h-4 text-slate-400 group-hover:text-white transition-colors"></i>
+            <span>Pesanan Restoran</span>
+          </div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-900 text-slate-300 font-medium" id="sidebar-cafe-badge">
+            0
+          </span>
         </button>
-        <button onclick="switchTab('tab-reservations')" id="btn-tab-reservations" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 text-slate-600 hover:bg-slate-100">
-          <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
-          <span>Reservasi Meja</span>
+
+        <!-- Tab 4: Reservasi Meja -->
+        <button onclick="switchTab('tab-reservations')" id="btn-tab-reservations" class="tab-btn w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl flex items-center justify-between text-slate-400 hover:text-white hover:bg-slate-900 transition-all cursor-pointer group">
+          <div class="flex items-center gap-3">
+            <i data-lucide="calendar" class="w-4 h-4 text-slate-400 group-hover:text-white transition-colors"></i>
+            <span>Reservasi Meja</span>
+          </div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-900 text-slate-300 font-medium" id="sidebar-res-badge">
+            0
+          </span>
         </button>
-        <button onclick="switchTab('tab-catalog')" id="btn-tab-catalog" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 text-slate-600 hover:bg-slate-100">
-          <i data-lucide="tag" class="w-3.5 h-3.5"></i>
-          <span>Katalog Tarif & Menu</span>
+
+        <!-- Tab 5: Katalog Tarif & Menu -->
+        <button onclick="switchTab('tab-catalog')" id="btn-tab-catalog" class="tab-btn w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl flex items-center gap-3 text-slate-400 hover:text-white hover:bg-slate-900 transition-all cursor-pointer group">
+          <i data-lucide="tag" class="w-4 h-4 text-slate-400 group-hover:text-white transition-colors"></i>
+          <span>Katalog & Menu</span>
         </button>
-        <button onclick="switchTab('tab-gateway')" id="btn-tab-gateway" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 text-slate-600 hover:bg-slate-100">
-          <i data-lucide="network" class="w-3.5 h-3.5"></i>
-          <span>Gateway & Webhook API</span>
+
+        <!-- Tab 6: Gateway WhatsApp -->
+        <button onclick="switchTab('tab-gateway')" id="btn-tab-gateway" class="tab-btn w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl flex items-center justify-between text-slate-400 hover:text-white hover:bg-slate-900 transition-all cursor-pointer group">
+          <div class="flex items-center gap-3">
+            <i data-lucide="network" class="w-4 h-4 text-slate-400 group-hover:text-white transition-colors"></i>
+            <span>Gateway WABA</span>
+          </div>
+          <span class="w-2 h-2 rounded-full bg-[#d4f65c]" id="sidebar-gateway-dot"></span>
         </button>
-        <button onclick="switchTab('tab-ai-playground')" id="btn-tab-ai-playground" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 text-slate-600 hover:bg-slate-100">
-          <i data-lucide="bot" class="w-3.5 h-3.5 text-indigo-600"></i>
-          <span>AI 9Router Playground</span>
+
+        <!-- Tab 7: AI 9Router Sandbox -->
+        <button onclick="switchTab('tab-ai-playground')" id="btn-tab-ai-playground" class="tab-btn w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl flex items-center justify-between text-slate-400 hover:text-white hover:bg-slate-900 transition-all cursor-pointer group">
+          <div class="flex items-center gap-3">
+            <i data-lucide="bot" class="w-4 h-4 text-[#d4f65c]"></i>
+            <span>AI 9Router Sandbox</span>
+          </div>
+          <span class="text-[9px] font-mono font-bold text-[#0b0e14] px-1.5 py-0.5 bg-[#d4f65c] rounded-md">
+            AI
+          </span>
         </button>
+
       </nav>
     </div>
-  </div>
 
-  <!-- ── Main Workspace ────────────────────────────────────────────────────── -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+    <!-- Bottom Status Card in Sidebar (Black & Neon Green Only) -->
+    <div class="p-3.5 border-t border-slate-800/80">
+      <div class="bg-[#d4f65c] text-[#0b0e14] rounded-2xl p-3.5 relative overflow-hidden shadow-sm">
+        <a href="/api/webhook/openkoneksi" target="_blank" class="w-8 h-8 rounded-full bg-[#0b0e14] text-white flex items-center justify-center absolute top-3 right-3 hover:scale-110 transition-transform cursor-pointer" title="Cek Webhook Gateway">
+          <i data-lucide="arrow-up-right" class="w-4 h-4 text-[#d4f65c]"></i>
+        </a>
 
-    <!-- ══ TAB 1: LIVE CHAT & CS TAKEOVER ══════════════════════════════════ -->
-    <div id="tab-chats" class="tab-content">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12 h-[640px]">
-        <!-- Contact List (4 cols) -->
-        <div class="md:col-span-4 border-r border-slate-200 flex flex-col h-full bg-slate-50/50">
-          <div class="p-3.5 border-b border-slate-200 bg-white flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Daftar Percakapan</span>
-            <span class="text-[11px] text-slate-400 font-mono" id="chat-count-badge">0 kontak</span>
+        <div class="space-y-1 pr-6">
+          <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-900 block">Sistem Aktif</span>
+          <h5 class="text-xs font-black text-slate-950 leading-tight">WhatsApp Gateway</h5>
+          <p class="text-[10px] text-slate-800 font-medium">9Router LLM Online</p>
+        </div>
+
+        <div class="mt-2.5 pt-2 border-t border-[#0b0e14]/15 flex items-center justify-between text-[10px] font-mono font-bold text-slate-950">
+          <span id="live-clock">--:-- WIB</span>
+          <span class="flex items-center gap-1 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#0b0e14] animate-pulse"></span>
+            CONNECTED
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  <!-- ── 2. MAIN DESK WORKSPACE (FULLSCREEN) ─────────────────────────────────── -->
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  <main class="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden h-full">
+
+    <!-- Top Header Bar -->
+    <header class="h-16 px-6 border-b border-slate-200/80 bg-white flex items-center justify-between gap-4 shrink-0 z-20">
+
+      <!-- Left Greeting -->
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-extrabold text-slate-950 tracking-tight" id="header-greeting">
+            Welcome back, Resepsionis 👋
+          </h1>
+        </div>
+        <p class="text-xs text-slate-500 font-medium">
+          Operasional Hotel & Restoran SapaTamu Console
+        </p>
+      </div>
+
+      <!-- Right Controls: Pill Search, Badges, Avatar -->
+      <div class="flex items-center gap-3">
+
+        <!-- Pill Search Bar -->
+        <div class="relative hidden sm:block">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input type="text" id="global-search-input" oninput="handleGlobalSearch(event)" placeholder="Cari data apa saja..." class="w-60 pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0b0e14] transition-all">
+        </div>
+
+        <!-- DB Status Pill -->
+        <div class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-medium text-slate-700 shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span class="text-slate-400 font-mono">DB:</span>
+          <span class="font-mono font-bold text-slate-800" id="nav-db-status">Online</span>
+        </div>
+
+        <!-- AI Latency Pill -->
+        <button onclick="switchTab('tab-ai-playground')" id="nav-ai-badge" class="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-full text-[11px] font-medium text-slate-700 shadow-sm transition-colors cursor-pointer" title="AI Latency & Benchmark">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="nav-ai-dot"></span>
+          <span class="text-slate-400 font-mono">AI:</span>
+          <span class="font-mono font-bold text-slate-900" id="nav-ai-status">9Router</span>
+          <span class="hidden" id="header-ai-latency"></span>
+        </button>
+
+        <!-- Gateway Status Pill -->
+        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-medium text-slate-700 shadow-sm" id="nav-gateway-badge">
+          <span class="w-2 h-2 rounded-full bg-amber-500" id="nav-gateway-dot"></span>
+          <span class="text-slate-400 font-mono">Gateway:</span>
+          <span class="font-semibold text-slate-800" id="nav-gateway-status">Memeriksa...</span>
+        </div>
+
+        <!-- Refresh Action Button -->
+        <button onclick="refreshAll()" id="btn-refresh-all" class="w-9 h-9 bg-white hover:bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-slate-700 hover:text-slate-950 shadow-sm transition-all cursor-pointer" title="Segarkan Data">
+          <i data-lucide="rotate-cw" id="icon-refresh-all" class="w-4 h-4"></i>
+        </button>
+
+        <!-- Avatar -->
+        <div class="w-9 h-9 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-slate-200">
+          ST
+        </div>
+
+      </div>
+
+    </header>
+
+    <!-- System Alert Banner (Gateway Disconnect) -->
+    <div id="system-alert-banner" class="hidden bg-amber-50 border-b border-amber-200 px-6 py-2 shrink-0">
+      <div class="flex items-center justify-between text-xs text-amber-950">
+        <div class="flex items-center gap-2">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0"></i>
+          <span id="system-alert-text" class="font-medium">Memeriksa status koneksi gateway...</span>
+        </div>
+        <button onclick="switchTab('tab-gateway')" class="font-bold text-amber-900 underline underline-offset-2 hover:text-amber-800 cursor-pointer">
+          Buka Konfigurasi API
+        </button>
+      </div>
+    </div>
+
+    <!-- Scrollable Workspace Body -->
+    <div class="flex-1 overflow-y-auto p-6 custom-scroll space-y-5">
+
+      <!-- ── BENTO METRICS ROW (Clean Monochrome with Neon Accent) ───────────── -->
+      <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <!-- Bento Card 1: Percakapan WhatsApp -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-slate-300 transition-all flex flex-col justify-between">
+          <div class="flex items-center gap-3 mb-2.5">
+            <div class="w-10 h-10 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
+              <i data-lucide="message-square" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">WhatsApp Chat</span>
+              <h4 class="text-xs font-bold text-slate-900">Percakapan Tamu</h4>
+            </div>
           </div>
-          <div class="flex-1 overflow-y-auto divide-y divide-slate-100" id="chat-list">
-            <div class="p-8 text-center text-slate-400 text-xs">Memuat daftar chat...</div>
+          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
+            <div class="text-2xl font-extrabold text-slate-900 font-mono tabular-nums" id="stat-chats">0</div>
+            <span class="text-[11px] font-medium text-slate-500">kontak aktif</span>
           </div>
         </div>
 
-        <!-- Chat View Area (8 cols) -->
-        <div class="md:col-span-8 flex flex-col h-full bg-white">
-          <!-- Chat Header -->
-          <div class="p-3.5 border-b border-slate-200 flex items-center justify-between bg-white">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs border border-slate-200" id="current-avatar">
-                -
+        <!-- Bento Card 2: Reservasi Kamar Hotel -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-slate-300 transition-all flex flex-col justify-between">
+          <div class="flex items-center gap-3 mb-2.5">
+            <div class="w-10 h-10 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
+              <i data-lucide="bed" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Hotel Room</span>
+              <h4 class="text-xs font-bold text-slate-900">Reservasi Kamar</h4>
+            </div>
+          </div>
+          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-2xl font-extrabold text-slate-900 font-mono tabular-nums" id="stat-hotel-count">0</span>
+              <span class="text-[11px] text-slate-500">kamar</span>
+            </div>
+            <span class="text-xs font-bold font-mono text-emerald-700 tabular-nums" id="stat-hotel-rev">Rp 0</span>
+          </div>
+        </div>
+
+        <!-- Bento Card 3: Pesanan Restoran -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-slate-300 transition-all flex flex-col justify-between">
+          <div class="flex items-center gap-3 mb-2.5">
+            <div class="w-10 h-10 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
+              <i data-lucide="utensils" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Kitchen & Bar</span>
+              <h4 class="text-xs font-bold text-slate-900">Pesanan Resto</h4>
+            </div>
+          </div>
+          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-2xl font-extrabold text-slate-900 font-mono tabular-nums" id="stat-cafe-count">0</span>
+              <span class="text-[11px] text-slate-500">tiket</span>
+            </div>
+            <span class="text-xs font-bold font-mono text-emerald-700 tabular-nums" id="stat-cafe-rev">Rp 0</span>
+          </div>
+        </div>
+
+        <!-- Bento Card 4: Reservasi Meja -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-slate-300 transition-all flex flex-col justify-between">
+          <div class="flex items-center gap-3 mb-2.5">
+            <div class="w-10 h-10 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
+              <i data-lucide="calendar" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Table Booking</span>
+              <h4 class="text-xs font-bold text-slate-900">Reservasi Meja</h4>
+            </div>
+          </div>
+          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
+            <div class="flex items-baseline gap-1.5">
+              <span class="text-2xl font-extrabold text-slate-900 font-mono tabular-nums" id="stat-res-count">0</span>
+              <span class="text-[11px] text-slate-500">tamu</span>
+            </div>
+            <span class="text-[11px] font-medium text-slate-500">Dine-in aktif</span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <!-- ── TAB 1: LIVE CHAT & CS TAKEOVER ────────────────────────────────── -->
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <div id="tab-chats" class="tab-content h-[calc(100vh-295px)] min-h-[500px]">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden grid grid-cols-1 md:grid-cols-12 h-full">
+
+          <!-- Left: Contact Directory (4 cols) -->
+          <div class="md:col-span-4 border-r border-slate-200/80 flex flex-col h-full bg-slate-50/50">
+
+            <!-- Search & Filter Controls -->
+            <div class="p-3.5 border-b border-slate-200/80 bg-white space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-800">Direktori Kontak Tamu</span>
+                <span class="text-[10px] text-slate-600 font-mono px-2 py-0.5 rounded-full bg-slate-100 font-semibold" id="chat-count-badge">0 kontak</span>
               </div>
-              <div>
-                <h3 class="font-bold text-xs text-slate-900" id="current-name">Pilih Kontak</h3>
-                <p class="text-[11px] font-mono text-slate-500" id="current-phone">-</p>
+
+              <!-- Search Pill -->
+              <div class="relative">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="chat-search-input" oninput="filterChats()" placeholder="Cari kontak tamu..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0b0e14]">
+              </div>
+
+              <!-- Filter Buttons -->
+              <div class="flex gap-1">
+                <button onclick="setChatFilter('all')" id="chat-filter-all" class="chat-filter-btn px-3 py-1 text-[11px] font-bold rounded-full bg-[#0b0e14] text-[#d4f65c] transition-all cursor-pointer">
+                  Semua
+                </button>
+                <button onclick="setChatFilter('human')" id="chat-filter-human" class="chat-filter-btn px-3 py-1 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer">
+                  CS Takeover
+                </button>
+                <button onclick="setChatFilter('bot')" id="chat-filter-bot" class="chat-filter-btn px-3 py-1 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer">
+                  Bot Aktif
+                </button>
               </div>
             </div>
 
-            <!-- Operator Takeover Controls -->
-            <div class="flex items-center gap-2.5" id="takeover-control" style="display: none;">
-              <span class="text-xs font-medium text-slate-500" id="status-label">Mode: Bot Aktif</span>
-              <button onclick="toggleBotStatus()" id="btn-toggle-bot" class="px-3 py-1.5 text-xs font-semibold rounded-md border flex items-center gap-1.5 transition-colors">
-                <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
-                <span>Ambil Alih CS</span>
+            <!-- Contact List -->
+            <div class="flex-1 overflow-y-auto divide-y divide-slate-100 custom-scroll" id="chat-list">
+              <div class="p-8 text-center text-slate-400 text-xs">Memuat percakapan...</div>
+            </div>
+
+          </div>
+
+          <!-- Right: Message Stream Area (8 cols) -->
+          <div class="md:col-span-8 flex flex-col h-full bg-white">
+
+            <!-- Chat Header -->
+            <div class="p-3.5 border-b border-slate-200/80 flex items-center justify-between bg-white">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold text-xs" id="current-avatar">
+                  -
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-xs text-slate-900" id="current-name">Pilih Kontak Tamu</h3>
+                    <a id="current-wa-link" href="#" target="_blank" class="hidden text-slate-400 hover:text-emerald-600 transition-colors" title="Buka di WhatsApp Web">
+                      <i data-lucide="external-link" class="w-3 h-3"></i>
+                    </a>
+                  </div>
+                  <p class="text-[11px] font-mono text-slate-500" id="current-phone">-</p>
+                </div>
+              </div>
+
+              <!-- Operator Takeover Controls -->
+              <div class="flex items-center gap-2.5" id="takeover-control" style="display: none;">
+                <div class="text-right hidden sm:block">
+                  <span class="text-xs font-semibold block text-slate-800" id="status-label">Mode: Bot Aktif</span>
+                  <span class="text-[10px] text-slate-400" id="status-sublabel">Respon otomatis aktif</span>
+                </div>
+                <button onclick="toggleBotStatus()" id="btn-toggle-bot" class="px-3.5 py-1.5 text-xs font-bold rounded-xl border flex items-center gap-1.5 transition-all shadow-sm cursor-pointer">
+                  <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+                  <span>Ambil Alih CS</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Quick CS Reply Templates -->
+            <div id="quick-reply-bar" class="px-3.5 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar" style="display: none;">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Balas Cepat:</span>
+              <button type="button" onclick="insertQuickReply('Halo kak, terima kasih telah menghubungi SapaTamu. Ada yang bisa kami bantu?')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors">
+                👋 Salam
+              </button>
+              <button type="button" onclick="insertQuickReply('Reservasi Anda sedang kami proses di sistem. Mohon tunggu sebentar ya kak.')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors">
+                ⏳ Mohon Tunggu
+              </button>
+              <button type="button" onclick="insertQuickReply('Baik kak, pesanan kafe Anda sudah kami teruskan ke barista & dapur.')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors">
+                ☕ Info Dapur
+              </button>
+              <button type="button" onclick="insertQuickReply('Terima kasih banyak atas kunjungan Anda di SapaTamu. Selamat beristirahat!')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors">
+                ✨ Penutup
               </button>
             </div>
-          </div>
 
-          <!-- Messages Stream -->
-          <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30 chat-scroll" id="messages-container">
-            <div class="h-full flex flex-col items-center justify-center text-slate-400 text-xs">
-              <i data-lucide="inbox" class="w-8 h-8 mb-2 stroke-1 text-slate-300"></i>
-              <span>Pilih salah satu kontak di sisi kiri untuk melihat isi percakapan.</span>
-            </div>
-          </div>
-
-          <!-- Operator Reply Input -->
-          <div class="p-3 border-t border-slate-200 bg-white">
-            <form onsubmit="sendManualReply(event)" class="flex gap-2">
-              <input type="text" id="manual-reply-input" placeholder="Tulis pesan balasan manual sebagai Staf CS..." class="flex-1 px-3.5 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900">
-              <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors">
-                <i data-lucide="send" class="w-3.5 h-3.5"></i>
-                <span>Kirim</span>
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ TAB 2: RESERVASI HOTEL ══════════════════════════════════════════ -->
-    <div id="tab-hotel" class="tab-content hidden">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-200 flex items-center justify-between">
-          <div>
-            <h2 class="text-sm font-bold text-slate-900">Data Pemesanan Kamar Hotel</h2>
-            <p class="text-xs text-slate-500">Riwayat reservasi tamu yang tercatat di sistem</p>
-          </div>
-          <button onclick="loadBookings()" class="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-md text-slate-700">Segarkan</button>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-700">
-            <thead class="bg-slate-50 text-[11px] uppercase font-semibold text-slate-500 border-b border-slate-200">
-              <tr>
-                <th class="px-5 py-3">Kode Booking</th>
-                <th class="px-5 py-3">Tamu</th>
-                <th class="px-5 py-3">Tipe Kamar</th>
-                <th class="px-5 py-3">Check-In</th>
-                <th class="px-5 py-3">Durasi</th>
-                <th class="px-5 py-3">Total Biaya</th>
-                <th class="px-5 py-3">Status</th>
-                <th class="px-5 py-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="hotel-bookings-table" class="divide-y divide-slate-100">
-              <tr><td colspan="8" class="px-5 py-8 text-center text-slate-400">Memuat data booking...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ TAB 3: PESANAN RESTORAN ═════════════════════════════════════════ -->
-    <div id="tab-cafe" class="tab-content hidden">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-200 flex items-center justify-between">
-          <div>
-            <h2 class="text-sm font-bold text-slate-900">Daftar Pesanan Restoran & Kafe</h2>
-            <p class="text-xs text-slate-500">Antrian pesanan dapur dari Dine-in dan Takeaway</p>
-          </div>
-          <button onclick="loadCafeOrders()" class="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-md text-slate-700">Segarkan</button>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-700">
-            <thead class="bg-slate-50 text-[11px] uppercase font-semibold text-slate-500 border-b border-slate-200">
-              <tr>
-                <th class="px-5 py-3">Kode Pesanan</th>
-                <th class="px-5 py-3">Tipe / Lokasi</th>
-                <th class="px-5 py-3">Rincian Item</th>
-                <th class="px-5 py-3">Total</th>
-                <th class="px-5 py-3">Status Dapur</th>
-                <th class="px-5 py-3">Waktu</th>
-                <th class="px-5 py-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="cafe-orders-table" class="divide-y divide-slate-100">
-              <tr><td colspan="7" class="px-5 py-8 text-center text-slate-400">Memuat pesanan...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ TAB 4: RESERVASI MEJA ═══════════════════════════════════════════ -->
-    <div id="tab-reservations" class="tab-content hidden">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-200 flex items-center justify-between">
-          <div>
-            <h2 class="text-sm font-bold text-slate-900">Reservasi Meja Restoran</h2>
-            <p class="text-xs text-slate-500">Jadwal kedatangan tamu restoran yang telah dikonfirmasi</p>
-          </div>
-          <button onclick="loadReservations()" class="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-md text-slate-700">Segarkan</button>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-700">
-            <thead class="bg-slate-50 text-[11px] uppercase font-semibold text-slate-500 border-b border-slate-200">
-              <tr>
-                <th class="px-5 py-3">ID Reservasi</th>
-                <th class="px-5 py-3">No. WhatsApp</th>
-                <th class="px-5 py-3">Jumlah Pax</th>
-                <th class="px-5 py-3">Waktu Kedatangan</th>
-                <th class="px-5 py-3">Catatan</th>
-                <th class="px-5 py-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="cafe-res-table" class="divide-y divide-slate-100">
-              <tr><td colspan="6" class="px-5 py-8 text-center text-slate-400">Belum ada data reservasi</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ TAB 5: KATALOG TARIF & MENU ═════════════════════════════════════ -->
-    <div id="tab-catalog" class="tab-content hidden">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Room Catalog -->
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <h3 class="text-sm font-bold text-slate-900 mb-1">Tarif Kamar Hotel</h3>
-          <p class="text-xs text-slate-500 mb-4">Daftar harga kamar resmi yang digunakan sistem booking dan AI</p>
-          <div class="space-y-3" id="room-list">
-            <!-- Dynamic Room List -->
-          </div>
-        </div>
-
-        <!-- Cafe Menu -->
-        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <h3 class="text-sm font-bold text-slate-900 mb-1">Katalog Menu Makanan & Minuman</h3>
-          <p class="text-xs text-slate-500 mb-4">Daftar harga makanan & minuman resmi</p>
-          <div class="space-y-2 max-h-[460px] overflow-y-auto pr-1" id="menu-list">
-            <!-- Dynamic Menu List -->
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ TAB 6: GATEWAY & WEBHOOK CONFIGURATION ═══════════════════════════ -->
-    <div id="tab-gateway" class="tab-content hidden">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 max-w-4xl mx-auto space-y-6">
-        <div>
-          <h2 class="text-sm font-bold text-slate-900">Konfigurasi Gateway OpenKoneksi & Webhook</h2>
-          <p class="text-xs text-slate-500">Status koneksi teknis antara Meta WhatsApp Cloud API, OpenKoneksi, dan Backend SapaTamu</p>
-        </div>
-
-        <div class="space-y-4">
-          <!-- Parameter 1: Webhook Inbound URL -->
-          <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs font-semibold text-slate-700">Webhook Inbound Endpoint:</span>
-              <span class="text-[11px] font-mono bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">READY (GET/POST)</span>
-            </div>
-            <code class="block font-mono text-xs text-slate-800 bg-white p-2 rounded border border-slate-200" id="cfg-webhook-url">
-              /api/webhook/openkoneksi
-            </code>
-            <p class="text-[11px] text-slate-500 mt-1.5">
-              URL publik ini didaftarkan di portal OpenKoneksi.com / Meta untuk menerima pesan masuk pelanggan.
-            </p>
-          </div>
-
-          <!-- Parameter 2: Verify Token -->
-          <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <div class="text-xs font-semibold text-slate-700 mb-1">Webhook Verify Token:</div>
-            <code class="block font-mono text-xs text-slate-800 bg-white p-2 rounded border border-slate-200" id="cfg-verify-token">
-              sapatamu_waba_secret_2026
-            </code>
-          </div>
-
-          <!-- Parameter 3: Outbound API URL -->
-          <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs font-semibold text-slate-700">Outbound REST API URL:</span>
-              <span class="text-[11px] font-semibold text-slate-500" id="cfg-api-status">Status Gateway</span>
-            </div>
-            <code class="block font-mono text-xs text-slate-800 bg-white p-2 rounded border border-slate-200" id="cfg-api-url">
-              https://api.openkoneksi.com/v1
-            </code>
-          </div>
-
-          <!-- Connection Diagnosis Note -->
-          <div id="cfg-status-box" class="p-4 rounded-lg border text-xs leading-relaxed">
-            Memeriksa status koneksi...
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ TAB 7: AI 9ROUTER PLAYGROUND & DIAGNOSTICS ═══════════════════════ -->
-    <div id="tab-ai-playground" class="tab-content hidden space-y-6">
-      <!-- Section 1: Live Benchmark & Engine Health Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Card 1: Connection Status -->
-        <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-medium uppercase tracking-wider">Status 9Router</span>
-            <i data-lucide="activity" class="w-4 h-4 text-emerald-500"></i>
-          </div>
-          <div class="flex items-center gap-2 mt-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" id="ai-card-dot"></span>
-            <div class="text-base font-bold text-slate-900" id="ai-card-status">Online (Active)</div>
-          </div>
-          <div class="text-[11px] text-slate-400 mt-1" id="ai-card-time">Checked just now</div>
-        </div>
-
-        <!-- Card 2: Model Name -->
-        <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-medium uppercase tracking-wider">Model LLM Aktif</span>
-            <i data-lucide="cpu" class="w-4 h-4 text-indigo-500"></i>
-          </div>
-          <div class="text-xs font-bold font-mono text-slate-900 truncate mt-1" id="ai-card-model">
-            ag/gemini-3.7-flash-medium
-          </div>
-          <div class="text-[11px] text-slate-400 mt-1 truncate" id="ai-card-endpoint">Via 9Router Gateway</div>
-        </div>
-
-        <!-- Card 3: Measured Latency (ms) -->
-        <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div class="flex items-center justify-between text-slate-500 mb-1">
-            <span class="text-xs font-medium uppercase tracking-wider">Kecepatan Respons</span>
-            <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
-          </div>
-          <div class="text-2xl font-bold font-mono text-slate-900 mt-0.5" id="ai-card-latency">
-            - ms
-          </div>
-          <div class="text-[11px] text-emerald-600 font-medium mt-0.5">Real HTTP Latency</div>
-        </div>
-
-        <!-- Card 4: Action Button -->
-        <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col justify-between">
-          <div class="text-xs font-medium uppercase tracking-wider text-slate-500">Benchmark Instan</div>
-          <button onclick="runAIPing()" id="btn-ai-ping" class="mt-2 w-full px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
-            <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="icon-ai-ping"></i>
-            <span>Test Ping Latensi</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Section 2: Interactive Chat & Out of Topic Testing Sandbox -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <!-- Left Column: Input Prompt & Quick Test Chips (5 cols) -->
-        <div class="lg:col-span-5 bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between space-y-4">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <i data-lucide="terminal" class="w-4 h-4 text-indigo-600"></i>
-                <span>Testing Sandbox</span>
-              </h3>
-              <span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded">LIVE FETCH</span>
-            </div>
-            <p class="text-xs text-slate-500 mb-4 leading-relaxed">
-              Ketik pertanyaan bebas atau gunakan tombol uji cepat untuk melihat respon model, kecepatan, dan klasifikasi topik secara langsung.
-            </p>
-
-            <!-- Quick Test Chips -->
-            <div class="mb-4">
-              <span class="text-[11px] font-semibold text-slate-600 block mb-2">Preset Pertanyaan Uji Cepat:</span>
-              <div class="flex flex-wrap gap-1.5">
-                <button type="button" onclick="setAIPrompt('Berapa harga kamar Executive Suite dan apa fasilitasnya?')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-md transition-colors flex items-center gap-1 cursor-pointer">
-                  <span>🏨 Tarif Kamar</span>
-                </button>
-                <button type="button" onclick="setAIPrompt('Menu kopi apa saja yang tersedia di kafe?')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-md transition-colors flex items-center gap-1 cursor-pointer">
-                  <span>☕ Menu Kafe</span>
-                </button>
-                <button type="button" onclick="setAIPrompt('Siapa presiden pertama Amerika Serikat?')" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs rounded-md font-medium transition-colors flex items-center gap-1 cursor-pointer">
-                  <span>❓ Out of Topic</span>
-                </button>
-                <button type="button" onclick="setAIPrompt('Berapa hasil dari 55 dikali 12?')" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs rounded-md font-medium transition-colors flex items-center gap-1 cursor-pointer">
-                  <span>🔢 Out of Topic</span>
-                </button>
-                <button type="button" onclick="setAIPrompt('AC kamar saya bocor dan dinginnya mati, saya mau bicara dengan staf CS sekarang.')" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs rounded-md font-medium transition-colors flex items-center gap-1 cursor-pointer">
-                  <span>👨‍💼 Komplain / CS</span>
-                </button>
+            <!-- Messages Stream -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/40 chat-scroll" id="messages-container">
+              <div class="h-full flex flex-col items-center justify-center text-slate-400 text-xs">
+                <i data-lucide="message-square" class="w-10 h-10 mb-2 stroke-1 text-slate-300"></i>
+                <span class="font-medium">Pilih salah satu kontak di sisi kiri untuk melihat percakapan.</span>
               </div>
             </div>
 
-            <!-- Chat Form -->
-            <form onsubmit="submitAITest(event)" class="space-y-3">
-              <div>
-                <label for="ai-prompt-input" class="block text-xs font-semibold text-slate-700 mb-1">Pertanyaan / Input Chat:</label>
-                <textarea id="ai-prompt-input" rows="4" class="w-full text-xs p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 resize-none font-sans" placeholder="Ketik pertanyaan untuk AI..."></textarea>
-              </div>
-              <button type="submit" id="btn-submit-ai-test" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer">
-                <i data-lucide="send" class="w-3.5 h-3.5"></i>
-                <span id="btn-submit-ai-label">Kirim & Analisis AI</span>
-              </button>
-            </form>
+            <!-- Operator Reply Input Bar -->
+            <div class="p-3 border-t border-slate-200/80 bg-white">
+              <form onsubmit="sendManualReply(event)" class="flex gap-2">
+                <input type="text" id="manual-reply-input" placeholder="Ketik balasan manual sebagai Staf CS... (Tekan Enter untuk kirim)" class="flex-1 px-4 py-2.5 text-xs border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0b0e14] bg-slate-50/50 focus:bg-white transition-all">
+                <button type="submit" class="px-5 py-2.5 bg-[#d4f65c] hover:bg-[#c3e84a] text-[#0b0e14] text-xs font-extrabold rounded-full flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
+                  <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                  <span class="hidden sm:inline">Kirim</span>
+                </button>
+              </form>
+            </div>
+
           </div>
 
-          <div class="text-[11px] text-slate-400 bg-slate-50 p-3 rounded-lg border border-slate-100">
-            💡 <strong>Catatan Pengujian:</strong> Sandbox ini memanggil 9Router langsung tanpa mengubah status sesi kontak WhatsApp asli.
-          </div>
         </div>
+      </div>
 
-        <!-- Right Column: Visual Result, Out of Topic Alert & Raw Metadata (7 cols) -->
-        <div class="lg:col-span-7 bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col h-full min-h-[420px]">
-          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <!-- ── TAB 2: RESERVASI KAMAR HOTEL ────────────────────────────────── -->
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <div id="tab-hotel" class="tab-content hidden">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+
+          <!-- Toolbar -->
+          <div class="p-4 sm:p-5 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900">Reservasi Kamar Hotel</h2>
+              <p class="text-xs text-slate-500">Riwayat reservasi tamu yang tercatat secara real-time</p>
+            </div>
+
             <div class="flex items-center gap-2">
-              <h3 class="text-sm font-bold text-slate-900">Hasil Analisis & Respons AI</h3>
-            </div>
-            <div id="ai-result-badge-container">
-              <span class="px-2.5 py-1 bg-slate-100 text-slate-500 text-[11px] font-semibold rounded-md">Menunggu Pengujian</span>
+              <div class="relative">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="hotel-search-input" oninput="filterBookings()" placeholder="Cari kode / tamu..." class="pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0b0e14]">
+              </div>
+
+              <button onclick="loadBookings()" class="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                <span>Segarkan</span>
+              </button>
             </div>
           </div>
 
-          <!-- Result Body -->
-          <div id="ai-result-body" class="flex-1 flex flex-col justify-center items-center text-center p-6 text-slate-400">
-            <i data-lucide="sparkles" class="w-10 h-10 mb-2 opacity-30 text-slate-400"></i>
-            <p class="text-xs max-w-sm">Pilih salah satu preset uji cepat di sebelah kiri atau ketik pertanyaan bebas lalu klik <strong>"Kirim & Analisis AI"</strong>.</p>
+          <!-- Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+              <thead class="bg-slate-50 text-[11px] uppercase font-bold text-slate-400 border-b border-slate-200/80 tracking-wider">
+                <tr>
+                  <th class="px-5 py-3.5">Kode Booking</th>
+                  <th class="px-5 py-3.5">Tamu & Kontak</th>
+                  <th class="px-5 py-3.5">Tipe Kamar</th>
+                  <th class="px-5 py-3.5">Check-In</th>
+                  <th class="px-5 py-3.5">Durasi</th>
+                  <th class="px-5 py-3.5">Total Biaya</th>
+                  <th class="px-5 py-3.5">Status</th>
+                  <th class="px-5 py-3.5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="hotel-bookings-table" class="divide-y divide-slate-100">
+                <tr><td colspan="8" class="px-5 py-12 text-center text-slate-400">Memuat data booking...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <!-- ── TAB 3: PESANAN RESTORAN ─────────────────────────────────────── -->
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <div id="tab-cafe" class="tab-content hidden">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+
+          <div class="p-4 sm:p-5 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900">Antrian Pesanan Restoran & Kafe</h2>
+              <p class="text-xs text-slate-500">Pesanan makanan dan minuman dari meja tamu maupun takeaway</p>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="cafe-search-input" oninput="filterCafeOrders()" placeholder="Cari pesanan / meja..." class="pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0b0e14]">
+              </div>
+
+              <button onclick="loadCafeOrders()" class="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                <span>Segarkan</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+              <thead class="bg-slate-50 text-[11px] uppercase font-bold text-slate-400 border-b border-slate-200/80 tracking-wider">
+                <tr>
+                  <th class="px-5 py-3.5">Kode Pesanan</th>
+                  <th class="px-5 py-3.5">Tipe / Lokasi</th>
+                  <th class="px-5 py-3.5">Rincian Item</th>
+                  <th class="px-5 py-3.5">Total</th>
+                  <th class="px-5 py-3.5">Status Dapur</th>
+                  <th class="px-5 py-3.5">Waktu Masuk</th>
+                  <th class="px-5 py-3.5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="cafe-orders-table" class="divide-y divide-slate-100">
+                <tr><td colspan="7" class="px-5 py-12 text-center text-slate-400">Memuat pesanan kafe...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <!-- ── TAB 4: RESERVASI MEJA ───────────────────────────────────────── -->
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <div id="tab-reservations" class="tab-content hidden">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+
+          <div class="p-4 sm:p-5 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900">Jadwal Reservasi Meja Restoran</h2>
+              <p class="text-xs text-slate-500">Kedatangan tamu santap di tempat yang telah dikonfirmasi bot & staf</p>
+            </div>
+
+            <button onclick="loadReservations()" class="text-xs font-semibold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer">
+              <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+              <span>Segarkan</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+              <thead class="bg-slate-50 text-[11px] uppercase font-bold text-slate-400 border-b border-slate-200/80 tracking-wider">
+                <tr>
+                  <th class="px-5 py-3.5">ID Reservasi</th>
+                  <th class="px-5 py-3.5">No. WhatsApp Tamu</th>
+                  <th class="px-5 py-3.5">Jumlah Pax</th>
+                  <th class="px-5 py-3.5">Jadwal Kedatangan</th>
+                  <th class="px-5 py-3.5">Catatan Khusus</th>
+                  <th class="px-5 py-3.5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="cafe-res-table" class="divide-y divide-slate-100">
+                <tr><td colspan="6" class="px-5 py-12 text-center text-slate-400">Belum ada jadwal reservasi meja</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <!-- ── TAB 5: KATALOG TARIF & MENU ─────────────────────────────────── -->
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <div id="tab-catalog" class="tab-content hidden space-y-4">
+
+        <!-- Room Catalog -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Tarif & Tipe Kamar Hotel</h3>
+              <p class="text-xs text-slate-500">Daftar harga kamar resmi yang digunakan sistem reservasi dan AI bot</p>
+            </div>
+            <span class="text-xs font-bold px-3 py-1 bg-[#d4f65c] text-[#0b0e14] rounded-full">
+              3 Tipe Kamar
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="room-list">
+            <!-- Dynamic room cards -->
+          </div>
+        </div>
+
+        <!-- F&B Menu Catalog -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Katalog Menu Kuliner & Minuman</h3>
+              <p class="text-xs text-slate-500">Daftar harga makanan dan minuman resmi SapaTamu Bistro</p>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="filterCatalogMenu('all')" id="cat-btn-all" class="cat-pill px-3.5 py-1 text-xs font-bold rounded-full bg-[#0b0e14] text-[#d4f65c] transition-all cursor-pointer">
+                Semua Menu
+              </button>
+              <button type="button" onclick="filterCatalogMenu('minuman')" id="cat-btn-minuman" class="cat-pill px-3.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer">
+                ☕ Minuman
+              </button>
+              <button type="button" onclick="filterCatalogMenu('makanan')" id="cat-btn-makanan" class="cat-pill px-3.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer">
+                🍳 Makanan
+              </button>
+            </div>
+          </div>
+
+          <!-- Menu Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[560px] overflow-y-auto pr-1 custom-scroll" id="menu-list">
+            <!-- Dynamic menu cards -->
           </div>
         </div>
 
       </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <!-- ── TAB 6: GATEWAY & WEBHOOK ────────────────────────────────────── -->
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <div id="tab-gateway" class="tab-content hidden">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] p-6 max-w-4xl mx-auto space-y-6">
+
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="w-2 h-2 rounded-full bg-[#d4f65c]"></span>
+              <h2 class="text-sm font-bold text-slate-900">Konfigurasi Gateway OpenKoneksi & Webhook WABA</h2>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Spesifikasi teknis penghubung antara Meta WhatsApp Cloud API, OpenKoneksi Gateway, dan Service Backend Node.js SapaTamu.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
+                <i data-lucide="message-circle" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <strong class="text-slate-900 block">WhatsApp Cloud API Gateway</strong>
+                <span class="text-slate-500 text-[11px]">Webhook Inbound -> AI 9Router -> SQLite WAL -> Outbound REST API</span>
+              </div>
+            </div>
+            <span class="px-3 py-1 bg-[#0b0e14] text-[#d4f65c] rounded-full font-bold text-[11px]">
+              Production Ready
+            </span>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Webhook Inbound -->
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <i data-lucide="arrow-down-left" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  Webhook Inbound URL:
+                </span>
+                <button onclick="copyToClipboard(document.getElementById('cfg-webhook-url').innerText, 'Webhook Inbound URL')" class="text-[11px] font-bold text-slate-700 hover:text-slate-950 flex items-center gap-1 cursor-pointer">
+                  <i data-lucide="copy" class="w-3 h-3"></i> Salin URL
+                </button>
+              </div>
+              <code class="block font-mono text-xs text-slate-900 bg-white p-3 rounded-xl border border-slate-200 select-all" id="cfg-webhook-url">
+                /api/webhook/openkoneksi
+              </code>
+              <p class="text-[11px] text-slate-500 mt-2">
+                Daftarkan URL ini pada portal <strong>OpenKoneksi.com</strong> atau Meta Developer Console.
+              </p>
+            </div>
+
+            <!-- Verify Token -->
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <i data-lucide="key" class="w-3.5 h-3.5 text-amber-600"></i>
+                  Webhook Verify Token:
+                </span>
+                <button onclick="copyToClipboard(document.getElementById('cfg-verify-token').innerText, 'Verify Token')" class="text-[11px] font-bold text-slate-700 hover:text-slate-950 flex items-center gap-1 cursor-pointer">
+                  <i data-lucide="copy" class="w-3 h-3"></i> Salin Token
+                </button>
+              </div>
+              <code class="block font-mono text-xs text-slate-900 bg-white p-3 rounded-xl border border-slate-200 select-all" id="cfg-verify-token">
+                sapatamu_waba_secret_2026
+              </code>
+            </div>
+
+            <!-- Outbound API URL -->
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-blue-600"></i>
+                  Outbound REST API URL:
+                </span>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold" id="cfg-api-status">
+                  Status Gateway
+                </span>
+              </div>
+              <code class="block font-mono text-xs text-slate-900 bg-white p-3 rounded-xl border border-slate-200 select-all" id="cfg-api-url">
+                https://api.openkoneksi.com/v1
+              </code>
+            </div>
+
+            <!-- Diagnostic Box -->
+            <div id="cfg-status-box" class="p-4 rounded-2xl border text-xs leading-relaxed transition-all">
+              Memeriksa status koneksi...
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <!-- ── TAB 7: AI 9ROUTER PLAYGROUND ────────────────────────────────── -->
+      <!-- ══════════════════════════════════════════════════════════════════════ -->
+      <div id="tab-ai-playground" class="tab-content hidden space-y-4">
+
+        <!-- Telemetry Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+          <!-- Engine Status -->
+          <div class="p-4 rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider">Status 9Router</span>
+              <i data-lucide="activity" class="w-4 h-4 text-emerald-600"></i>
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" id="ai-card-dot"></span>
+              <div class="text-base font-extrabold text-slate-900" id="ai-card-status">Online (Active)</div>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-1 font-mono" id="ai-card-time">Checked just now</div>
+          </div>
+
+          <!-- Active Model -->
+          <div class="p-4 rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider">Model LLM Aktif</span>
+              <i data-lucide="cpu" class="w-4 h-4 text-slate-800"></i>
+            </div>
+            <div class="text-xs font-bold font-mono text-slate-900 truncate mt-1" id="ai-card-model">
+              ag/gemini-3.7-flash-medium
+            </div>
+            <div class="text-[11px] text-slate-400 mt-1 truncate" id="ai-card-endpoint">Via 9Router Gateway</div>
+          </div>
+
+          <!-- Latency -->
+          <div class="p-4 rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+            <div class="flex items-center justify-between text-slate-400 mb-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider">Kecepatan Respons</span>
+              <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+            </div>
+            <div class="text-2xl font-extrabold font-mono text-slate-900 mt-0.5 tabular-nums" id="ai-card-latency">
+              - ms
+            </div>
+            <div class="text-[11px] text-emerald-700 font-medium mt-0.5">Real HTTP Ping Roundtrip</div>
+          </div>
+
+          <!-- Action -->
+          <div class="p-4 rounded-2xl border border-slate-200/80 bg-white shadow-sm flex flex-col justify-between">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Benchmark Instan</div>
+            <button onclick="runAIPing()" id="btn-ai-ping" class="mt-2 w-full px-3.5 py-2.5 bg-[#d4f65c] hover:bg-[#c3e84a] text-[#0b0e14] rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95 cursor-pointer">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="icon-ai-ping"></i>
+              <span>Test Ping Latensi</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Prompt Sandbox -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+          <!-- Left: Input & Preset Chips (5 cols) -->
+          <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <i data-lucide="terminal" class="w-4 h-4 text-slate-900"></i>
+                  <span>Interactive Prompt Sandbox</span>
+                </h3>
+                <span class="px-2.5 py-0.5 bg-[#d4f65c] text-[#0b0e14] text-[10px] font-bold rounded-full">
+                  LIVE
+                </span>
+              </div>
+
+              <p class="text-xs text-slate-500 mb-4 leading-relaxed">
+                Uji prompt secara langsung tanpa mempengaruhi kontak tamu untuk memeriksa akurasi, klasifikasi topik, dan deteksi eskalasi.
+              </p>
+
+              <!-- Chips -->
+              <div class="mb-4">
+                <span class="text-[11px] font-bold text-slate-700 block mb-2">Preset Uji Cepat:</span>
+                <div class="flex flex-wrap gap-1.5">
+                  <button type="button" onclick="setAIPrompt('Berapa harga kamar Executive Suite dan apa fasilitasnya?')" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs rounded-full font-medium transition-colors cursor-pointer">
+                    🏨 Tarif Kamar
+                  </button>
+                  <button type="button" onclick="setAIPrompt('Menu kopi apa saja yang tersedia di kafe?')" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs rounded-full font-medium transition-colors cursor-pointer">
+                    ☕ Menu Kafe
+                  </button>
+                  <button type="button" onclick="setAIPrompt('Siapa presiden pertama Amerika Serikat?')" class="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 text-xs rounded-full font-medium transition-colors cursor-pointer" title="Menguji pencegahan halusinasi / Out of Topic">
+                    ❓ Out of Topic
+                  </button>
+                  <button type="button" onclick="setAIPrompt('Berapa hasil dari 55 dikali 12?')" class="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 text-xs rounded-full font-medium transition-colors cursor-pointer">
+                    🔢 Soal Matematika
+                  </button>
+                  <button type="button" onclick="setAIPrompt('AC kamar saya bocor dan dinginnya mati, saya mau bicara dengan staf CS sekarang.')" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs rounded-full font-medium transition-colors cursor-pointer" title="Menguji trigger eskalasi ke staf manusia">
+                    👨‍💼 Komplain / CS
+                  </button>
+                </div>
+              </div>
+
+              <!-- Form -->
+              <form onsubmit="submitAITest(event)" class="space-y-3">
+                <div>
+                  <label for="ai-prompt-input" class="block text-xs font-semibold text-slate-700 mb-1.5">Prompt / Pertanyaan Tamu:</label>
+                  <textarea id="ai-prompt-input" rows="4" class="w-full text-xs p-3.5 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#0b0e14] resize-none font-sans bg-slate-50/50 focus:bg-white transition-all" placeholder="Ketik pertanyaan untuk diuji oleh AI..."></textarea>
+                </div>
+                <button type="submit" id="btn-submit-ai-test" class="w-full py-2.5 bg-[#0b0e14] hover:bg-slate-900 text-[#d4f65c] text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-98 cursor-pointer">
+                  <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                  <span id="btn-submit-ai-label">Kirim & Analisis AI</span>
+                </button>
+              </form>
+            </div>
+
+            <div class="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+              💡 <strong>Zero-Hallucination Policy:</strong> Pertanyaan di luar hotel & restoran dialihkan otomatis ke staf manusia tanpa melayani topik acak.
+            </div>
+          </div>
+
+          <!-- Right: Output Inspector (7 cols) -->
+          <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 flex flex-col h-full min-h-[440px]">
+
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <h3 class="text-sm font-bold text-slate-900">Hasil Evaluasi & Output AI</h3>
+              <div id="ai-result-badge-container">
+                <span class="px-2.5 py-1 bg-slate-100 text-slate-500 text-[11px] font-semibold rounded-full">
+                  Menunggu Pengujian
+                </span>
+              </div>
+            </div>
+
+            <!-- Result Body -->
+            <div id="ai-result-body" class="flex-1 flex flex-col justify-center items-center text-center p-6 text-slate-400">
+              <i data-lucide="sparkles" class="w-10 h-10 mb-2 opacity-30 text-slate-400"></i>
+              <p class="text-xs max-w-sm">Pilih salah satu preset uji di sebelah kiri atau ketik pertanyaan bebas lalu klik <strong>"Kirim & Analisis AI"</strong>.</p>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
 
   </main>
 
-  <!-- ── Detailed Information Modal (E-Voucher & Order Receipt) ─────────────── -->
-  <div id="detail-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 transform transition-all animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  <!-- ── 3. MODALS & TOASTS ─────────────────────────────────────────────────── -->
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="fixed inset-0 z-50 bg-[#0b0e14]/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200/80 transform transition-all animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto custom-scroll">
+
       <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-bold" id="detail-modal-icon">
+          <div class="w-10 h-10 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold" id="detail-modal-icon">
             <i data-lucide="file-text" class="w-4 h-4"></i>
           </div>
           <div>
             <h3 class="text-sm font-bold text-slate-900" id="detail-modal-title">Rincian Lengkap</h3>
-            <p class="text-[11px] text-slate-400" id="detail-modal-subtitle">Informasi operasional sistem</p>
+            <p class="text-[11px] text-slate-400 font-mono" id="detail-modal-subtitle">Informasi operasional sistem</p>
           </div>
         </div>
-        <button onclick="closeDetailModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors">
+        <button onclick="closeDetailModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer" title="Tutup Modal">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
 
-      <!-- Injected Body Content -->
       <div id="detail-modal-content" class="space-y-4 text-xs">
-        <!-- Dynamic content injected by app.js -->
+        <!-- Dynamic content -->
       </div>
 
-      <!-- Modal Footer -->
       <div class="flex items-center justify-between border-t border-slate-100 pt-4 mt-5" id="detail-modal-footer">
-        <button onclick="closeDetailModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-          Tutup
-        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="closeDetailModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer">
+            Tutup
+          </button>
+          <button onclick="window.print()" class="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-full border border-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer" title="Cetak Voucher / Struk">
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Cetak</span>
+          </button>
+        </div>
         <div id="detail-modal-actions" class="flex gap-2"></div>
       </div>
+
     </div>
   </div>
 
-  <!-- ── Custom Confirmation Modal (Modern UI) ──────────────────────────────── -->
-  <div id="confirm-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 transform transition-all animate-in fade-in zoom-in-95 duration-150">
+  <!-- Confirm Modal -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 bg-[#0b0e14]/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 transform transition-all animate-in fade-in zoom-in-95 duration-150">
       <div class="flex items-center gap-3.5 mb-2">
-        <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+        <div class="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center shrink-0">
           <i data-lucide="alert-triangle" class="w-5 h-5"></i>
         </div>
         <div>
@@ -584,10 +975,10 @@
         Apakah Anda yakin ingin menghapus data ini?
       </p>
       <div class="flex items-center justify-end gap-2.5 pt-2">
-        <button type="button" onclick="closeConfirmModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+        <button type="button" onclick="closeConfirmModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer">
           Batal
         </button>
-        <button type="button" id="modal-btn-confirm" class="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm transition-colors flex items-center gap-1.5">
+        <button type="button" id="modal-btn-confirm" class="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-full shadow-sm transition-all flex items-center gap-1.5 cursor-pointer">
           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           <span>Hapus Sekarang</span>
         </button>
@@ -595,9 +986,10 @@
     </div>
   </div>
 
-  <!-- ── Toast Notification Container ──────────────────────────────────────── -->
+  <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
 
-  <script src="/js/app.js"></script>
+  <!-- Core App Logic with Cache Busting -->
+  <script src="/js/app.js?v=20260908_clean_neon_v6"></script>
 </body>
 </html>
