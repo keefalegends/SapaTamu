@@ -3,6 +3,7 @@ const db = require('../db/database');
 const { handleHotelFlow } = require('./hotelHandler');
 const { handleCafeFlow } = require('./cafeHandler');
 const { jawabAI } = require('./aiService');
+const { sendToRasa } = require('./rasaService');
 
 const MENU_UTAMA = {
   text:
@@ -93,7 +94,17 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     return;
   }
 
-  // 5. Cek Sesi Aktif
+  // 5. Coba proses melalui Rasa AI (Booking Kamar, Info, & Order Kafe)
+  const rasaResult = await sendToRasa(cleanPhone, cleanText);
+  if (rasaResult.handled && rasaResult.messages?.length > 0) {
+    console.log(`🤖 [RASA HANDLED] Membalas ${rasaResult.messages.length} pesan dari Rasa ke +${cleanPhone}`);
+    for (const reply of rasaResult.messages) {
+      await gateway.sendText(cleanPhone, reply);
+    }
+    return;
+  }
+
+  // 6. Cek Sesi Aktif
   const session = db.getSession(cleanPhone);
 
   // 6. Router Alur Hotel
