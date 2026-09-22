@@ -1,0 +1,10 @@
+FROM rasa/rasa-sdk:3.6.2
+
+WORKDIR /app
+
+# Salin script custom actions
+COPY actions /app/actions
+
+USER 1001
+
+CMD ["start", "--actions", "actions.actions", "--port", "5055"]

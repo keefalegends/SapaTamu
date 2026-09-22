@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # 1. Rasa Action Server (Perhitungan Harga & Invoice Kamar/Kafe)
+  action_server:
+    image: rasa/rasa-sdk:3.6.2
+    container_name: sapatamu_rasa_actions
+    restart: unless-stopped
+    volumes:
+      - ./actions:/app/actions
+    command:
+      - start
+      - --actions
+      - actions.actions
+      - --port
+      - "5055"
+    ports:
+      - "5055:5055"
+
+  # 2. Rasa Core & NLU Server (Model Percakapan SapaTamu)
+  rasa_server:
+    image: rasa/rasa:3.6.20-full
+    container_name: sapatamu_rasa_core
+    restart: unless-stopped
+    volumes:
+      - ./:/app
+    ports:
+      - "5005:5005"
+    command:
+      - run
+      - --enable-api
+      - --cors
+      - "*"
+      - --endpoints
+      - endpoints.docker.yml
+      - -p
+      - "5005"
+    depends_on:
+      - action_server

@@ -79,6 +79,33 @@ rasa run --enable-api --cors "*" --port 5005
 
 ---
 
+## 🐳 Cara Menjalankan Menggunakan Docker (Khusus Linux / VPS)
+
+Bagi pengguna Linux (Ubuntu, Debian, Arch, CentOS, dll.) atau yang ingin menjalankan di server VPS tanpa perlu menginstal Python / venv manual:
+
+### 1. Menjalankan Chat Interaktif di Terminal (Langsung Ngobrol)
+```bash
+cd rasa_bot
+chmod +x docker-shell.sh
+./docker-shell.sh
+```
+
+### 2. Menjalankan Server API Rasa 24/7 (Background Daemon)
+```bash
+cd rasa_bot
+docker compose up -d
+```
+* **Rasa API Server**: `http://localhost:5005`
+* **Rasa Action Server**: `http://localhost:5055`
+
+### 3. Re-train Model Baru di Docker
+```bash
+cd rasa_bot
+docker compose run --rm rasa_server train
+```
+
+---
+
 ## 🤝 Integrasi ke WhatsApp & Backend SapaTamu
 Saat webhook WhatsApp aktif, backend Node.js cukup meneruskan pesan teks dari tamu ke endpoint REST Rasa:
 `POST http://localhost:5005/webhooks/rest/webhook`
