@@ -1,0 +1,150 @@
+version: "3.1"
+
+nlu:
+  - intent: greet
+    examples: |
+      - halo
+      - hai
+      - halo sapatamu
+      - selamat pagi
+      - selamat siang
+      - selamat sore
+      - selamat malam
+      - assalamualaikum
+      - permisi
+      - p
+      - halo min
+      - hey
+
+  - intent: goodbye
+    examples: |
+      - dadah
+      - selamat tinggal
+      - sampai jumpa
+      - terima kasih
+      - makasih ya min
+      - makasih infonya
+      - thank you
+      - thx
+
+  - intent: bot_challenge
+    examples: |
+      - kamu siapa?
+      - apakah kamu robot?
+      - kamu bot atau manusia?
+      - siapa namamu?
+
+  - intent: ask_room_info
+    examples: |
+      - ada kamar apa saja ya?
+      - lihat daftar kamar hotel
+      - tipe kamar yang tersedia apa saja?
+      - berapa harga kamar per malam?
+      - fasilitas kamar deluxe apa saja?
+      - bedanya deluxe sama executive suite apa?
+      - mau lihat pilihan kamar sapatamu
+      - info kamar hotel
+      - pricelist kamar hotel
+
+  - intent: book_room
+    examples: |
+      - mau booking kamar hotel
+      - saya mau pesan kamar
+      - booking kamar [Deluxe Room](room_type) dong
+      - mau reservasi [Executive Suite](room_type) untuk [25 September](checkin_date)
+      - pesan kamar [Presidential Suite](room_type)
+      - mau nginep di kamar [deluxe](room_type)
+      - reservasi hotel buat tanggal [10 Oktober](checkin_date)
+      - bisa booking kamar [executive](room_type) buat [2](guests) orang?
+      - mau sewa kamar [suite](room_type)
+
+  - intent: ask_menu
+    examples: |
+      - ada menu makanan apa aja?
+      - lihat menu kafe
+      - daftar harga menu restoran
+      - menu kopi apa saja yang ada?
+      - ada makanan berat gak?
+      - pricelist kafe sapatamu
+      - menu minuman apa saja?
+      - mau lihat daftar menu kafe dan resto
+
+  - intent: order_food
+    examples: |
+      - mau pesan makanan
+      - mau order menu kafe
+      - pesan [2](quantity) [Nasi Goreng Spesial](food_item)
+      - order [1](quantity) [Caffe Latte](food_item)
+      - mau beli [Butter Croissant](food_item)
+      - pesan [1](quantity) [Spaghetti Carbonara](food_item) dan [1](quantity) [Matcha Latte](food_item)
+      - tolong pesankan [1](quantity) [Espresso](food_item)
+      - order [2](quantity) [Es Teh Manis](food_item) dan [1](quantity) [Roti Bakar](food_item)
+      - pesan [Americano](food_item) [1](quantity)
+      - saya mau order [Jeruk Peras](food_item)
+      - beli [Cappuccino](food_item)
+
+  - intent: inform
+    examples: |
+      - nama saya [Bagus Arya](guest_name)
+      - atas nama [Bagus](guest_name)
+      - [Keefa](guest_name)
+      - [Ahmad](guest_name)
+      - tanggal [25 September](checkin_date)
+      - buat [besok](checkin_date)
+      - tanggal [10 Oktober 2026](checkin_date)
+      - untuk [2](guests) orang
+      - [1](guests) orang saja
+      - [4](guests) tamu
+      - nomor saya [081234567890](phone_number)
+      - [08987654321](phone_number)
+      - [Deluxe Room](room_type)
+      - [Executive Suite](room_type)
+      - [Presidential Suite](room_type)
+      - [deluxe](room_type)
+      - [executive](room_type)
+      - [suite](room_type)
+      - [2](quantity) porsi
+      - [1](quantity) gelas
+      - [3](quantity)
+
+  - intent: affirm
+    examples: |
+      - ya
+      - iya
+      - benar
+      - betul
+      - oke
+      - gas
+      - setuju
+      - konfirmasi pesanan
+      - lanjutkan
+
+  - intent: deny
+    examples: |
+      - tidak
+      - gak
+      - jangan
+      - batalkan
+      - cancel
+      - salah
+      - ubah pesanan
+
+  - synonym: Deluxe Room
+    examples: |
+      - deluxe
+      - kamar deluxe
+      - deluxe room
+
+  - synonym: Executive Suite
+    examples: |
+      - executive
+      - suite eksekutif
+      - kamar executive
+      - executive suite
+
+  - synonym: Presidential Suite
+    examples: |
+      - presidential
+      - suite presiden
+      - penthouse
+      - presidential suite

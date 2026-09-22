@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 .env
 .DS_Store
 *.log
@@ -11,3 +11,10 @@ output/
 
 # RSA Keys — jangan pernah di-commit!
 flow_private_key.pem
+
+# Python & Rasa artifacts
+venv/
+rasa_bot/venv/
+__pycache__/
+*.pyc
+.rasa/

@@ -1,0 +1,125 @@
+version: "3.1"
+
+intents:
+  - greet
+  - goodbye
+  - bot_challenge
+  - ask_room_info
+  - book_room
+  - ask_menu
+  - order_food
+  - inform
+  - affirm
+  - deny
+
+entities:
+  - room_type
+  - checkin_date
+  - guests
+  - guest_name
+  - phone_number
+  - food_item
+  - quantity
+
+slots:
+  room_type:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: room_type
+
+  checkin_date:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: checkin_date
+
+  guests:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: guests
+
+  guest_name:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: guest_name
+
+  phone_number:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: phone_number
+
+  food_item:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: from_entity
+        entity: food_item
+
+  quantity:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: quantity
+
+forms:
+  hotel_booking_form:
+    required_slots:
+      - room_type
+      - checkin_date
+      - guest_name
+      - phone_number
+
+  cafe_order_form:
+    required_slots:
+      - food_item
+      - quantity
+      - guest_name
+
+responses:
+  utter_greet:
+    - text: "Halo! Selamat datang di SapaTamu Hotel & Resto 🏨☕\nAda yang bisa saya bantu hari ini?\n\n1️⃣ Cek & Booking Kamar Hotel\n2️⃣ Lihat Menu & Pesan Makanan/Minuman Kafe\n3️⃣ Info Layanan & Fasilitas"
+
+  utter_goodbye:
+    - text: "Terima kasih telah menghubungi SapaTamu! Semoga hari Anda menyenangkan. Sampai jumpa kembali! 👋✨"
+
+  utter_iamabot:
+    - text: "Saya adalah Asisten Virtual Cerdas SapaTamu berbasis Rasa AI yang siap melayani reservasi kamar dan pemesanan kafe Anda 24/7! 🤖"
+
+  utter_ask_room_info:
+    - text: "🏨 *PILIHAN KAMAR SAPATAMU HOTEL:*\n\n1. 🛏️ *Deluxe Room* — Rp 550.000 / malam\n   Kasur King Size, Smart TV 43\", AC, Balkon Pribadi, Sarapan 2 pax.\n\n2. 🛁 *Executive Suite* — Rp 950.000 / malam\n   Ruang Tamu Terpisah, Jacuzzi Pribadi, Espresso Machine, Lounge Access, Sarapan 2 pax.\n\n3. 👑 *Presidential Suite* — Rp 1.800.000 / malam\n   Penthouse 2 Kamar, Dining Room, Mini Bar Gratis, 24h Butler, Jacuzzi.\n\nMau booking tipe kamar yang mana kak?"
+
+  utter_ask_room_type:
+    - text: "Mau booking tipe kamar apa kak? (Deluxe Room / Executive Suite / Presidential Suite)"
+
+  utter_ask_checkin_date:
+    - text: "Untuk tanggal check-in kapan kak? (Contoh: 25 September)"
+
+  utter_ask_guest_name:
+    - text: "Boleh tahu atas nama siapa pemesanannya kak?"
+
+  utter_ask_phone_number:
+    - text: "Mohon cantumkan nomor WhatsApp/HP aktif untuk konfirmasi pemesanan:"
+
+  utter_ask_food_item:
+    - text: "Mau pesan menu apa kak? (Contoh: Nasi Goreng Spesial, Caffe Latte, Croissant)"
+
+  utter_ask_quantity:
+    - text: "Berapa porsi / gelas yang mau dipesan kak?"
+
+  utter_default:
+    - text: "Maaf, saya belum memahami maksud Anda. Anda bisa mengetik 'info kamar' untuk booking hotel atau 'menu kafe' untuk memesan makanan/minuman."
+
+actions:
+  - action_show_menu
+  - action_submit_hotel_booking
+  - action_submit_cafe_order

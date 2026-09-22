@@ -1,0 +1,61 @@
+version: "3.1"
+
+rules:
+  - rule: Say hello whenever user greets
+    steps:
+      - intent: greet
+      - action: utter_greet
+
+  - rule: Say goodbye whenever user says goodbye
+    steps:
+      - intent: goodbye
+      - action: utter_goodbye
+
+  - rule: Answer bot challenge
+    steps:
+      - intent: bot_challenge
+      - action: utter_iamabot
+
+  - rule: Provide room info
+    steps:
+      - intent: ask_room_info
+      - action: utter_ask_room_info
+
+  - rule: Show cafe and resto menu
+    steps:
+      - intent: ask_menu
+      - action: action_show_menu
+
+  # --- HOTEL BOOKING FORM RULES ---
+  - rule: Activate hotel booking form
+    steps:
+      - intent: book_room
+      - action: hotel_booking_form
+      - active_loop: hotel_booking_form
+
+  - rule: Submit hotel booking form
+    condition:
+      - active_loop: hotel_booking_form
+    steps:
+      - action: hotel_booking_form
+      - active_loop: null
+      - slot_was_set:
+          - requested_slot: null
+      - action: action_submit_hotel_booking
+
+  # --- CAFE ORDER FORM RULES ---
+  - rule: Activate cafe order form
+    steps:
+      - intent: order_food
+      - action: cafe_order_form
+      - active_loop: cafe_order_form
+
+  - rule: Submit cafe order form
+    condition:
+      - active_loop: cafe_order_form
+    steps:
+      - action: cafe_order_form
+      - active_loop: null
+      - slot_was_set:
+          - requested_slot: null
+      - action: action_submit_cafe_order
