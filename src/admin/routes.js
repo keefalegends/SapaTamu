@@ -225,23 +225,25 @@ router.get('/system-status', (req, res) => {
       dbStatus = 'ERROR: ' + e.message;
     }
 
-    const wabaApiKey = config.openkoneksi.apiKey;
-    const isKeyConfigured = Boolean(wabaApiKey && !wabaApiKey.startsWith('test_') && wabaApiKey !== 'YOUR_OPENKONEKSI_API_KEY');
+    const isMeta = config.whatsapp.provider === 'meta' || Boolean(config.whatsapp.metaToken);
+    const token = isMeta ? config.whatsapp.metaToken : config.openkoneksi.apiKey;
+    const isConfigured = Boolean(token && !token.startsWith('test_') && !token.includes('YOUR_') && token.trim() !== '');
 
     res.json({
       success: true,
       system: {
         db: { status: dbStatus, latencyMs: dbLatency },
         waba: {
-          connected: isKeyConfigured,
-          status: isKeyConfigured ? 'CONNECTED' : 'DISCONNECTED',
-          message: isKeyConfigured
-            ? 'Terhubung ke OpenKoneksi Gateway'
-            : 'OpenKoneksi API Key belum aktif di .env (Pesan outbound WhatsApp tidak terkirim ke Meta).',
-          apiUrl: config.openkoneksi.apiUrl,
-          phoneId: config.openkoneksi.phoneId || null,
+          provider: isMeta ? 'meta_cloud_api' : 'openkoneksi',
+          connected: isConfigured,
+          status: isConfigured ? 'CONNECTED' : 'DISCONNECTED',
+          message: isConfigured
+            ? `Terhubung ke ${isMeta ? 'Meta WhatsApp Cloud API' : 'OpenKoneksi Gateway'}`
+            : `${isMeta ? 'Meta WA Token' : 'OpenKoneksi API Key'} belum diset di .env.`,
+          apiUrl: isMeta ? `https://graph.facebook.com/${config.whatsapp.apiVersion}/${config.whatsapp.phoneNumberId}` : config.openkoneksi.apiUrl,
+          phoneId: isMeta ? config.whatsapp.phoneNumberId : config.openkoneksi.phoneId,
           webhookEndpoint: '/api/webhook/openkoneksi',
-          verifyToken: config.openkoneksi.webhookSecret || 'sapatamu_waba_secret_2026',
+          verifyToken: config.whatsapp.verifyToken,
         },
         ai: {
           model: config.ai.model,

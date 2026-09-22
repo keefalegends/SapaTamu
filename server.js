@@ -42,8 +42,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Routes
+// API Routes (mendukung Meta Developer Webhook & OpenKoneksi)
 app.use('/api/webhook/openkoneksi', webhookHandler);
+app.use('/api/webhook/whatsapp', webhookHandler);
+app.use('/webhook', webhookHandler);
 app.use('/api/admin', adminRoutes);
 
 // Health Check

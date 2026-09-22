@@ -20,8 +20,23 @@ function formatE164(phone) {
 }
 
 async function sendRawOpenKoneksi(payload, sender = 'bot') {
-  const apiKey = config.openkoneksi.apiKey;
-  const url = `${config.openkoneksi.apiUrl}/messages`;
+  const isMeta = config.whatsapp.provider === 'meta' || Boolean(config.whatsapp.metaToken);
+  
+  let url;
+  let token;
+  let providerName;
+
+  if (isMeta) {
+    providerName = 'META CLOUD API';
+    const phoneId = config.whatsapp.phoneNumberId;
+    const version = config.whatsapp.apiVersion || 'v20.0';
+    url = `https://graph.facebook.com/${version}/${phoneId}/messages`;
+    token = config.whatsapp.metaToken;
+  } else {
+    providerName = 'OPENKONEKSI';
+    url = `${config.openkoneksi.apiUrl}/messages`;
+    token = config.openkoneksi.apiKey;
+  }
 
   // Normalisasi nomor tujuan ke E.164
   if (payload.to) {
@@ -44,24 +59,25 @@ async function sendRawOpenKoneksi(payload, sender = 'bot') {
   db.saveMessage(to, 'outbound', sender, msgType, textPreview, payload);
   db.upsertConversation(to, null, textPreview);
 
-  // Jika API Key dummy/demo, log ke console dan anggap berhasil (Mode Simulasi)
-  if (!apiKey || apiKey.startsWith('test_') || apiKey === 'YOUR_OPENKONEKSI_API_KEY') {
-    console.log(`📡 [OPENKONEKSI SIMULASI] Outbound ke +${to} (${sender}): "${textPreview.substring(0, 50)}..."`);
+  // Jika token/key kosong atau dummy/demo, log ke console dan anggap berhasil (Mode Simulasi)
+  if (!token || token.startsWith('test_') || token.includes('YOUR_') || token.trim() === '') {
+    console.log(`📡 [${providerName} SIMULASI] Outbound ke +${to} (${sender}): "${textPreview.substring(0, 50)}..."`);
     return { success: true, simulated: true };
   }
 
-  // Pengiriman nyata via REST API OpenKoneksi dengan auto-retry pada HTTP 429
+  // Pengiriman nyata via REST API (Meta Cloud API / OpenKoneksi) dengan auto-retry pada HTTP 429
   const maxRetries = 2;
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
     try {
       const res = await axios.post(url, payload, {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         timeout: 8000,
       });
-      console.log(`✅ [OPENKONEKSI OUTBOUND] Sukses kirim ke +${to} (ID: ${res.data?.id || 'OK'})`);
+      const messageId = res.data?.messages?.[0]?.id || res.data?.id || 'OK';
+      console.log(`✅ [${providerName} OUTBOUND] Sukses kirim ke +${to} (ID: ${messageId})`);
       return res.data;
     } catch (err) {
       const isRateLimit = err.response?.status === 429;
@@ -72,8 +88,8 @@ async function sendRawOpenKoneksi(payload, sender = 'bot') {
         continue;
       }
       if (attempt > maxRetries) {
-        console.error(`❌ [OPENKONEKSI OUTBOUND ERROR] Gagal kirim ke +${to}:`, err.response?.data || err.message);
-        return { success: false, error: err.message };
+        console.error(`❌ [${providerName} OUTBOUND ERROR] Gagal kirim ke +${to}:`, err.response?.data || err.message);
+        return { success: false, error: err.response?.data || err.message };
       }
     }
   }

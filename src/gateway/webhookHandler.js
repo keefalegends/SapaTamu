@@ -12,14 +12,14 @@ router.get('/', (req, res) => {
   const token = req.query['hub.verify_token'] || req.query.verify_token || req.query.token;
   const challenge = req.query['hub.challenge'] || req.query.challenge;
 
-  const expectedToken = config.openkoneksi.webhookSecret;
+  const expectedToken = config.whatsapp?.verifyToken || config.openkoneksi.webhookSecret;
 
   if (token === expectedToken) {
-    console.log('✅ [WEBHOOK VERIFY] Handshake OpenKoneksi berhasil diverifikasi!');
+    console.log('✅ [WEBHOOK VERIFY] Handshake WhatsApp (Meta / OpenKoneksi) berhasil diverifikasi!');
     return res.status(200).send(challenge || 'VERIFIED');
   }
 
-  console.warn('⚠️ [WEBHOOK VERIFY FAILED] Token tidak cocok!');
+  console.warn(`⚠️ [WEBHOOK VERIFY FAILED] Token tidak cocok! Diterima: "${token}", Diharapkan: "${expectedToken}"`);
   return res.status(403).send('Verification token mismatch');
 });
 
