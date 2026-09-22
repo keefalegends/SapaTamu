@@ -218,38 +218,38 @@
   <main class="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden h-full">
 
     <!-- Top Header Bar -->
-    <header class="h-16 px-6 border-b border-slate-200/80 bg-white flex items-center justify-between gap-4 shrink-0 z-20">
+    <header class="h-14 px-4 sm:px-6 border-b border-slate-200/80 bg-white flex items-center justify-between gap-3 shrink-0 z-20 overflow-hidden">
 
       <!-- Left Greeting -->
-      <div>
+      <div class="min-w-0 shrink">
         <div class="flex items-center gap-2">
-          <h1 class="text-lg font-extrabold text-slate-950 tracking-tight" id="header-greeting">
+          <h1 class="text-sm sm:text-base font-extrabold text-slate-950 tracking-tight truncate" id="header-greeting">
             Welcome back, Resepsionis 👋
           </h1>
         </div>
-        <p class="text-xs text-slate-500 font-medium">
+        <p class="text-[11px] text-slate-500 font-medium truncate hidden md:block">
           Operasional Hotel & Restoran SapaTamu Console
         </p>
       </div>
 
       <!-- Right Controls: Pill Search, Badges, Avatar -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
 
         <!-- Pill Search Bar -->
-        <div class="relative hidden sm:block">
+        <div class="relative hidden 2xl:block">
           <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-          <input type="text" id="global-search-input" oninput="handleGlobalSearch(event)" placeholder="Cari data apa saja..." class="w-60 pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0b0e14] transition-all">
+          <input type="text" id="global-search-input" oninput="handleGlobalSearch(event)" placeholder="Cari data apa saja..." class="w-48 pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0b0e14] transition-all">
         </div>
 
         <!-- DB Status Pill -->
-        <div class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-medium text-slate-700 shadow-sm">
+        <div class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-full text-[11px] font-medium text-slate-700 shadow-xs shrink-0">
           <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
           <span class="text-slate-400 font-mono">DB:</span>
           <span class="font-mono font-bold text-slate-800" id="nav-db-status">Online</span>
         </div>
 
         <!-- AI Latency Pill -->
-        <button onclick="switchTab('tab-ai-playground')" id="nav-ai-badge" class="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-full text-[11px] font-medium text-slate-700 shadow-sm transition-colors cursor-pointer" title="AI Latency & Benchmark">
+        <button onclick="switchTab('tab-ai-playground')" id="nav-ai-badge" class="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-full text-[11px] font-medium text-slate-700 shadow-xs transition-colors cursor-pointer shrink-0" title="AI Latency & Benchmark">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="nav-ai-dot"></span>
           <span class="text-slate-400 font-mono">AI:</span>
           <span class="font-mono font-bold text-slate-900" id="nav-ai-status">9Router</span>
@@ -257,19 +257,19 @@
         </button>
 
         <!-- Gateway Status Pill -->
-        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-medium text-slate-700 shadow-sm" id="nav-gateway-badge">
+        <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-full text-[11px] font-medium text-slate-700 shadow-xs shrink-0" id="nav-gateway-badge">
           <span class="w-2 h-2 rounded-full bg-amber-500" id="nav-gateway-dot"></span>
           <span class="text-slate-400 font-mono">Gateway:</span>
           <span class="font-semibold text-slate-800" id="nav-gateway-status">Memeriksa...</span>
         </div>
 
         <!-- Refresh Action Button -->
-        <button onclick="refreshAll()" id="btn-refresh-all" class="w-9 h-9 bg-white hover:bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-slate-700 hover:text-slate-950 shadow-sm transition-all cursor-pointer" title="Segarkan Data">
-          <i data-lucide="rotate-cw" id="icon-refresh-all" class="w-4 h-4"></i>
+        <button onclick="refreshAll()" id="btn-refresh-all" class="w-8 h-8 bg-white hover:bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-slate-700 hover:text-slate-950 shadow-xs transition-all cursor-pointer shrink-0" title="Segarkan Data">
+          <i data-lucide="rotate-cw" id="icon-refresh-all" class="w-3.5 h-3.5"></i>
         </button>
 
         <!-- Avatar -->
-        <div class="w-9 h-9 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-slate-200">
+        <div class="w-8 h-8 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold text-xs shadow-xs ring-2 ring-slate-200 shrink-0">
           ST
         </div>
 
@@ -290,102 +290,88 @@
       </div>
     </div>
 
-    <!-- Scrollable Workspace Body -->
-    <div class="flex-1 overflow-y-auto p-6 custom-scroll space-y-5">
+    <!-- Workspace Body: Fullscreen Flex Column -->
+    <div class="flex-1 flex flex-col min-h-0 p-3 sm:p-4 overflow-hidden gap-3">
 
-      <!-- ── BENTO METRICS ROW (Clean Monochrome with Neon Accent) ───────────── -->
-      <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- ── BENTO METRICS ROW (Compact Sleek Bar) ───────────── -->
+      <section class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 shrink-0">
 
         <!-- Bento Card 1: Percakapan WhatsApp -->
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-slate-300 transition-all flex flex-col justify-between">
-          <div class="flex items-center gap-3 mb-2.5">
-            <div class="w-10 h-10 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
-              <i data-lucide="message-square" class="w-5 h-5"></i>
+        <div class="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
+              <i data-lucide="message-square" class="w-4 h-4"></i>
             </div>
-            <div>
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">WhatsApp Chat</span>
-              <h4 class="text-xs font-bold text-slate-900">Percakapan Tamu</h4>
+            <div class="min-w-0">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block truncate">Chat Tamu</span>
+              <div class="text-base font-extrabold text-slate-900 font-mono tabular-nums leading-none mt-0.5" id="stat-chats">0</div>
             </div>
           </div>
-          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
-            <div class="text-2xl font-extrabold text-slate-900 font-mono tabular-nums" id="stat-chats">0</div>
-            <span class="text-[11px] font-medium text-slate-500">kontak aktif</span>
-          </div>
+          <span class="text-[10px] font-medium text-slate-500 shrink-0 ml-1">kontak</span>
         </div>
 
         <!-- Bento Card 2: Reservasi Kamar Hotel -->
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-slate-300 transition-all flex flex-col justify-between">
-          <div class="flex items-center gap-3 mb-2.5">
-            <div class="w-10 h-10 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
-              <i data-lucide="bed" class="w-5 h-5"></i>
+        <div class="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
+              <i data-lucide="bed" class="w-4 h-4"></i>
             </div>
-            <div>
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Hotel Room</span>
-              <h4 class="text-xs font-bold text-slate-900">Reservasi Kamar</h4>
+            <div class="min-w-0">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block truncate">Kamar Hotel</span>
+              <div class="flex items-baseline gap-1 mt-0.5">
+                <span class="text-base font-extrabold text-slate-900 font-mono tabular-nums leading-none" id="stat-hotel-count">0</span>
+                <span class="text-[10px] text-slate-500">kamar</span>
+              </div>
             </div>
           </div>
-          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
-            <div class="flex items-baseline gap-1.5">
-              <span class="text-2xl font-extrabold text-slate-900 font-mono tabular-nums" id="stat-hotel-count">0</span>
-              <span class="text-[11px] text-slate-500">kamar</span>
-            </div>
-            <span class="text-xs font-bold font-mono text-emerald-700 tabular-nums" id="stat-hotel-rev">Rp 0</span>
-          </div>
+          <span class="text-xs font-bold font-mono text-emerald-700 tabular-nums shrink-0 ml-1" id="stat-hotel-rev">Rp 0</span>
         </div>
 
         <!-- Bento Card 3: Pesanan Restoran -->
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-slate-300 transition-all flex flex-col justify-between">
-          <div class="flex items-center gap-3 mb-2.5">
-            <div class="w-10 h-10 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
-              <i data-lucide="utensils" class="w-5 h-5"></i>
+        <div class="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
+              <i data-lucide="utensils" class="w-4 h-4"></i>
             </div>
-            <div>
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Kitchen & Bar</span>
-              <h4 class="text-xs font-bold text-slate-900">Pesanan Resto</h4>
+            <div class="min-w-0">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block truncate">Pesanan Resto</span>
+              <div class="flex items-baseline gap-1 mt-0.5">
+                <span class="text-base font-extrabold text-slate-900 font-mono tabular-nums leading-none" id="stat-cafe-count">0</span>
+                <span class="text-[10px] text-slate-500">tiket</span>
+              </div>
             </div>
           </div>
-          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
-            <div class="flex items-baseline gap-1.5">
-              <span class="text-2xl font-extrabold text-slate-900 font-mono tabular-nums" id="stat-cafe-count">0</span>
-              <span class="text-[11px] text-slate-500">tiket</span>
-            </div>
-            <span class="text-xs font-bold font-mono text-emerald-700 tabular-nums" id="stat-cafe-rev">Rp 0</span>
-          </div>
+          <span class="text-xs font-bold font-mono text-emerald-700 tabular-nums shrink-0 ml-1" id="stat-cafe-rev">Rp 0</span>
         </div>
 
         <!-- Bento Card 4: Reservasi Meja -->
-        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-slate-300 transition-all flex flex-col justify-between">
-          <div class="flex items-center gap-3 mb-2.5">
-            <div class="w-10 h-10 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
-              <i data-lucide="calendar" class="w-5 h-5"></i>
+        <div class="bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex items-center justify-between">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold shrink-0">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
             </div>
-            <div>
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Table Booking</span>
-              <h4 class="text-xs font-bold text-slate-900">Reservasi Meja</h4>
+            <div class="min-w-0">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block truncate">Reservasi Meja</span>
+              <div class="flex items-baseline gap-1 mt-0.5">
+                <span class="text-base font-extrabold text-slate-900 font-mono tabular-nums leading-none" id="stat-res-count">0</span>
+                <span class="text-[10px] text-slate-500">tamu</span>
+              </div>
             </div>
           </div>
-          <div class="flex items-baseline justify-between pt-2 border-t border-slate-100">
-            <div class="flex items-baseline gap-1.5">
-              <span class="text-2xl font-extrabold text-slate-900 font-mono tabular-nums" id="stat-res-count">0</span>
-              <span class="text-[11px] text-slate-500">tamu</span>
-            </div>
-            <span class="text-[11px] font-medium text-slate-500">Dine-in aktif</span>
-          </div>
+          <span class="text-[10px] font-medium text-slate-500 shrink-0 ml-1">Dine-in</span>
         </div>
 
       </section>
 
-      <!-- ══════════════════════════════════════════════════════════════════════ -->
       <!-- ── TAB 1: LIVE CHAT & CS TAKEOVER ────────────────────────────────── -->
-      <!-- ══════════════════════════════════════════════════════════════════════ -->
-      <div id="tab-chats" class="tab-content h-[calc(100vh-295px)] min-h-[500px]">
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden grid grid-cols-1 md:grid-cols-12 h-full">
+      <div id="tab-chats" class="tab-content flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden grid grid-cols-1 md:grid-cols-12 flex-1 min-h-0 h-full">
 
           <!-- Left: Contact Directory (4 cols) -->
-          <div class="md:col-span-4 border-r border-slate-200/80 flex flex-col h-full bg-slate-50/50">
+          <div class="md:col-span-4 border-r border-slate-200/80 flex flex-col h-full min-h-0 bg-slate-50/50">
 
             <!-- Search & Filter Controls -->
-            <div class="p-3.5 border-b border-slate-200/80 bg-white space-y-2.5">
+            <div class="p-3 border-b border-slate-200/80 bg-white space-y-2 shrink-0">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-800">Direktori Kontak Tamu</span>
                 <span class="text-[10px] text-slate-600 font-mono px-2 py-0.5 rounded-full bg-slate-100 font-semibold" id="chat-count-badge">0 kontak</span>
@@ -399,52 +385,52 @@
 
               <!-- Filter Buttons -->
               <div class="flex gap-1">
-                <button onclick="setChatFilter('all')" id="chat-filter-all" class="chat-filter-btn px-3 py-1 text-[11px] font-bold rounded-full bg-[#0b0e14] text-[#d4f65c] transition-all cursor-pointer">
+                <button onclick="setChatFilter('all')" id="chat-filter-all" class="chat-filter-btn px-2.5 py-1 text-[11px] font-bold rounded-full bg-[#0b0e14] text-[#d4f65c] transition-all cursor-pointer">
                   Semua
                 </button>
-                <button onclick="setChatFilter('human')" id="chat-filter-human" class="chat-filter-btn px-3 py-1 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer">
+                <button onclick="setChatFilter('human')" id="chat-filter-human" class="chat-filter-btn px-2.5 py-1 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer">
                   CS Takeover
                 </button>
-                <button onclick="setChatFilter('bot')" id="chat-filter-bot" class="chat-filter-btn px-3 py-1 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer">
+                <button onclick="setChatFilter('bot')" id="chat-filter-bot" class="chat-filter-btn px-2.5 py-1 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer">
                   Bot Aktif
                 </button>
               </div>
             </div>
 
             <!-- Contact List -->
-            <div class="flex-1 overflow-y-auto divide-y divide-slate-100 custom-scroll" id="chat-list">
+            <div class="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 custom-scroll" id="chat-list">
               <div class="p-8 text-center text-slate-400 text-xs">Memuat percakapan...</div>
             </div>
 
           </div>
 
           <!-- Right: Message Stream Area (8 cols) -->
-          <div class="md:col-span-8 flex flex-col h-full bg-white">
+          <div class="md:col-span-8 flex flex-col h-full min-h-0 bg-white">
 
             <!-- Chat Header -->
-            <div class="p-3.5 border-b border-slate-200/80 flex items-center justify-between bg-white">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold text-xs" id="current-avatar">
+            <div class="p-3 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-full bg-[#0b0e14] text-[#d4f65c] flex items-center justify-center font-bold text-xs shrink-0" id="current-avatar">
                   -
                 </div>
-                <div>
+                <div class="min-w-0">
                   <div class="flex items-center gap-2">
-                    <h3 class="font-bold text-xs text-slate-900" id="current-name">Pilih Kontak Tamu</h3>
-                    <a id="current-wa-link" href="#" target="_blank" class="hidden text-slate-400 hover:text-emerald-600 transition-colors" title="Buka di WhatsApp Web">
+                    <h3 class="font-bold text-xs text-slate-900 truncate" id="current-name">Pilih Kontak Tamu</h3>
+                    <a id="current-wa-link" href="#" target="_blank" class="hidden text-slate-400 hover:text-emerald-600 transition-colors shrink-0" title="Buka di WhatsApp Web">
                       <i data-lucide="external-link" class="w-3 h-3"></i>
                     </a>
                   </div>
-                  <p class="text-[11px] font-mono text-slate-500" id="current-phone">-</p>
+                  <p class="text-[10px] font-mono text-slate-500 truncate" id="current-phone">-</p>
                 </div>
               </div>
 
               <!-- Operator Takeover Controls -->
-              <div class="flex items-center gap-2.5" id="takeover-control" style="display: none;">
+              <div class="flex items-center gap-2 shrink-0" id="takeover-control" style="display: none;">
                 <div class="text-right hidden sm:block">
-                  <span class="text-xs font-semibold block text-slate-800" id="status-label">Mode: Bot Aktif</span>
-                  <span class="text-[10px] text-slate-400" id="status-sublabel">Respon otomatis aktif</span>
+                  <span class="text-[11px] font-semibold block text-slate-800 leading-tight" id="status-label">Mode: Bot Aktif</span>
+                  <span class="text-[9px] text-slate-400 leading-tight" id="status-sublabel">Respon otomatis aktif</span>
                 </div>
-                <button onclick="toggleBotStatus()" id="btn-toggle-bot" class="px-3.5 py-1.5 text-xs font-bold rounded-xl border flex items-center gap-1.5 transition-all shadow-sm cursor-pointer">
+                <button onclick="toggleBotStatus()" id="btn-toggle-bot" class="px-3 py-1.5 text-xs font-bold rounded-xl border flex items-center gap-1.5 transition-all shadow-xs cursor-pointer">
                   <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
                   <span>Ambil Alih CS</span>
                 </button>
@@ -452,35 +438,35 @@
             </div>
 
             <!-- Quick CS Reply Templates -->
-            <div id="quick-reply-bar" class="px-3.5 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar" style="display: none;">
+            <div id="quick-reply-bar" class="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0" style="display: none;">
               <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Balas Cepat:</span>
-              <button type="button" onclick="insertQuickReply('Halo kak, terima kasih telah menghubungi SapaTamu. Ada yang bisa kami bantu?')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors">
+              <button type="button" onclick="insertQuickReply('Halo kak, terima kasih telah menghubungi SapaTamu. Ada yang bisa kami bantu?')" class="px-2.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors cursor-pointer">
                 👋 Salam
               </button>
-              <button type="button" onclick="insertQuickReply('Reservasi Anda sedang kami proses di sistem. Mohon tunggu sebentar ya kak.')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors">
+              <button type="button" onclick="insertQuickReply('Reservasi Anda sedang kami proses di sistem. Mohon tunggu sebentar ya kak.')" class="px-2.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors cursor-pointer">
                 ⏳ Mohon Tunggu
               </button>
-              <button type="button" onclick="insertQuickReply('Baik kak, pesanan kafe Anda sudah kami teruskan ke barista & dapur.')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors">
+              <button type="button" onclick="insertQuickReply('Baik kak, pesanan kafe Anda sudah kami teruskan ke barista & dapur.')" class="px-2.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors cursor-pointer">
                 ☕ Info Dapur
               </button>
-              <button type="button" onclick="insertQuickReply('Terima kasih banyak atas kunjungan Anda di SapaTamu. Selamat beristirahat!')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors">
+              <button type="button" onclick="insertQuickReply('Terima kasih banyak atas kunjungan Anda di SapaTamu. Selamat beristirahat!')" class="px-2.5 py-0.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] whitespace-nowrap transition-colors cursor-pointer">
                 ✨ Penutup
               </button>
             </div>
 
             <!-- Messages Stream -->
-            <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/40 chat-scroll" id="messages-container">
+            <div class="flex-1 min-h-0 overflow-y-auto p-3.5 space-y-3 bg-slate-50/40 chat-scroll" id="messages-container">
               <div class="h-full flex flex-col items-center justify-center text-slate-400 text-xs">
                 <i data-lucide="message-square" class="w-10 h-10 mb-2 stroke-1 text-slate-300"></i>
                 <span class="font-medium">Pilih salah satu kontak di sisi kiri untuk melihat percakapan.</span>
               </div>
             </div>
 
-            <!-- Operator Reply Input Bar -->
-            <div class="p-3 border-t border-slate-200/80 bg-white">
+            <!-- Operator Reply Input Bar (Always Pinned at Bottom!) -->
+            <div class="p-2.5 sm:p-3 border-t border-slate-200/80 bg-white shrink-0">
               <form onsubmit="sendManualReply(event)" class="flex gap-2">
-                <input type="text" id="manual-reply-input" placeholder="Ketik balasan manual sebagai Staf CS... (Tekan Enter untuk kirim)" class="flex-1 px-4 py-2.5 text-xs border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0b0e14] bg-slate-50/50 focus:bg-white transition-all">
-                <button type="submit" class="px-5 py-2.5 bg-[#d4f65c] hover:bg-[#c3e84a] text-[#0b0e14] text-xs font-extrabold rounded-full flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
+                <input type="text" id="manual-reply-input" placeholder="Ketik balasan manual sebagai Staf CS... (Tekan Enter untuk kirim)" class="flex-1 px-4 py-2 text-xs border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0b0e14] bg-slate-50/50 focus:bg-white transition-all">
+                <button type="submit" class="px-5 py-2 bg-[#d4f65c] hover:bg-[#c3e84a] text-[#0b0e14] text-xs font-extrabold rounded-full flex items-center gap-1.5 transition-all shadow-xs active:scale-95 cursor-pointer shrink-0">
                   <i data-lucide="send" class="w-3.5 h-3.5"></i>
                   <span class="hidden sm:inline">Kirim</span>
                 </button>
@@ -495,7 +481,7 @@
       <!-- ══════════════════════════════════════════════════════════════════════ -->
       <!-- ── TAB 2: RESERVASI KAMAR HOTEL ────────────────────────────────── -->
       <!-- ══════════════════════════════════════════════════════════════════════ -->
-      <div id="tab-hotel" class="tab-content hidden">
+      <div id="tab-hotel" class="tab-content hidden flex-1 min-h-0 overflow-y-auto custom-scroll space-y-4 pr-1">
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
 
           <!-- Toolbar -->
@@ -545,7 +531,7 @@
       <!-- ══════════════════════════════════════════════════════════════════════ -->
       <!-- ── TAB 3: PESANAN RESTORAN ─────────────────────────────────────── -->
       <!-- ══════════════════════════════════════════════════════════════════════ -->
-      <div id="tab-cafe" class="tab-content hidden">
+      <div id="tab-cafe" class="tab-content hidden flex-1 min-h-0 overflow-y-auto custom-scroll space-y-4 pr-1">
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
 
           <div class="p-4 sm:p-5 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
@@ -592,7 +578,7 @@
       <!-- ══════════════════════════════════════════════════════════════════════ -->
       <!-- ── TAB 4: RESERVASI MEJA ───────────────────────────────────────── -->
       <!-- ══════════════════════════════════════════════════════════════════════ -->
-      <div id="tab-reservations" class="tab-content hidden">
+      <div id="tab-reservations" class="tab-content hidden flex-1 min-h-0 overflow-y-auto custom-scroll space-y-4 pr-1">
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
 
           <div class="p-4 sm:p-5 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
@@ -631,7 +617,7 @@
       <!-- ══════════════════════════════════════════════════════════════════════ -->
       <!-- ── TAB 5: KATALOG TARIF & MENU ─────────────────────────────────── -->
       <!-- ══════════════════════════════════════════════════════════════════════ -->
-      <div id="tab-catalog" class="tab-content hidden space-y-4">
+      <div id="tab-catalog" class="tab-content hidden flex-1 min-h-0 overflow-y-auto custom-scroll space-y-4 pr-1">
 
         <!-- Room Catalog -->
         <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
@@ -683,7 +669,7 @@
       <!-- ══════════════════════════════════════════════════════════════════════ -->
       <!-- ── TAB 6: GATEWAY & WEBHOOK ────────────────────────────────────── -->
       <!-- ══════════════════════════════════════════════════════════════════════ -->
-      <div id="tab-gateway" class="tab-content hidden">
+      <div id="tab-gateway" class="tab-content hidden flex-1 min-h-0 overflow-y-auto custom-scroll space-y-4 pr-1">
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)] p-6 max-w-4xl mx-auto space-y-6">
 
           <div>
@@ -775,7 +761,7 @@
       <!-- ══════════════════════════════════════════════════════════════════════ -->
       <!-- ── TAB 7: AI 9ROUTER PLAYGROUND ────────────────────────────────── -->
       <!-- ══════════════════════════════════════════════════════════════════════ -->
-      <div id="tab-ai-playground" class="tab-content hidden space-y-4">
+      <div id="tab-ai-playground" class="tab-content hidden flex-1 min-h-0 overflow-y-auto custom-scroll space-y-4 pr-1">
 
         <!-- Telemetry Metric Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -990,6 +976,6 @@
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
 
   <!-- Core App Logic with Cache Busting -->
-  <script src="/js/app.js?v=20260908_clean_neon_v6"></script>
+  <script src="/js/app.js?v=20260922_fit_zoom100_v1"></script>
 </body>
 </html>

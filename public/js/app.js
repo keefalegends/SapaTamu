@@ -430,6 +430,10 @@ async function loadMessages(phone, autoScroll = false) {
     const res = await fetch(`/api/admin/chats/${phone}/messages`);
     const data = await res.json();
     const container = document.getElementById('messages-container');
+    if (!container) return;
+
+    // Cek apakah posisi scroll saat ini berada di dekat bawah (agar chat baru otomatis terlihat)
+    const wasNearBottom = (container.scrollHeight - container.scrollTop - container.clientHeight) < 180;
 
     if (!data.messages || data.messages.length === 0) {
       container.innerHTML = `
@@ -469,7 +473,7 @@ async function loadMessages(phone, autoScroll = false) {
       `;
     }).join('');
 
-    if (autoScroll) {
+    if (autoScroll || wasNearBottom) {
       container.scrollTop = container.scrollHeight;
     }
   } catch (err) {
