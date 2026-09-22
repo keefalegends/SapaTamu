@@ -190,7 +190,7 @@
     <!-- Bottom Status Card in Sidebar (Black & Neon Green Only) -->
     <div class="p-3.5 border-t border-slate-800/80">
       <div class="bg-[#d4f65c] text-[#0b0e14] rounded-2xl p-3.5 relative overflow-hidden shadow-sm">
-        <a href="/api/webhook/openkoneksi" target="_blank" class="w-8 h-8 rounded-full bg-[#0b0e14] text-white flex items-center justify-center absolute top-3 right-3 hover:scale-110 transition-transform cursor-pointer" title="Cek Webhook Gateway">
+        <a href="/api/webhook/whatsapp" target="_blank" class="w-8 h-8 rounded-full bg-[#0b0e14] text-white flex items-center justify-center absolute top-3 right-3 hover:scale-110 transition-transform cursor-pointer" title="Cek Webhook Gateway">
           <i data-lucide="arrow-up-right" class="w-4 h-4 text-[#d4f65c]"></i>
         </a>
 
@@ -689,10 +689,10 @@
           <div>
             <div class="flex items-center gap-2 mb-1">
               <span class="w-2 h-2 rounded-full bg-[#d4f65c]"></span>
-              <h2 class="text-sm font-bold text-slate-900">Konfigurasi Gateway OpenKoneksi & Webhook WABA</h2>
+              <h2 class="text-sm font-bold text-slate-900">Konfigurasi Meta WhatsApp Cloud API & Webhook WABA</h2>
             </div>
             <p class="text-xs text-slate-500 leading-relaxed">
-              Spesifikasi teknis penghubung antara Meta WhatsApp Cloud API, OpenKoneksi Gateway, dan Service Backend Node.js SapaTamu.
+              Spesifikasi teknis penghubung langsung antara Meta WhatsApp Cloud API resmi dan Service Backend Node.js SapaTamu.
             </p>
           </div>
 
@@ -702,8 +702,8 @@
                 <i data-lucide="message-circle" class="w-5 h-5"></i>
               </div>
               <div>
-                <strong class="text-slate-900 block">WhatsApp Cloud API Gateway</strong>
-                <span class="text-slate-500 text-[11px]">Webhook Inbound -> AI 9Router -> SQLite WAL -> Outbound REST API</span>
+                <strong class="text-slate-900 block">Meta WhatsApp Cloud API (Graph API)</strong>
+                <span class="text-slate-500 text-[11px]">Webhook Inbound -> Rasa / 9Router AI -> SQLite WAL -> Direct Outbound Graph API</span>
               </div>
             </div>
             <span class="px-3 py-1 bg-[#0b0e14] text-[#d4f65c] rounded-full font-bold text-[11px]">
@@ -724,10 +724,10 @@
                 </button>
               </div>
               <code class="block font-mono text-xs text-slate-900 bg-white p-3 rounded-xl border border-slate-200 select-all" id="cfg-webhook-url">
-                /api/webhook/openkoneksi
+                /api/webhook/whatsapp
               </code>
               <p class="text-[11px] text-slate-500 mt-2">
-                Daftarkan URL ini pada portal <strong>OpenKoneksi.com</strong> atau Meta Developer Console.
+                Daftarkan URL ini pada portal <strong>Meta Developer Console</strong> (WhatsApp > Configuration > Webhook).
               </p>
             </div>
 
@@ -752,14 +752,14 @@
               <div class="flex items-center justify-between mb-1.5">
                 <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-blue-600"></i>
-                  Outbound REST API URL:
+                  Outbound Graph API URL:
                 </span>
                 <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold" id="cfg-api-status">
                   Status Gateway
                 </span>
               </div>
               <code class="block font-mono text-xs text-slate-900 bg-white p-3 rounded-xl border border-slate-200 select-all" id="cfg-api-url">
-                https://api.openkoneksi.com/v1
+                https://graph.facebook.com/v20.0/{PHONE_NUMBER_ID}/messages
               </code>
             </div>
 

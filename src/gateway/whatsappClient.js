@@ -3,8 +3,9 @@ const config = require('../config/env');
 const db = require('../db/database');
 
 /**
- * OpenKoneksi / WABA REST API Client
- * Mengirim pesan ke pengguna WhatsApp melalui gateway OpenKoneksi.com
+ * Meta WhatsApp Cloud API Client
+ * Mengirim pesan ke pengguna WhatsApp langsung melalui Meta Graph API resmi
+ * Endpoint: POST https://graph.facebook.com/{version}/{phoneNumberId}/messages
  */
 
 /**
@@ -19,24 +20,14 @@ function formatE164(phone) {
   return clean;
 }
 
-async function sendRawOpenKoneksi(payload, sender = 'bot') {
-  const isMeta = config.whatsapp.provider === 'meta' || Boolean(config.whatsapp.metaToken);
-  
-  let url;
-  let token;
-  let providerName;
-
-  if (isMeta) {
-    providerName = 'META CLOUD API';
-    const phoneId = config.whatsapp.phoneNumberId;
-    const version = config.whatsapp.apiVersion || 'v20.0';
-    url = `https://graph.facebook.com/${version}/${phoneId}/messages`;
-    token = config.whatsapp.metaToken;
-  } else {
-    providerName = 'OPENKONEKSI';
-    url = `${config.openkoneksi.apiUrl}/messages`;
-    token = config.openkoneksi.apiKey;
-  }
+/**
+ * Kirim payload JSON mentah ke Meta WhatsApp Cloud API
+ */
+async function sendRawWhatsApp(payload, sender = 'bot') {
+  const phoneId = config.whatsapp.phoneNumberId;
+  const version = config.whatsapp.apiVersion || 'v20.0';
+  const token = config.whatsapp.metaToken;
+  const url = `https://graph.facebook.com/${version}/${phoneId}/messages`;
 
   // Normalisasi nomor tujuan ke E.164
   if (payload.to) {
@@ -59,13 +50,13 @@ async function sendRawOpenKoneksi(payload, sender = 'bot') {
   db.saveMessage(to, 'outbound', sender, msgType, textPreview, payload);
   db.upsertConversation(to, null, textPreview);
 
-  // Jika token/key kosong atau dummy/demo, log ke console dan anggap berhasil (Mode Simulasi)
+  // Jika Token Meta belum diset atau masih placeholder, log ke console (Mode Simulasi)
   if (!token || token.startsWith('test_') || token.includes('YOUR_') || token.trim() === '') {
-    console.log(`📡 [${providerName} SIMULASI] Outbound ke +${to} (${sender}): "${textPreview.substring(0, 50)}..."`);
+    console.log(`📡 [META WA SIMULASI] Outbound ke +${to} (${sender}): "${textPreview.substring(0, 50)}..."`);
     return { success: true, simulated: true };
   }
 
-  // Pengiriman nyata via REST API (Meta Cloud API / OpenKoneksi) dengan auto-retry pada HTTP 429
+  // Pengiriman nyata via Meta WhatsApp Cloud API dengan auto-retry pada HTTP 429
   const maxRetries = 2;
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
     try {
@@ -77,18 +68,18 @@ async function sendRawOpenKoneksi(payload, sender = 'bot') {
         timeout: 8000,
       });
       const messageId = res.data?.messages?.[0]?.id || res.data?.id || 'OK';
-      console.log(`✅ [${providerName} OUTBOUND] Sukses kirim ke +${to} (ID: ${messageId})`);
+      console.log(`✅ [META CLOUD API OUTBOUND] Sukses kirim ke +${to} (ID: ${messageId})`);
       return res.data;
     } catch (err) {
       const isRateLimit = err.response?.status === 429;
       if (isRateLimit && attempt <= maxRetries) {
         const delay = attempt * 1000;
-        console.warn(`⏳ [RATE LIMIT 429] Terkena rate limit gateway. Menunggu ${delay}ms sebelum retry...`);
+        console.warn(`⏳ [RATE LIMIT 429] Terkena rate limit Meta. Menunggu ${delay}ms sebelum retry...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
       if (attempt > maxRetries) {
-        console.error(`❌ [${providerName} OUTBOUND ERROR] Gagal kirim ke +${to}:`, err.response?.data || err.message);
+        console.error(`❌ [META CLOUD API ERROR] Gagal kirim ke +${to}:`, err.response?.data || err.message);
         return { success: false, error: err.response?.data || err.message };
       }
     }
@@ -109,7 +100,7 @@ async function sendText(to, text, sender = 'bot') {
       body: text,
     },
   };
-  return sendRawOpenKoneksi(payload, sender);
+  return sendRawWhatsApp(payload, sender);
 }
 
 /**
@@ -135,7 +126,7 @@ async function sendButtons(to, bodyText, buttons) {
       action: { buttons: formattedButtons },
     },
   };
-  return sendRawOpenKoneksi(payload);
+  return sendRawWhatsApp(payload);
 }
 
 /**
@@ -156,7 +147,7 @@ async function sendList(to, bodyText, buttonText, sections) {
       },
     },
   };
-  return sendRawOpenKoneksi(payload);
+  return sendRawWhatsApp(payload);
 }
 
 /**
@@ -181,10 +172,11 @@ async function sendImage(to, imageUrlOrFilename, caption) {
       caption: caption || '',
     },
   };
-  return sendRawOpenKoneksi(payload);
+  return sendRawWhatsApp(payload);
 }
 
 module.exports = {
+  formatE164,
   sendText,
   sendButtons,
   sendList,

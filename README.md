@@ -19,13 +19,13 @@ flowchart TD
         User["📱 Tamu WhatsApp\n• Chat Bebas & Booking\n• Pesan Menu Kafe\n• Tombol Interaktif"]:::clientStyle
     end
 
-    subgraph GatewayLayer ["🌐 WABA GATEWAY (OPENKONEKSI / META CLOUD API)"]
-        OK_In["Webhook Inbound (Meta Event Forwarder)"]:::gatewayStyle
-        OK_Out["Outbound REST API (POST /v1/messages)"]:::gatewayStyle
+    subgraph GatewayLayer ["🌐 META WHATSAPP CLOUD API (OFFICIAL GRAPH API)"]
+        Meta_In["Webhook Event Receiver (Inbound)"]:::gatewayStyle
+        Meta_Out["Direct Graph API (POST /v20.0/{phone_id}/messages)"]:::gatewayStyle
     end
 
     subgraph BackendLayer ["⚙️ SAPATAMU CORE BACKEND (Node.js + Express.js Port 3000)"]
-        Receiver["POST /api/webhook/openkoneksi"]:::backendStyle
+        Receiver["POST /api/webhook/whatsapp"]:::backendStyle
         
         subgraph Engine ["🤖 Hybrid AI & Bot Orchestrator"]
             Router["Routing & CS Takeover Guard"]:::backendStyle
@@ -159,16 +159,16 @@ docker compose up -d
 
 Untuk menerima pesan dari WhatsApp secara online ke laptop lokal:
 
-1. Buka terminal baru, jalankan tunnel:
+1. Jalankan tunnel Cloudflare (cukup klik dua kali `tools/run_tunnel.bat`):
    ```bash
-   npx localtunnel --port 3000
+   .\tools\run_tunnel.bat
    ```
-   *(Atau gunakan Cloudflare Tunnel: `npx cloudflared tunnel --url http://localhost:3000`)*
-2. Salin URL publik yang didapatkan, misalnya: `https://sapatamu-tunnel.loca.lt`
-3. Daftarkan di portal **OpenKoneksi.com** / **Meta Developer**:
-   * **Webhook URL:** `https://sapatamu-tunnel.loca.lt/api/webhook/openkoneksi`
+   *(Atau jalankan: `cloudflared tunnel --url http://localhost:3000`)*
+2. Salin URL publik HTTPS yang didapatkan, misalnya: `https://abcd-1234.trycloudflare.com`
+3. Daftarkan di **Meta Developer Console** (WhatsApp > Configuration > Webhook):
+   * **Webhook URL:** `https://abcd-1234.trycloudflare.com/api/webhook/whatsapp`
    * **Verify Token:** `sapatamu_waba_secret_2026`
-   * **Subscription:** Centang `messages`
+   * **Webhook Fields:** Klik **Manage** lalu centang / subscribe ke `messages`
 
 ---
 
@@ -209,9 +209,10 @@ SapaTamu_prod/
 │   ├── config/env.js           # Konfigurasi environment
 │   ├── db/database.js          # SQLite Schema & query helpers
 │   └── gateway/
-│       ├── openkoneksiClient.js# Outbound REST API Client
-│       └── webhookHandler.js   # Inbound Webhook Receiver
+│       ├── whatsappClient.js   # Meta WhatsApp Cloud API Client
+│       └── webhookHandler.js   # Meta Webhook Event Receiver
 ├── tools/                      # 🛠️ Helper Scripts & Testing Tools
+│   ├── run_tunnel.bat          # 1-Click Cloudflare Tunnel Runner
 │   ├── run_rasa_api.bat        # Menyalakan Rasa API & Action Server
 │   ├── run_rasa_shell.bat      # Interactive Chat di terminal
 │   ├── train_rasa.bat          # Re-train model Rasa

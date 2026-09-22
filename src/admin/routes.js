@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
-const gateway = require('../gateway/openkoneksiClient');
+const gateway = require('../gateway/whatsappClient');
 const { processInboundMessage } = require('../bot/engine');
 
 // 1. Dashboard Overview Stats
@@ -225,24 +225,24 @@ router.get('/system-status', (req, res) => {
       dbStatus = 'ERROR: ' + e.message;
     }
 
-    const isMeta = config.whatsapp.provider === 'meta' || Boolean(config.whatsapp.metaToken);
-    const token = isMeta ? config.whatsapp.metaToken : config.openkoneksi.apiKey;
-    const isConfigured = Boolean(token && !token.startsWith('test_') && !token.includes('YOUR_') && token.trim() !== '');
+    const metaToken = config.whatsapp.metaToken;
+    const isConfigured = Boolean(metaToken && !metaToken.startsWith('test_') && !metaToken.includes('YOUR_') && metaToken.trim() !== '');
 
     res.json({
       success: true,
       system: {
         db: { status: dbStatus, latencyMs: dbLatency },
         waba: {
-          provider: isMeta ? 'meta_cloud_api' : 'openkoneksi',
+          provider: 'meta_cloud_api',
           connected: isConfigured,
           status: isConfigured ? 'CONNECTED' : 'DISCONNECTED',
           message: isConfigured
-            ? `Terhubung ke ${isMeta ? 'Meta WhatsApp Cloud API' : 'OpenKoneksi Gateway'}`
-            : `${isMeta ? 'Meta WA Token' : 'OpenKoneksi API Key'} belum diset di .env.`,
-          apiUrl: isMeta ? `https://graph.facebook.com/${config.whatsapp.apiVersion}/${config.whatsapp.phoneNumberId}` : config.openkoneksi.apiUrl,
-          phoneId: isMeta ? config.whatsapp.phoneNumberId : config.openkoneksi.phoneId,
-          webhookEndpoint: '/api/webhook/openkoneksi',
+            ? 'Terhubung ke Meta WhatsApp Cloud API resmi'
+            : 'META_WA_TOKEN belum diset di .env.',
+          apiUrl: `https://graph.facebook.com/${config.whatsapp.apiVersion}/${config.whatsapp.phoneNumberId}`,
+          phoneId: config.whatsapp.phoneNumberId,
+          wabaId: config.whatsapp.wabaId,
+          webhookEndpoint: '/api/webhook/whatsapp',
           verifyToken: config.whatsapp.verifyToken,
         },
         ai: {

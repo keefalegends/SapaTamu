@@ -5,17 +5,17 @@ const { processInboundMessage } = require('../bot/engine');
 
 /**
  * 1. Webhook Handshake Verification (GET)
- * Digunakan oleh OpenKoneksi / Meta untuk memverifikasi URL webhook saat pertama kali didaftarkan
+ * Digunakan oleh Meta for Developers untuk memverifikasi URL webhook saat pertama kali didaftarkan
  */
 router.get('/', (req, res) => {
   const mode = req.query['hub.mode'] || req.query.mode;
   const token = req.query['hub.verify_token'] || req.query.verify_token || req.query.token;
   const challenge = req.query['hub.challenge'] || req.query.challenge;
 
-  const expectedToken = config.whatsapp?.verifyToken || config.openkoneksi.webhookSecret;
+  const expectedToken = config.whatsapp.verifyToken;
 
   if (token === expectedToken) {
-    console.log('✅ [WEBHOOK VERIFY] Handshake WhatsApp (Meta / OpenKoneksi) berhasil diverifikasi!');
+    console.log('✅ [WEBHOOK VERIFY] Handshake Meta WhatsApp Cloud API berhasil diverifikasi!');
     return res.status(200).send(challenge || 'VERIFIED');
   }
 
@@ -23,7 +23,7 @@ router.get('/', (req, res) => {
   return res.status(403).send('Verification token mismatch');
 });
 
-// In-memory cache untuk idempotency check (menahan retry duplikat dari Meta/OpenKoneksi)
+// In-memory cache untuk idempotency check (menahan retry duplikat dari Meta)
 const processedMessages = new Map();
 
 // Bersihkan pesan yang lebih lama dari 10 menit setiap 5 menit
@@ -38,17 +38,17 @@ setInterval(() => {
 
 /**
  * 2. Inbound Message Receiver (POST)
- * Menerima kiriman event pesan dari OpenKoneksi.com (format standar WhatsApp Cloud API)
+ * Menerima kiriman event pesan langsung dari Meta WhatsApp Cloud API
  */
 router.post('/', async (req, res) => {
-  // Langsung balas 200 OK ke OpenKoneksi agar tidak timeout
+  // Langsung balas 200 OK ke Meta agar tidak terjadi timeout / retry
   res.status(200).json({ status: 'received' });
 
   try {
     const body = req.body;
     if (!body) return;
 
-    // Normalisasi struktur payload Meta / OpenKoneksi
+    // Normalisasi struktur payload resmi Meta WhatsApp Cloud API
     const entry = body.entry?.[0];
     const changes = entry?.changes?.[0];
     const value = changes?.value || body;

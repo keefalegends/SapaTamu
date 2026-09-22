@@ -1,7 +1,7 @@
-﻿{
+{
   "name": "sapatamu-waba",
-  "version": "3.0.0",
-  "description": "SapaTamu WABA — Direct WhatsApp Cloud API & OpenKoneksi Gateway Architecture with Custom Admin Dashboard",
+  "version": "3.1.0",
+  "description": "SapaTamu WABA — Official Meta WhatsApp Cloud API Architecture with Rasa AI Chatbot and Admin Dashboard",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

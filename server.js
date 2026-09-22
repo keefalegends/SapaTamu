@@ -42,10 +42,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Routes (mendukung Meta Developer Webhook & OpenKoneksi)
-app.use('/api/webhook/openkoneksi', webhookHandler);
+// API Routes
 app.use('/api/webhook/whatsapp', webhookHandler);
 app.use('/webhook', webhookHandler);
+app.use('/api/webhook/openkoneksi', webhookHandler); // Backward-compatibility alias
 app.use('/api/admin', adminRoutes);
 
 // Health Check
@@ -53,7 +53,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     uptime: process.uptime(),
-    architecture: 'Pure WABA API via OpenKoneksi.com (No Chatwoot)',
+    architecture: 'Pure Meta WhatsApp Cloud API (Graph API v20.0 + Webhook)',
     timestamp: new Date().toISOString(),
   });
 });
@@ -67,11 +67,11 @@ app.get('*', (req, res) => {
 app.listen(config.port, () => {
   console.log('╔══════════════════════════════════════════════════════════════╗');
   console.log('║               SAPATAMU WABA BACKEND SERVER                   ║');
-  console.log('║         Murni API WhatsApp (Tanpa Docker Chatwoot)           ║');
+  console.log('║        Murni Meta WhatsApp Cloud API (Official Graph API)    ║');
   console.log('╠══════════════════════════════════════════════════════════════╣');
   console.log(`║ 🚀 Server Running     : http://localhost:${config.port}              ║`);
   console.log(`║ 🖥️  Admin Dashboard   : http://localhost:${config.port}              ║`);
-  console.log(`║ 🌐 Webhook Inbound    : http://localhost:${config.port}/api/webhook/openkoneksi ║`);
+  console.log(`║ 🌐 Webhook Inbound    : http://localhost:${config.port}/api/webhook/whatsapp ║`);
   console.log(`║ 🤖 AI Engine          : Gemini 2.5 Flash (${config.ai.model})   ║`);
   console.log('╚══════════════════════════════════════════════════════════════╝');
 });

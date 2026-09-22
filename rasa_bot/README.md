@@ -115,4 +115,4 @@ Saat webhook WhatsApp aktif, backend Node.js cukup meneruskan pesan teks dari ta
   "message": "Mau booking kamar deluxe buat besok atas nama Bagus"
 }
 ```
-Respons balasan dari Rasa otomatis dikirimkan kembali ke nomor WhatsApp tamu melalui gateway Openkoneksi.
+Respons balasan dari Rasa otomatis dikirimkan kembali ke nomor WhatsApp tamu melalui Meta WhatsApp Cloud API langsung.

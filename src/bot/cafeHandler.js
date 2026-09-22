@@ -1,4 +1,4 @@
-const gateway = require('../gateway/openkoneksiClient');
+const gateway = require('../gateway/whatsappClient');
 const db = require('../db/database');
 
 function formatRupiah(num) {

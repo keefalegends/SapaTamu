@@ -155,7 +155,7 @@ async function checkSystemStatus() {
       dbEl.innerText = `${sys.db.status} (${sys.db.latencyMs}ms)`;
     }
 
-    // 2. OpenKoneksi Gateway Status
+    // 2. Meta WhatsApp Cloud API Gateway Status
     const badgeEl = document.getElementById('nav-gateway-badge');
     const dotEl = document.getElementById('nav-gateway-dot');
     const statusEl = document.getElementById('nav-gateway-status');
@@ -176,10 +176,10 @@ async function checkSystemStatus() {
         cfgBox.innerHTML = `
           <div class="flex items-center gap-2 font-bold text-emerald-900 mb-1">
             <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
-            <span>Gateway Terhubung Normal</span>
+            <span>Meta WhatsApp Cloud API Terhubung</span>
           </div>
           <p class="text-emerald-800">
-            OpenKoneksi API aktif. Pesan konfirmasi reservasi dan balasan staf CS dikirimkan langsung ke aplikasi WhatsApp tamu.
+            Token Meta WhatsApp Cloud API aktif. Pesan konfirmasi reservasi kamar, pesanan kafe, dan balasan bot AI dikirimkan langsung ke aplikasi WhatsApp tamu.
           </p>
         `;
       }
@@ -197,10 +197,10 @@ async function checkSystemStatus() {
         cfgBox.innerHTML = `
           <div class="flex items-center gap-2 font-bold text-amber-900 mb-1">
             <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
-            <span>OpenKoneksi API Key Belum Aktif</span>
+            <span>Meta WA Token Belum Aktif</span>
           </div>
           <p class="text-amber-800">
-            Pesan masuk dari tamu tetap tersimpan dan dijawab oleh bot di database lokal. Namun pengiriman pesan keluar ke nomor WhatsApp pelanggan dihentikan sampai API key di <code>.env</code> diaktifkan.
+            Pesan masuk dari tamu tetap tersimpan dan dijawab oleh bot di database lokal. Namun pengiriman pesan keluar ke nomor WhatsApp pelanggan menggunakan mode simulasi sampai <code>META_WA_TOKEN</code> di <code>.env</code> diisi.
           </p>
         `;
       }
