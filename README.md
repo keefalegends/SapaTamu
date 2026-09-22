@@ -1,5 +1,5 @@
-﻿# 🏨☕ SapaTamu Console & WABA Gateway
-> **Platform Manajemen Operasional & Customer Service Otomatis Hotel & Restoran Berbasis WhatsApp Cloud API (Murni API via OpenKoneksi.com, Tanpa Docker Chatwoot)**
+# 🏨☕ SapaTamu Console, WABA Gateway & Rasa AI Engine
+> **Platform Manajemen Operasional & Customer Service Otomatis Hotel & Restoran Berbasis WhatsApp Cloud API, WooCommerce Catalog Sync, dan Rasa AI Conversational Engine**
 
 ---
 
@@ -10,211 +10,224 @@ flowchart TD
     classDef clientStyle fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
     classDef gatewayStyle fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#01579b;
     classDef backendStyle fill:#fff8e1,stroke:#f57f17,stroke-width:2px,color:#e65100;
+    classDef rasaStyle fill:#e0f2f1,stroke:#00796b,stroke-width:2px,color:#004d40;
     classDef dbStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c;
     classDef adminStyle fill:#ede7f6,stroke:#512da8,stroke-width:2px,color:#311b92;
-    classDef deletedStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,stroke-dasharray: 5 5,color:#b71c1c;
+    classDef storeStyle fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#880e4f;
 
     subgraph ClientLayer ["📱 CLIENT LAYER"]
-        User["📱 Tamu WhatsApp\n• Tanya Jawab Bebas\n• Tombol Interaktif\n• Scan QR Meja"]:::clientStyle
+        User["📱 Tamu WhatsApp\n• Chat Bebas & Booking\n• Pesan Menu Kafe\n• Tombol Interaktif"]:::clientStyle
     end
 
-    subgraph GatewayLayer ["🌐 WABA GATEWAY (OPENKONEKSI.COM)"]
+    subgraph GatewayLayer ["🌐 WABA GATEWAY (OPENKONEKSI / META CLOUD API)"]
         OK_In["Webhook Inbound (Meta Event Forwarder)"]:::gatewayStyle
         OK_Out["Outbound REST API (POST /v1/messages)"]:::gatewayStyle
     end
 
-    subgraph BackendLayer ["⚙️ SAPATAMU DEVELOPER BACKEND (Node.js + Express.js Port 3000)"]
+    subgraph BackendLayer ["⚙️ SAPATAMU CORE BACKEND (Node.js + Express.js Port 3000)"]
         Receiver["POST /api/webhook/openkoneksi"]:::backendStyle
         
-        subgraph Engine ["🤖 Core Bot Engine"]
-            Router["Routing & Human Takeover Guard"]:::backendStyle
-            Hotel["Hotel Booking Handler"]:::backendStyle
-            Cafe["Cafe & Resto Handler"]:::backendStyle
-            AI["AI Gemini 2.5 Flash\n+ Local Knowledge Fallback"]:::backendStyle
+        subgraph Engine ["🤖 Hybrid AI & Bot Orchestrator"]
+            Router["Routing & CS Takeover Guard"]:::backendStyle
+            RasaBridge["Rasa AI Bridge (HTTP /webhooks/rest)"]:::backendStyle
+            Gemini["9Router AI Gateway (Gemini 2.5 Flash Q&A)"]:::backendStyle
         end
 
         AdminAPI["Admin REST APIs (/api/admin/*)"]:::backendStyle
     end
 
+    subgraph RasaLayer ["🧠 RASA AI CONVERSATIONAL ENGINE (Python Port 5005 & 5055)"]
+        RasaCore["Rasa NLU & Core\n• Intent & Entity Extraction\n• Slot Filling Forms"]:::rasaStyle
+        RasaActions["Rasa Custom Action Server\n• Kalkulasi Harga Kamar\n• Hitung Subtotal Pesanan Kafe\n• Generate Kode Invoice"]:::rasaStyle
+    end
+
+    subgraph StoreLayer ["🛍️ E-COMMERCE & METADATA LAYER"]
+        Woo["WooCommerce Store\n• 14 Item Kamar & Menu\n• Meta Catalog Auto-Sync"]:::storeStyle
+    end
+
     subgraph DBLayer ["🗄️ STORAGE LAYER"]
-        DB[("SQLite Database (better-sqlite3)\n• conversations & messages\n• hotel_bookings\n• cafe_orders & reservations\n• room_catalog & menu_catalog")]:::dbStyle
+        DB[("SQLite Database (better-sqlite3)\n• conversations & messages\n• hotel_bookings\n• cafe_orders & reservations")]:::dbStyle
     end
 
     subgraph AdminLayer ["🖥️ CUSTOM ADMIN CONSOLE (PORT 3000)"]
-        UI["Web Dashboard Admin\n• Live Chat & CS Takeover\n• Reservasi Kamar & E-Voucher\n• Antrian Pesanan Dapur\n• Manajemen Tarif & Menu\n• Gateway & Webhook Monitor"]:::adminStyle
+        UI["Web Dashboard Admin\n• Live Chat & CS Takeover\n• Reservasi Kamar & E-Voucher\n• AI Playground Benchmark\n• Monitor Gateway & Webhook"]:::adminStyle
     end
 
-    ChatwootGone["❌ DOCKER CHATWOOT DIELIMINASI\n• Tanpa Rails, Redis, Sidekiq, Postgres\n• RAM server terpangkas dari ~4GB ke ~50MB"]:::deletedStyle
-
     User -->|"1. Kirim Pesan"| OK_In
-    OK_In -->|"2. Webhook Event (POST JSON)"| Receiver
+    OK_In -->|"2. Webhook Event"| Receiver
     Receiver --> Router
-    Router --> Hotel
-    Router --> Cafe
-    Router --> AI
-    Hotel -->|"3. Request Outbound"| OK_Out
-    Cafe -->|"3. Request Outbound"| OK_Out
-    AI -->|"3. Request Outbound"| OK_Out
-    OK_Out -->|"4. Kirim Balasan WhatsApp"| User
+    Router -->|"3a. Booking/Order Flow"| RasaBridge
+    RasaBridge <-->|"HTTP REST"| RasaCore
+    RasaCore <--> RasaActions
+    Router -->|"3b. Pertanyaan Umum Q&A"| Gemini
+    
+    RasaBridge -->|"4. Respon Tervalidasi"| OK_Out
+    Gemini -->|"4. Respon Q&A"| OK_Out
+    OK_Out -->|"5. Kirim Balasan WhatsApp"| User
+    
     Engine <--> DB
     AdminAPI <--> DB
     UI <--> AdminAPI
-    UI -.->|"Balasan CS Manual"| OK_Out
+    Woo -.->|"Katalog Produk"| RasaActions
 ```
 
 ---
 
 ## 📌 2. Fitur Utama
 
-### 💬 Live Chat & CS Takeover (Pengganti Chatwoot)
+### 🏨 1. Chat Booking Kamar Hotel (Powered by Rasa AI)
+* **Pilihan Kamar:** Deluxe Room (Rp 550.000), Executive Suite (Rp 950.000), dan Presidential Suite (Rp 1.800.000).
+* **Smart Form Slot Filling:** Rasa AI secara cerdas mengejar kelengkapan data pemesanan:
+  * Tipe kamar yang dipilih
+  * Tanggal check-in
+  * Nama pemesan
+  * Nomor telepon / WhatsApp
+* **Kalkulasi Biaya Otomatis:** Perhitungan tarif menginap presisi anti-halusinasi + penerbitan kode booking unik (`#ST-HTL-XXXX`).
+
+### ☕ 2. Chat Order Menu Kafe & Restoran (Powered by Rasa AI)
+* **Daftar Menu Resmi (11 Produk dari Toko Online):**
+  * **Kopi Pilihan:** Espresso (Rp 22rb), Americano (Rp 22rb), Caffe Latte (Rp 28rb), Cappuccino (Rp 28rb).
+  * **Non-Kopi Segar:** Matcha Latte (Rp 25rb), Es Teh Manis (Rp 15rb), Jeruk Peras Alami (Rp 15rb).
+  * **Makanan & Bakery:** Butter Croissant (Rp 20rb), Roti Bakar Spesial (Rp 18rb), Spaghetti Carbonara (Rp 45rb), Nasi Goreng Spesial (Rp 35rb).
+* **Multi-Item Order Parser:** Mengenali kuantitas dan variasi item (*"Pesan 2 Nasi Goreng dan 1 Caffe Latte"*).
+* **Subtotal Instant:** Menghitung total pembayaran dan menerbitkan nomor pesanan kafe (`#ST-CAFE-XXXX`).
+
+### 🧠 3. Hybrid AI: Rasa AI + 9Router Gemini 2.5 Flash
+* **Rasa AI:** Menangani percakapan transaksional terstruktur (Booking hotel & pesanan kafe).
+* **9Router Gemini:** Menjawab pertanyaan bebas (*open-domain*), fasilitas hotel, atau pertanyaan umum seputar lokasi dan operasional.
+* **AI Playground & Benchmark:** Tab pengujian latensi dan playground diagnosa AI di dashboard admin.
+
+### 💬 4. Live Chat & CS Human Takeover
 * **Inbox Realtime:** Memantau percakapan seluruh pengguna WhatsApp secara langsung.
 * **Ambil Alih CS (*One-Click Takeover*):** Tombol satu-klik untuk mematikan bot otomatis saat staf ingin membalas pesan tamu secara manual.
-* **Aktifkan Bot Kembali:** Mengembalikan percakapan ke kendali bot otomatis jika masalah telah diselesaikan.
+* **Aktifkan Bot Kembali:** Mengembalikan percakapan ke kendali AI jika pertanyaan telah diselesaikan oleh staf.
 
-### 🏨 Pemesanan Kamar Hotel End-to-End
-* **Katalog Kamar Interaktif:** Deluxe Room, Executive Suite, dan Presidential Suite lengkap dengan foto kamar dan fasilitas.
-* **Smart Entity Parser:** Tamu bebas mengetik tanggal dan durasi (*"Besok 2 malam atas nama Budi"*) ➡️ kalkulasi otomatis durasi, tarif malam, dan tanggal check-in.
-* **Draft Invoice & Pembayaran:** Rincian biaya otomatis dengan opsi simulasi QRIS atau Virtual Account BCA.
-* **Penerbitan E-Voucher Resmi:** Terbit nomor booking unik (`#SPT-YYMMDD-XXXX`) yang langsung tercatat di database reservasi.
-
-### ☕ Self-Ordering Kafe & Restoran
-* **Self-Ordering via QR Meja:** Scan QR di meja (misal `Meja 04`) ➡️ sistem langsung mengenali lokasi meja tamu.
-* **Pemesanan Takeaway:** Opsi pesan bungkus untuk diambil di kasir.
-* **Multi-Word Menu Parser:** Mengenali pesanan variatif (*"1 nasi goreng"*, *"2 es teh"*) dan menambahkan ke keranjang belanja.
-* **Antrian Dapur Realtime:** Pesanan terbit dengan kode (`#KFE-YYMMDD-XXXX`) dan masuk ke antrian operasional dapur di dashboard.
-* **Reservasi Meja Restoran:** Form jumlah tamu (pax) dan waktu kedatangan tercatat di sistem reservasi.
-
-### 🧠 AI Customer Service & Local Failover
-* **Gemini 2.5 Flash Integration:** Menjawab pertanyaan seputar hotel, fasilitas, dan kafe secara cerdas.
-* **Smart Local Knowledge Fallback:** Jika koneksi AI eksternal atau internet terganggu, sistem secara otomatis menjawab pertanyaan umum (*check-in/out*, lokasi, *wifi*, harga) langsung dari basis data lokal `data.json` tanpa pernah *down*.
+### 🛍️ 5. Katalog Produk & WooCommerce Sync
+* 14 item produk tersinkron antara WooCommerce, database SapaTamu, dan Meta Commerce Catalog.
+* Format ekspor katalog standar Meta E-Commerce & WhatsApp Catalog.
 
 ---
 
-## 🚀 3. Panduan Setup & Menjalankan Proyek
+## 🚀 3. Panduan Menjalankan Sistem
 
-### Langkah 1: Kebutuhan Sistem
-* **Node.js** (v18.x, v20.x, atau v24.x)
-* **Web Browser** (Chrome / Edge / Firefox)
-* Terminal (PowerShell / Command Prompt / Bash)
-
-### Langkah 2: Konfigurasi Environment (`.env`)
-Pastikan file `.env` sudah tersedia di direktori proyek:
-```env
-PORT=3000
-
-# OpenKoneksi Gateway
-OPENKONEKSI_API_URL=https://api.openkoneksi.com/v1
-OPENKONEKSI_API_KEY=YOUR_OPENKONEKSI_API_KEY
-OPENKONEKSI_PHONE_ID=1289827514206711
-OPENKONEKSI_WEBHOOK_SECRET=sapatamu_waba_secret_2026
-
-# AI Engine (Gemini 2.5 Flash via 9router)
-NINER_ROUTER_URL=https://riwxk5s.abc-tunnel.us/v1
-NINER_ROUTER_KEY=sk-fb2a60ff904fde93-x717jq-86f104ed
-NINER_ROUTER_MODEL=gc/gemini-2.5-flash
-```
-*(Catatan: Jika dijalankan tanpa API key OpenKoneksi asli, sistem otomatis mengaktifkan mode simulasi aman sehingga server tetap dapat digunakan tanpa error).*
-
-### Langkah 3: Menjalankan Server Lokal
+### A. Menjalankan Backend SapaTamu (Node.js)
 ```bash
-# Masuk ke direktori proyek
+# 1. Masuk ke direktori proyek
 cd c:\kerjaanwoe\PKL-Desnet\SapaTamu_prod
 
-# Jalankan server
+# 2. Jalankan server
 npm start
 ```
-Buka browser ke alamat: **`http://localhost:3000`**
+* Dashboard Admin: **`http://localhost:3000`**
 
 ---
 
-## 🌐 4. Menghubungkan ke WhatsApp Asli via Tunnel
+### B. Menjalankan Rasa AI di Windows (Development)
+Tersedia script 1-klik di folder `tools/`:
 
-Untuk menerima pesan dari WhatsApp secara online, port 3000 perlu diekspos ke internet:
+1. **Jalankan Rasa API & Action Server Sekaligus:**
+   * Double-click file: 👉 **`tools/run_rasa_api.bat`**
+   * *Otomatis menyalakan Action Server (port 5055) dan Rasa API (port 5005).*
 
-### Cara A: Menggunakan Cloudflare Tunnel (Paling Direkomendasikan & 100% Gratis)
-Buka terminal baru, lalu jalankan:
-```powershell
-npx cloudflared tunnel --url http://localhost:3000
+2. **Menguji Chat Interaktif di Terminal:**
+   * Double-click file: 👉 **`tools/run_rasa_shell.bat`**
+
+3. **Re-train Model Rasa:**
+   * Double-click file: 👉 **`tools/train_rasa.bat`**
+
+---
+
+### C. Menjalankan Rasa AI di Linux / VPS (Docker)
+Bagi pengguna Linux (Ubuntu, Debian, dll.) atau server VPS tanpa perlu menginstal Python secara manual:
+
+```bash
+cd rasa_bot
+
+# 1. Mode Interactive Chat Terminal (Langsung Ngobrol di Linux)
+chmod +x docker-shell.sh
+./docker-shell.sh
+
+# 2. Mode Background Server 24/7 (Daemon)
+docker compose up -d
 ```
-Terminal akan memberikan URL publik HTTPS, contoh:
-`https://nama-tunnel-kamu.trycloudflare.com`
+* Endpoint Rasa API: `http://localhost:5005`
+* Endpoint Action Server: `http://localhost:5055`
 
 ---
 
-### Langkah 5: Pendaftaran Webhook di Portal OpenKoneksi / Meta
-Masuk ke portal dashboard **OpenKoneksi.com** (atau *Meta WhatsApp App Settings*), lalu isi konfigurasi webhook:
+## 🌐 4. Menghubungkan ke WhatsApp Asli (Webhook Tunnel)
 
-| Parameter | Nilai yang Harus Diisi |
-| :--- | :--- |
-| **Callback URL / Webhook URL** | `https://nama-tunnel-kamu.trycloudflare.com/api/webhook/openkoneksi` |
-| **Verify Token** | `sapatamu_waba_secret_2026` |
-| **Webhook Fields / Subscription** | Centang: **`messages`** |
+Untuk menerima pesan dari WhatsApp secara online ke laptop lokal:
 
-Klik **"Verify and Save"**. Server akan merespons `200 OK - VERIFIED` secara instan.
-
----
-
-## 📡 5. Daftar API Endpoints
-
-### Gateway & Webhook Inbound:
-* `GET /api/webhook/openkoneksi` — Handshake verifikasi webhook Meta/OpenKoneksi (`hub.challenge`).
-* `POST /api/webhook/openkoneksi` — Menerima event pesan masuk WhatsApp.
-* `GET /health` — Pemeriksaan status kesehatan server.
-
-### Admin Dashboard APIs:
-* `GET /api/admin/system-status` — Diagnosa koneksi database, latency, dan status OpenKoneksi WABA.
-* `GET /api/admin/stats` — Rekap total percakapan, reservasi hotel, pesanan kafe, dan pendapatan.
-* `GET /api/admin/chats` — Daftar kontak WhatsApp aktif.
-* `GET /api/admin/chats/:phone/messages` — Riwayat pesan percakapan kontak.
-* `POST /api/admin/chats/:phone/reply` — Staf CS mengirim pesan manual ke WhatsApp tamu.
-* `PATCH /api/admin/chats/:phone/toggle-bot` — Mengubah mode bot (`bot` vs `human`).
-* `GET /api/admin/bookings` — Data seluruh reservasi kamar hotel.
-* `GET /api/admin/orders` — Data seluruh pesanan kafe & resto.
-* `GET /api/admin/reservations` — Data seluruh reservasi meja restoran.
-* `GET /api/admin/catalog` — Data katalog tarif kamar & menu makanan/minuman.
+1. Buka terminal baru, jalankan tunnel:
+   ```bash
+   npx localtunnel --port 3000
+   ```
+   *(Atau gunakan Cloudflare Tunnel: `npx cloudflared tunnel --url http://localhost:3000`)*
+2. Salin URL publik yang didapatkan, misalnya: `https://sapatamu-tunnel.loca.lt`
+3. Daftarkan di portal **OpenKoneksi.com** / **Meta Developer**:
+   * **Webhook URL:** `https://sapatamu-tunnel.loca.lt/api/webhook/openkoneksi`
+   * **Verify Token:** `sapatamu_waba_secret_2026`
+   * **Subscription:** Centang `messages`
 
 ---
 
-## 📁 6. Struktur Direktori Proyek
+## 📁 5. Struktur Direktori Proyek
 
 ```text
 SapaTamu_prod/
 ├── public/                     # Frontend Custom Admin Console
 │   ├── images/                 # Aset foto kamar & menu kafe
-│   ├── index.html              # Single Page Dashboard Admin
-│   └── js/app.js               # Logic realtime polling & CS takeover UI
-├── src/
-│   ├── admin/routes.js         # REST API Controller untuk Dashboard
+│   ├── index.html              # Dashboard Admin & AI Playground
+│   └── js/app.js               # Logic polling & CS takeover UI
+├── rasa_bot/                   # 🧠 Modul Rasa AI Chatbot (Python 3.10)
+│   ├── actions/
+│   │   ├── __init__.py
+│   │   └── actions.py          # Custom Action Server (kalkulasi harga & invoice)
+│   ├── data/
+│   │   ├── nlu.yml             # Dataset training intent & entity
+│   │   ├── rules.yml           # Logika form booking & order
+│   │   └── stories.yml         # Skenario dialog pengguna
+│   ├── models/
+│   │   └── sapatamu_model.tar.gz # Model pre-trained ML
+│   ├── config.yml              # Pipeline NLP & Policies
+│   ├── domain.yml              # Kamus intent, entity, slots, & forms
+│   ├── endpoints.yml           # Endpoint Action Server
+│   ├── credentials.yml         # Channel REST API
+│   ├── docker-compose.yml      # Orkestrasi container Docker Linux
+│   ├── docker-shell.sh         # Script chat interaktif Linux
+│   ├── Dockerfile.actions      # Container Action Server
+│   └── README.md               # Dokumentasi khusus Rasa
+├── src/                        # ⚙️ Backend Core SapaTamu (Node.js)
+│   ├── admin/routes.js         # REST API Dashboard Admin
 │   ├── bot/
-│   │   ├── engine.js           # Router utama pesan & dispatching alur
-│   │   ├── hotelHandler.js     # State machine pemesanan kamar & e-voucher
-│   │   ├── cafeHandler.js      # State machine pesanan meja QR & keranjang
-│   │   └── aiService.js        # Gemini AI Q&A + Smart Local Fallback
-│   ├── config/env.js           # Manajemen konfigurasi environment
-│   ├── db/database.js          # SQLite Schema (better-sqlite3) & query helpers
-│   ├── gateway/
-│   │   ├── openkoneksiClient.js# Outbound REST API Client ke OpenKoneksi.com
-│   │   └── webhookHandler.js   # Inbound Webhook Receiver (GET & POST)
-│   └── knowledge/
-│       ├── data.json           # Basis pengetahuan umum hotel & kafe
-│       └── menu.json           # Data katalog makanan dan minuman
-├── .env.example                # Template konfigurasi environment
-├── package.json                # Dependensi proyek Node.js
-├── README.md                   # Dokumentasi resmi proyek
-└── server.js                   # Entry point aplikasi Express.js (Port 3000)
+│   │   ├── engine.js           # Router utama pesan & integrasi Rasa
+│   │   ├── rasaService.js      # Bridge koneksi HTTP ke Rasa API
+│   │   ├── hotelHandler.js     # Fallback state machine hotel
+│   │   ├── cafeHandler.js      # Fallback state machine kafe
+│   │   └── aiService.js        # 9Router Gemini AI Q&A
+│   ├── config/env.js           # Konfigurasi environment
+│   ├── db/database.js          # SQLite Schema & query helpers
+│   └── gateway/
+│       ├── openkoneksiClient.js# Outbound REST API Client
+│       └── webhookHandler.js   # Inbound Webhook Receiver
+├── tools/                      # 🛠️ Helper Scripts & Testing Tools
+│   ├── run_rasa_api.bat        # Menyalakan Rasa API & Action Server
+│   ├── run_rasa_shell.bat      # Interactive Chat di terminal
+│   ├── train_rasa.bat          # Re-train model Rasa
+│   ├── test_rasa_flow.py       # Unit test kalkulasi action
+│   └── test_nlu_parser.py      # Unit test akurasi prediksi NLU
+├── catalog_hotel.csv           # Feed katalog kamar hotel
+├── catalog_resto.csv           # Feed katalog menu resto
+├── woocommerce_products_sapatamu.csv # Format impor resmi WooCommerce
+├── package.json                # Dependensi Node.js
+├── README.md                   # Dokumentasi resmi utama proyek
+└── server.js                   # Entry point Express.js (Port 3000)
 ```
 
 ---
 
-## 🛠️ 7. Troubleshooting Umum
-
-* **Port 3000 Sudah Terpakai (`listen EADDRINUSE :::3000`):**
-  Jalankan perintah ini di PowerShell untuk mematikan proses Node yang tertinggal:
-  ```powershell
-  Stop-Process -Name node -Force
-  ```
-  Lalu jalankan kembali `npm start`.
-
-* **Pesan WhatsApp Tamu Tidak Terbalas:**
-  1. Periksa status kontak di Dashboard Admin. Jika statusnya `Staf CS (Human)`, bot sengaja tidak membalas otomatis agar staf dapat menjawab. Klik **"Aktifkan Bot"** untuk mengembalikan mode otomatis.
-  2. Periksa apakah URL Webhook di OpenKoneksi sudah menyertakan `/api/webhook/openkoneksi`.
+## 👨‍💻 Kontributor
+* **Pengembang:** Bagus Arya Laksana & Tim PKL
+* **Pembimbing:** DESNET (Pak Zohan)
+* **Program:** Magang TJKT x Wazapbro (Juni – Oktober)
