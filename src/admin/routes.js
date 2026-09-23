@@ -261,7 +261,8 @@ router.get('/system-status', (req, res) => {
 router.get('/ai-benchmark', async (req, res) => {
   try {
     const aiService = require('../bot/aiService');
-    const benchmark = await aiService.benchmarkAI();
+    const force = req.query.force === 'true';
+    const benchmark = await aiService.benchmarkAI(force);
     res.json({ success: true, benchmark });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

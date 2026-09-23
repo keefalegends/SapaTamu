@@ -182,10 +182,19 @@ Format JSON yang diharapkan:
   }
 }
 
+let cachedBenchmark = null;
+let lastBenchmarkTime = 0;
+
 /**
  * Benchmark latency dan status koneksi 9Router
  */
-async function benchmarkAI() {
+async function benchmarkAI(force = false) {
+  const now = Date.now();
+  // Gunakan cache selama 10 menit jika bukan permintaan paksa (force)
+  if (!force && cachedBenchmark && (now - lastBenchmarkTime < 10 * 60 * 1000)) {
+    return cachedBenchmark;
+  }
+
   const start = Date.now();
   try {
     const res = await client.chat.completions.create({
@@ -194,13 +203,15 @@ async function benchmarkAI() {
       max_tokens: 5,
     });
     const latencyMs = Date.now() - start;
-    return {
+    cachedBenchmark = {
       status: 'online',
       model: config.ai.model,
       baseUrl: config.ai.baseUrl,
       latencyMs,
       timestamp: new Date().toISOString(),
     };
+    lastBenchmarkTime = now;
+    return cachedBenchmark;
   } catch (err) {
     const latencyMs = Date.now() - start;
     return {

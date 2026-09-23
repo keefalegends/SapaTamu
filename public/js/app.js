@@ -68,9 +68,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 3000);
 
-  // Polling status gateway & AI benchmark
+  // Polling status gateway
   setInterval(checkSystemStatus, 8000);
-  setInterval(checkAIStatus, 15000);
+  // Catatan: checkAIStatus tidak di-polling otomatis untuk hemat kuota token 9Router
 });
 
 function startLiveClock() {
@@ -95,8 +95,7 @@ function refreshAll() {
     loadCafeOrders(),
     loadReservations(),
     loadCatalog(),
-    checkSystemStatus(),
-    checkAIStatus()
+    checkSystemStatus()
   ]).finally(() => {
     setTimeout(() => {
       if (icon) icon.classList.remove('animate-spin');
@@ -1228,7 +1227,7 @@ async function runAIPing() {
   if (icon) icon.classList.add('animate-spin');
 
   try {
-    const res = await fetch('/api/admin/ai-benchmark');
+    const res = await fetch('/api/admin/ai-benchmark?force=true');
     const data = await res.json();
     if (data.success && data.benchmark) {
       checkAIStatus();
