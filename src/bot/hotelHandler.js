@@ -224,7 +224,8 @@ async function handleHotelFlow(phone, text, session) {
       paymentMethod: 'Simulasi QRIS/VA',
     });
 
-    db.clearSession(phone);
+    const StateManager = require('./stateManager');
+    await StateManager.reset(phone, 'hotel_booking_confirmed');
 
     const voucherText =
       '🎟️ *E-VOUCHER RESMI HOTEL SAPATAMU*\n' +
@@ -253,10 +254,11 @@ async function handleHotelFlow(phone, text, session) {
 
   // 7. Pembatalan Booking
   if (lower === 'hotel_cancel' || lower.includes('batal')) {
-    db.clearSession(phone);
-    await gateway.sendText(phone, '❌ *Pemesanan kamar telah dibatalkan.*');
-    await gateway.sendButtons(phone, 'Pilihan layanan SapaTamu:', [
-      { id: 'menu_hotel', title: '🏨 Hotel' },
+    const StateManager = require('./stateManager');
+    await StateManager.reset(phone, 'hotel_booking_cancelled');
+    await gateway.sendText(phone, '❌ Reservasi kamar telah dibatalkan.');
+    await gateway.sendButtons(phone, 'Silakan pilih menu layanan:', [
+      { id: 'goto_main',  title: '🔙 Menu Utama' },
       { id: 'menu_kafe',  title: '☕ Kafe' },
       { id: 'menu_cs',    title: '🎧 Hubungi CS' },
     ]);

@@ -64,22 +64,25 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     return;
   }
 
-  // 3. Global Interceptor: Permintaan Eskalasi ke Staf CS Manusia
+  // 3. Global Interceptor: Permintaan Eskalasi ke Staf CS / Resepsionis
   const isEscalation =
     lower === 'menu_cs' ||
-    /\b(cs|staf|staff|operator|manusia|admin|komplain|darurat|keluhan)\b/i.test(cleanText) ||
+    lower === 'btn_cs' ||
+    /\b(cs|staf|staff|operator|manusia|admin|komplain|darurat|keluhan|resepsionis)\b/i.test(cleanText) ||
     lower.includes('customer service') ||
-    lower.includes('bicara sama orang');
+    lower.includes('bicara sama orang') ||
+    lower.includes('tanya resepsionis');
 
   if (isEscalation) {
     db.setBotStatus(cleanPhone, 'human');
-    db.clearSession(cleanPhone);
+    const StateManager = require('./stateManager');
+    await StateManager.reset(cleanPhone, 'escalation_to_human');
 
     const csResponse =
-      '👨‍💼 *Menghubungkan ke Staf Customer Service...*\n\n' +
+      '👨‍💼 *Menghubungkan ke Staf Customer Service / Resepsionis...*\n\n' +
       'Halo! Anda telah terhubung langsung dengan tim Customer Service SapaTamu.\n\n' +
       '🟢 *Status: Staf Siap Membantu*\n' +
-      'Staf kami akan segera membalas pesan Anda di sini. Mohon ditunggu ya 🙏';
+      'Staf/Resepsionis kami akan segera membalas pesan Anda di sini. Mohon ditunggu ya 🙏';
 
     await gateway.sendText(cleanPhone, csResponse);
     return;
@@ -105,52 +108,56 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     return;
   }
 
-  // 5. Cek Sesi Aktif & Tombol Navigasi (Interactive Button Flow)
-  const session = db.getSession(cleanPhone);
+  // 5. Cek Sesi Aktif
+  const StateManager = require('./stateManager');
+  const session = StateManager.get(cleanPhone);
 
-  // Router Alur Tombol / Sesi Hotel
-  if (
-    session.status.startsWith('hotel_') ||
-    lower === 'menu_hotel' ||
-    lower === 'hotel' ||
-    lower.startsWith('room_') ||
-    lower === 'hotel_reservasi' ||
-    lower.includes('booking hotel') ||
-    lower.includes('booking kamar') ||
-    lower.includes('reservasi hotel') ||
-    lower.includes('reservasi kamar') ||
-    lower.includes('pesan kamar') ||
-    lower.includes('pesan hotel') ||
-    lower.includes('kamar hotel')
-  ) {
-    const handled = await handleHotelFlow(cleanPhone, cleanText, session);
-    if (handled) return;
-  }
-
-  // Router Alur Tombol / Sesi Kafe
-  if (
+  // ─── INTENT DETECTOR & ROUTER ──────────────────────────────────────────────
+  // Deteksi intent Kafe (Button payload atau kata kunci makanan/minuman)
+  const isCafeIntent =
     session.status.startsWith('cafe_') ||
-    lower === 'menu_kafe' ||
-    lower === 'kafe' ||
+    ['menu_kafe', 'btn_kafe', 'kafe', 'cafe_dinein', 'cafe_takeaway', 'cafe_reservasi', 'cart_view', 'order_confirm'].includes(lower) ||
     lower.startsWith('cat_') ||
     lower.startsWith('add_') ||
-    lower === 'cart_view' ||
-    lower === 'order_confirm' ||
-    lower === 'cafe_dinein' ||
-    lower === 'cafe_takeaway' ||
-    lower === 'cafe_reservasi'
-  ) {
+    /\b(kafe|cafe|kopi|ngopi|makan|minum|makanan|minuman|resto|restoran|snack|croissant|latte|espresso|cappuccino)\b/i.test(lower);
+
+  // Deteksi intent Hotel (Button payload atau kata kunci kamar/menginap)
+  const isHotelIntent =
+    session.status.startsWith('hotel_') ||
+    ['menu_hotel', 'btn_hotel', 'hotel', 'hotel_reservasi', 'hotel_pay_step', 'hotel_pay_confirm', 'hotel_cancel'].includes(lower) ||
+    lower.startsWith('room_') ||
+    lower.startsWith('hotel_pay_') ||
+    /\b(hotel|kamar|nginep|menginap|checkin|check-in|checkout|check-out|deluxe|suite|presidential)\b/i.test(lower);
+
+  // Prioritas 1: Jika user menyebut kafe / makanan / minuman ➔ Langsung ke Kafe Flow
+  if (isCafeIntent && !session.status.startsWith('hotel_')) {
     const handled = await handleCafeFlow(cleanPhone, cleanText, session);
     if (handled) return;
   }
 
-  // 6. Coba proses melalui Rasa AI (Natural Language Processing untuk Booking & Order)
+  // Prioritas 2: Jika user menyebut hotel / reservasi kamar ➔ Langsung ke Hotel Flow
+  if (isHotelIntent) {
+    const handled = await handleHotelFlow(cleanPhone, cleanText, session);
+    if (handled) return;
+  }
+
+  // Prioritas 3: Coba proses melalui Rasa AI (Natural Language Processing untuk Pesanan Kafe / Q&A)
   const rasaResult = await sendToRasa(cleanPhone, cleanText);
   const isDefaultFallback = rasaResult.messages?.some((m) =>
     m.includes('belum memahami maksud Anda')
   );
 
-  if (rasaResult.handled && rasaResult.messages?.length > 0 && !isDefaultFallback) {
+  // Guard: Jangan sampai pesan default hotel terpental jika user tidak sedang booking hotel
+  const isUnwantedHotelPrompt = rasaResult.messages?.some((m) =>
+    m.includes('Mau booking tipe kamar apa kak')
+  );
+
+  if (
+    rasaResult.handled &&
+    rasaResult.messages?.length > 0 &&
+    !isDefaultFallback &&
+    !(isUnwantedHotelPrompt && !isHotelIntent)
+  ) {
     console.log(`🤖 [RASA HANDLED] Membalas ${rasaResult.messages.length} pesan dari Rasa ke +${cleanPhone}`);
     for (const reply of rasaResult.messages) {
       await gateway.sendText(cleanPhone, reply);
@@ -158,24 +165,7 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     return;
   }
 
-  // 7. Router Alur Teks Fallback (Jika user ketik kamar/kafe di luar form)
-  if (lower.includes('kamar') || lower.includes('hotel') || lower.includes('menginap')) {
-    const handled = await handleHotelFlow(cleanPhone, cleanText, session);
-    if (handled) return;
-  }
-
-  if (
-    lower.includes('meja') ||
-    lower.includes('makan') ||
-    lower.includes('minum') ||
-    lower.includes('kafe') ||
-    lower.includes('kopi')
-  ) {
-    const handled = await handleCafeFlow(cleanPhone, cleanText, session);
-    if (handled) return;
-  }
-
-  // 8. Default: AI Gemini Q&A
+  // Prioritas 4: Default fallback ke AI Gemini Q&A (Anti-Defaulting to Hotel!)
   console.log(`🤖 [AI QUERY] Memanggil Gemini untuk: "${cleanText}"`);
   const aiResult = await jawabAI(cleanText);
 

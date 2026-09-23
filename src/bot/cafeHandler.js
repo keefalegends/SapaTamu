@@ -288,7 +288,8 @@ function isQuestion(text) {
       totalAmount: draft.totalAmount,
     }, draft.cart);
 
-    db.clearSession(phone);
+    const StateManager = require('./stateManager');
+    await StateManager.reset(phone, 'cafe_order_confirmed');
 
     const receiptText =
       '✅ *PESANAN KAFE TELAH DITERIMA!*\n' +
@@ -340,7 +341,8 @@ function isQuestion(text) {
       notes: draft.notes,
     });
 
-    db.clearSession(phone);
+    const StateManager = require('./stateManager');
+    await StateManager.reset(phone, 'cafe_reservation_confirmed');
 
     const resReceipt =
       '✅ *RESERVASI MEJA KAFE BERHASIL!*\n' +

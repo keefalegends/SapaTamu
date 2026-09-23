@@ -68,6 +68,15 @@ nlu:
 
   - intent: ask_menu
     examples: |
+      - saya mau kafe
+      - mau kafe
+      - mau ke kafe
+      - ke kafe
+      - mau kopi
+      - mau ngopi
+      - mau makan
+      - BTN_KAFE
+      - menu_kafe
       - ada menu makanan apa aja?
       - lihat menu kafe
       - daftar harga menu restoran
