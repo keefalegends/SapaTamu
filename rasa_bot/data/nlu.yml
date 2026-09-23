@@ -49,8 +49,12 @@ nlu:
   - intent: book_room
     examples: |
       - mau booking kamar hotel
+      - saya mau booking hotel
+      - booking hotel
+      - pesan hotel
       - saya mau pesan kamar
       - halo saya mau booking kamar
+      - halo saya mau booking hotel
       - hai mau booking kamar
       - halo min mau pesan kamar
       - selamat pagi saya mau pesan kamar
@@ -72,6 +76,8 @@ nlu:
       - pricelist kafe sapatamu
       - menu minuman apa saja?
       - mau lihat daftar menu kafe dan resto
+      - menu kafe
+      - menu resto
 
   - intent: order_food
     examples: |

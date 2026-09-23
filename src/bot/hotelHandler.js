@@ -49,7 +49,22 @@ async function handleHotelFlow(phone, text, session) {
   const lower = (text || '').toLowerCase().trim();
 
   // 1. Menu Pilihan Kamar
-  if (session.status === 'hotel_menu' || lower === 'hotel_reservasi' || lower.includes('reservasi kamar') || lower.includes('booking kamar')) {
+  if (
+    session.status === 'hotel_menu' ||
+    lower === 'menu_hotel' ||
+    lower === 'hotel' ||
+    lower === 'hotel_reservasi' ||
+    lower.includes('reservasi kamar') ||
+    lower.includes('booking kamar') ||
+    lower.includes('booking hotel') ||
+    lower.includes('pesan hotel') ||
+    lower.includes('pesan kamar') ||
+    lower.includes('kamar hotel') ||
+    lower.includes('sewa kamar') ||
+    lower.includes('mau booking') ||
+    lower.includes('info kamar') ||
+    (session.status === 'idle' && (lower.includes('kamar') || lower.includes('hotel') || lower.includes('menginap')))
+  ) {
     db.setSession(phone, 'hotel_pick_room', { roomKey: null });
 
     const deluxe = getRoom('deluxe');
@@ -76,7 +91,14 @@ async function handleHotelFlow(phone, text, session) {
   }
 
   // 2. Pilih Kamar
-  if (session.status === 'hotel_pick_room' || lower.startsWith('room_')) {
+  if (
+    session.status === 'hotel_pick_room' ||
+    lower.startsWith('room_') ||
+    lower.includes('deluxe') ||
+    lower.includes('executive') ||
+    lower.includes('suite') ||
+    lower.includes('presidential')
+  ) {
     let chosenKey = 'deluxe';
     if (lower.includes('executive') || lower === 'room_executive') chosenKey = 'executive';
     if (lower.includes('suite') || lower.includes('presidential') || lower === 'room_suite') chosenKey = 'suite';

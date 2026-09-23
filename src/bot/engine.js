@@ -19,6 +19,11 @@ const MENU_UTAMA = {
 
 async function sendWelcomeMenu(phone) {
   db.clearSession(phone);
+  try {
+    const axios = require('axios');
+    const rasaUrl = process.env.RASA_API_URL || 'http://localhost:5005/webhooks/rest/webhook';
+    axios.post(rasaUrl, { sender: String(phone), message: '/restart' }, { timeout: 1500 }).catch(() => {});
+  } catch (e) {}
   await gateway.sendButtons(phone, MENU_UTAMA.text, MENU_UTAMA.buttons);
 }
 
@@ -107,8 +112,16 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
   if (
     session.status.startsWith('hotel_') ||
     lower === 'menu_hotel' ||
+    lower === 'hotel' ||
     lower.startsWith('room_') ||
-    lower === 'hotel_reservasi'
+    lower === 'hotel_reservasi' ||
+    lower.includes('booking hotel') ||
+    lower.includes('booking kamar') ||
+    lower.includes('reservasi hotel') ||
+    lower.includes('reservasi kamar') ||
+    lower.includes('pesan kamar') ||
+    lower.includes('pesan hotel') ||
+    lower.includes('kamar hotel')
   ) {
     const handled = await handleHotelFlow(cleanPhone, cleanText, session);
     if (handled) return;
@@ -118,10 +131,14 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
   if (
     session.status.startsWith('cafe_') ||
     lower === 'menu_kafe' ||
+    lower === 'kafe' ||
     lower.startsWith('cat_') ||
     lower.startsWith('add_') ||
     lower === 'cart_view' ||
-    lower === 'order_confirm'
+    lower === 'order_confirm' ||
+    lower === 'cafe_dinein' ||
+    lower === 'cafe_takeaway' ||
+    lower === 'cafe_reservasi'
   ) {
     const handled = await handleCafeFlow(cleanPhone, cleanText, session);
     if (handled) return;
