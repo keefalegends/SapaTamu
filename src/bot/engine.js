@@ -88,15 +88,52 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     lower === 'start' ||
     lower === 'goto_main' ||
     lower === 'halo' ||
-    lower === 'hai'
+    lower === 'hai' ||
+    lower === 'p' ||
+    lower === 'hi' ||
+    lower === 'selamat pagi' ||
+    lower === 'selamat siang' ||
+    lower === 'selamat sore' ||
+    lower === 'selamat malam'
   ) {
     await sendWelcomeMenu(cleanPhone);
     return;
   }
 
-  // 5. Coba proses melalui Rasa AI (Booking Kamar, Info, & Order Kafe)
+  // 5. Cek Sesi Aktif & Tombol Navigasi (Interactive Button Flow)
+  const session = db.getSession(cleanPhone);
+
+  // Router Alur Tombol / Sesi Hotel
+  if (
+    session.status.startsWith('hotel_') ||
+    lower === 'menu_hotel' ||
+    lower.startsWith('room_') ||
+    lower === 'hotel_reservasi'
+  ) {
+    const handled = await handleHotelFlow(cleanPhone, cleanText, session);
+    if (handled) return;
+  }
+
+  // Router Alur Tombol / Sesi Kafe
+  if (
+    session.status.startsWith('cafe_') ||
+    lower === 'menu_kafe' ||
+    lower.startsWith('cat_') ||
+    lower.startsWith('add_') ||
+    lower === 'cart_view' ||
+    lower === 'order_confirm'
+  ) {
+    const handled = await handleCafeFlow(cleanPhone, cleanText, session);
+    if (handled) return;
+  }
+
+  // 6. Coba proses melalui Rasa AI (Natural Language Processing untuk Booking & Order)
   const rasaResult = await sendToRasa(cleanPhone, cleanText);
-  if (rasaResult.handled && rasaResult.messages?.length > 0) {
+  const isDefaultFallback = rasaResult.messages?.some((m) =>
+    m.includes('belum memahami maksud Anda')
+  );
+
+  if (rasaResult.handled && rasaResult.messages?.length > 0 && !isDefaultFallback) {
     console.log(`🤖 [RASA HANDLED] Membalas ${rasaResult.messages.length} pesan dari Rasa ke +${cleanPhone}`);
     for (const reply of rasaResult.messages) {
       await gateway.sendText(cleanPhone, reply);
@@ -104,17 +141,19 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     return;
   }
 
-  // 6. Cek Sesi Aktif
-  const session = db.getSession(cleanPhone);
-
-  // 6. Router Alur Hotel
-  if (session.status.startsWith('hotel_') || lower.startsWith('hotel_') || lower.startsWith('room_') || lower === 'menu_hotel' || lower.includes('kamar') || lower.includes('hotel') || lower.includes('menginap')) {
+  // 7. Router Alur Teks Fallback (Jika user ketik kamar/kafe di luar form)
+  if (lower.includes('kamar') || lower.includes('hotel') || lower.includes('menginap')) {
     const handled = await handleHotelFlow(cleanPhone, cleanText, session);
     if (handled) return;
   }
 
-  // 7. Router Alur Kafe
-  if (session.status.startsWith('cafe_') || lower.startsWith('cafe_') || lower.startsWith('cat_') || lower.startsWith('add_') || lower === 'cart_view' || lower === 'order_confirm' || lower === 'menu_kafe' || lower.includes('meja') || lower.includes('makan') || lower.includes('minum') || lower.includes('kafe') || lower.includes('kopi')) {
+  if (
+    lower.includes('meja') ||
+    lower.includes('makan') ||
+    lower.includes('minum') ||
+    lower.includes('kafe') ||
+    lower.includes('kopi')
+  ) {
     const handled = await handleCafeFlow(cleanPhone, cleanText, session);
     if (handled) return;
   }

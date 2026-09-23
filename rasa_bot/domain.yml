@@ -28,6 +28,10 @@ slots:
     mappings:
       - type: from_entity
         entity: room_type
+      - type: from_text
+        conditions:
+          - active_loop: hotel_booking_form
+            requested_slot: room_type
 
   checkin_date:
     type: text
@@ -35,6 +39,10 @@ slots:
     mappings:
       - type: from_entity
         entity: checkin_date
+      - type: from_text
+        conditions:
+          - active_loop: hotel_booking_form
+            requested_slot: checkin_date
 
   guests:
     type: text
@@ -49,6 +57,12 @@ slots:
     mappings:
       - type: from_entity
         entity: guest_name
+      - type: from_text
+        conditions:
+          - active_loop: hotel_booking_form
+            requested_slot: guest_name
+          - active_loop: cafe_order_form
+            requested_slot: guest_name
 
   phone_number:
     type: text
@@ -56,6 +70,10 @@ slots:
     mappings:
       - type: from_entity
         entity: phone_number
+      - type: from_text
+        conditions:
+          - active_loop: hotel_booking_form
+            requested_slot: phone_number
 
   food_item:
     type: text
@@ -63,6 +81,10 @@ slots:
     mappings:
       - type: from_entity
         entity: food_item
+      - type: from_text
+        conditions:
+          - active_loop: cafe_order_form
+            requested_slot: food_item
 
   quantity:
     type: text
@@ -70,6 +92,10 @@ slots:
     mappings:
       - type: from_entity
         entity: quantity
+      - type: from_text
+        conditions:
+          - active_loop: cafe_order_form
+            requested_slot: quantity
 
 forms:
   hotel_booking_form:
@@ -87,7 +113,7 @@ forms:
 
 responses:
   utter_greet:
-    - text: "Halo! Selamat datang di SapaTamu Hotel & Resto 🏨☕\nAda yang bisa saya bantu hari ini?\n\n1️⃣ Cek & Booking Kamar Hotel\n2️⃣ Lihat Menu & Pesan Makanan/Minuman Kafe\n3️⃣ Info Layanan & Fasilitas"
+    - text: "👋 *Halo! Selamat Datang di SapaTamu Hotel & Resto* 🏨☕\n\nSaya asisten virtual cerdas SapaTamu yang siap melayani Anda 24/7.\n\nSilakan pilih layanan yang Anda butuhkan:\n1️⃣ *Booking Kamar Hotel* (Ketik: _'Booking kamar'_)\n2️⃣ *Pesan Menu Kafe & Resto* (Ketik: _'Menu kafe'_)\n3️⃣ *Bantuan Customer Service* (Ketik: _'Hubungi CS'_)\n\nAda yang bisa kami bantu hari ini kak? 😊"
 
   utter_goodbye:
     - text: "Terima kasih telah menghubungi SapaTamu! Semoga hari Anda menyenangkan. Sampai jumpa kembali! 👋✨"
@@ -96,28 +122,28 @@ responses:
     - text: "Saya adalah Asisten Virtual Cerdas SapaTamu berbasis Rasa AI yang siap melayani reservasi kamar dan pemesanan kafe Anda 24/7! 🤖"
 
   utter_ask_room_info:
-    - text: "🏨 *PILIHAN KAMAR SAPATAMU HOTEL:*\n\n1. 🛏️ *Deluxe Room* — Rp 550.000 / malam\n   Kasur King Size, Smart TV 43\", AC, Balkon Pribadi, Sarapan 2 pax.\n\n2. 🛁 *Executive Suite* — Rp 950.000 / malam\n   Ruang Tamu Terpisah, Jacuzzi Pribadi, Espresso Machine, Lounge Access, Sarapan 2 pax.\n\n3. 👑 *Presidential Suite* — Rp 1.800.000 / malam\n   Penthouse 2 Kamar, Dining Room, Mini Bar Gratis, 24h Butler, Jacuzzi.\n\nMau booking tipe kamar yang mana kak?"
+    - text: "🏨 *PILIHAN KAMAR SAPATAMU HOTEL:*\n\n1. 🛏️ *Deluxe Room* — Rp 550.000 / malam\n   Kasur King Size, Smart TV 43\", AC, Balkon Pribadi, Sarapan 2 pax.\n\n2. 🛁 *Executive Suite* — Rp 950.000 / malam\n   Ruang Tamu Terpisah, Jacuzzi Pribadi, Espresso Machine, Lounge Access, Sarapan 2 pax.\n\n3. 👑 *Presidential Suite* — Rp 1.800.000 / malam\n   Penthouse 2 Kamar, Dining Room, Mini Bar Gratis, 24h Butler, Jacuzzi.\n\nMau booking tipe kamar yang mana kak? 😊"
 
   utter_ask_room_type:
-    - text: "Mau booking tipe kamar apa kak? (Deluxe Room / Executive Suite / Presidential Suite)"
+    - text: "👋 *Halo Kak! Selamat datang di Layanan Reservasi Kamar SapaTamu Hotel* 🏨✨\n\nKami memiliki 3 pilihan kamar terbaik:\n• 🛏️ *Deluxe Room* — Rp 550.000 / malam\n• 🛁 *Executive Suite* — Rp 950.000 / malam\n• 👑 *Presidential Suite* — Rp 1.800.000 / malam\n\nMau booking tipe kamar apa kak? 😊"
 
   utter_ask_checkin_date:
-    - text: "Untuk tanggal check-in kapan kak? (Contoh: 25 September)"
+    - text: "Untuk tanggal check-in kapan kak? (Contoh: *Besok*, *Hari ini*, atau *25 September*)"
 
   utter_ask_guest_name:
-    - text: "Boleh tahu atas nama siapa pemesanannya kak?"
+    - text: "Boleh tahu atas nama siapa pemesanannya kak? (Contoh: *Keefa*)"
 
   utter_ask_phone_number:
-    - text: "Mohon cantumkan nomor WhatsApp/HP aktif untuk konfirmasi pemesanan:"
+    - text: "Mohon cantumkan nomor WhatsApp/HP aktif untuk konfirmasi pemesanan (Contoh: *082219472360* atau *+6282219472360*):"
 
   utter_ask_food_item:
-    - text: "Mau pesan menu apa kak? (Contoh: Nasi Goreng Spesial, Caffe Latte, Croissant)"
+    - text: "👋 *Halo Kak! Selamat datang di SapaTamu Kafe & Resto* ☕🍽️\n\nMau pesan menu apa kak? (Contoh: *Nasi Goreng Spesial*, *Caffe Latte*, *Butter Croissant*)"
 
   utter_ask_quantity:
-    - text: "Berapa porsi / gelas yang mau dipesan kak?"
+    - text: "Berapa porsi / gelas yang mau dipesan kak? (Contoh: *2 porsi* atau *1*)"
 
   utter_default:
-    - text: "Maaf, saya belum memahami maksud Anda. Anda bisa mengetik 'info kamar' untuk booking hotel atau 'menu kafe' untuk memesan makanan/minuman."
+    - text: "Maaf, saya belum memahami maksud Anda. Anda bisa mengetik *'info kamar'* untuk booking hotel atau *'menu kafe'* untuk memesan makanan/minuman ya kak! 😊"
 
 actions:
   - action_show_menu

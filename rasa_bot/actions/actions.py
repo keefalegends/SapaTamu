@@ -3,6 +3,11 @@ from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, AllSlotsReset
 import random
+import os
+import sqlite3
+
+# Lokasi database SQLite SapaTamu
+DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "sapatamu_waba.db"))
 
 # Database harga kamar & menu kafe SapaTamu
 HOTEL_ROOMS = {
@@ -78,29 +83,49 @@ class ActionSubmitHotelBooking(Action):
         raw_room = str(tracker.get_slot("room_type") or "deluxe").lower()
         checkin = tracker.get_slot("checkin_date") or "Besok"
         name = tracker.get_slot("guest_name") or "Tamu SapaTamu"
-        phone = tracker.get_slot("phone_number") or "-"
+        phone = tracker.get_slot("phone_number") or tracker.sender_id or "-"
 
         # Matching tipe kamar
         room_info = HOTEL_ROOMS["deluxe"]
+        room_key = "deluxe"
         if "suite" in raw_room or "presidential" in raw_room:
             room_info = HOTEL_ROOMS["presidential"]
+            room_key = "suite"
         elif "exec" in raw_room:
             room_info = HOTEL_ROOMS["executive"]
+            room_key = "executive"
 
         booking_code = f"ST-HTL-{random.randint(1000, 9999)}"
         price_str = f"Rp {room_info['price']:,}".replace(",", ".")
 
+        # Simpan ke SQLite Database SapaTamu
+        try:
+            if os.path.exists(DB_PATH):
+                conn = sqlite3.connect(DB_PATH, timeout=5)
+                cur = conn.cursor()
+                clean_phone = "".join([c for c in str(phone) if c.isdigit()]) or str(tracker.sender_id)
+                cur.execute("""
+                    INSERT OR REPLACE INTO hotel_bookings 
+                    (booking_code, phone_number, guest_name, room_key, room_name, nights, check_in, total_price, payment_method, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (booking_code, clean_phone, name, room_key, room_info['name'], 1, checkin, room_info['price'], 'Pay at Hotel', 'confirmed'))
+                conn.commit()
+                conn.close()
+        except Exception as e:
+            print(f"⚠️ [DB SAVE ERROR] hotel_bookings: {e}")
+
         msg = (
-            f"🎉 *RESERVASI KAMAR BERHASIL!* 🏨\n\n"
+            f"🎉 *RESERVASI KAMAR BERHASIL!* 🏨✨\n\n"
             f"📋 *Kode Booking:* `{booking_code}`\n"
             f"👤 *Nama Tamu:* {name}\n"
-            f"📱 *No. HP:* {phone}\n"
+            f"📱 *No. WhatsApp:* {phone}\n"
             f"🛏️ *Tipe Kamar:* {room_info['name']}\n"
             f"📅 *Check-in:* {checkin}\n"
             f"💰 *Total Biaya:* {price_str} / malam\n"
             f"✨ *Fasilitas:* {room_info['desc']}\n\n"
-            f"Pembayaran dapat dilakukan saat check-in (Pay at Hotel / COD) atau Transfer Bank.\n"
-            f"Ada yang bisa saya bantu lagi kak?"
+            f"✅ Reservasi Anda sudah tercatat di sistem admin kami.\n"
+            f"Pembayaran dapat dilakukan saat check-in (Pay at Hotel) atau Transfer Bank.\n\n"
+            f"Ada yang bisa kami bantu lagi kak? Ketik *'menu'* untuk kembali ke menu utama 😊"
         )
         dispatcher.utter_message(text=msg)
         return [AllSlotsReset()]
@@ -136,14 +161,34 @@ class ActionSubmitCafeOrder(Action):
         price_each_str = f"Rp {matched_item['price']:,}".replace(",", ".")
         order_code = f"ST-CAFE-{random.randint(1000, 9999)}"
 
+        # Simpan ke SQLite Database SapaTamu
+        try:
+            if os.path.exists(DB_PATH):
+                conn = sqlite3.connect(DB_PATH, timeout=5)
+                cur = conn.cursor()
+                clean_phone = "".join([c for c in str(tracker.sender_id) if c.isdigit()])
+                cur.execute("""
+                    INSERT OR REPLACE INTO cafe_orders 
+                    (order_code, phone_number, table_number, order_type, total_amount, payment_status, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (order_code, clean_phone, 1, 'dine_in', subtotal, 'paid', 'new'))
+                cur.execute("""
+                    INSERT INTO cafe_order_items (order_code, item_name, qty, price, subtotal)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (order_code, matched_item['name'], qty, matched_item['price'], subtotal))
+                conn.commit()
+                conn.close()
+        except Exception as e:
+            print(f"⚠️ [DB SAVE ERROR] cafe_orders: {e}")
+
         msg = (
             f"🧾 *PESANAN KAFE BERHASIL DIBUAT!* ☕🍽️\n\n"
             f"📋 *No. Pesanan:* `{order_code}`\n"
             f"👤 *Atas Nama:* {name}\n"
             f"🍱 *Item:* {matched_item['name']} x {qty} ({price_each_str})\n"
             f"💰 *Total Bayar:* *{subtotal_str}*\n\n"
-            f"Pesanan Anda segera disiapkan oleh barista & dapur SapaTamu!\n"
-            f"Apakah ada tambahan menu lainnya kak?"
+            f"✅ Pesanan Anda segera disiapkan oleh barista & dapur SapaTamu!\n"
+            f"Ada yang bisa kami bantu lagi kak? Ketik *'menu'* untuk kembali ke menu utama 😊"
         )
         dispatcher.utter_message(text=msg)
         return [AllSlotsReset()]

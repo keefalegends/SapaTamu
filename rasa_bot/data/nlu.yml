@@ -50,6 +50,10 @@ nlu:
     examples: |
       - mau booking kamar hotel
       - saya mau pesan kamar
+      - halo saya mau booking kamar
+      - hai mau booking kamar
+      - halo min mau pesan kamar
+      - selamat pagi saya mau pesan kamar
       - booking kamar [Deluxe Room](room_type) dong
       - mau reservasi [Executive Suite](room_type) untuk [25 September](checkin_date)
       - pesan kamar [Presidential Suite](room_type)
@@ -94,9 +98,17 @@ nlu:
       - tanggal [10 Oktober 2026](checkin_date)
       - untuk [2](guests) orang
       - [1](guests) orang saja
-      - [4](guests) tamu
       - nomor saya [081234567890](phone_number)
       - [08987654321](phone_number)
+      - [+6282219472360](phone_number)
+      - [+6281234567890](phone_number)
+      - [+6281958992884](phone_number)
+      - [082219472360](phone_number)
+      - [6282219472360](phone_number)
+      - nomor hp [+6282219472360](phone_number)
+      - nomor wa [+6281234567890](phone_number)
+      - no hp [082219472360](phone_number)
+      - hp [+6282219472360](phone_number)
       - [Deluxe Room](room_type)
       - [Executive Suite](room_type)
       - [Presidential Suite](room_type)
@@ -106,6 +118,11 @@ nlu:
       - [2](quantity) porsi
       - [1](quantity) gelas
       - [3](quantity)
+
+  - regex: phone_number
+    examples: |
+      - \+?62\d{8,13}
+      - 08\d{8,12}
 
   - intent: affirm
     examples: |
