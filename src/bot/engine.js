@@ -64,11 +64,11 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     return;
   }
 
-  // 3. Global Interceptor: Permintaan Eskalasi ke Staf CS / Resepsionis
+  // 3. Global Interceptor: Permintaan Eskalasi ke Staf CS / Resepsionis / Keadaan Darurat
   const isEscalation =
     lower === 'menu_cs' ||
     lower === 'btn_cs' ||
-    /\b(cs|staf|staff|operator|manusia|admin|komplain|darurat|keluhan|resepsionis)\b/i.test(cleanText) ||
+    /\b(cs|staf|staff|operator|manusia|admin|komplain|darurat|keluhan|resepsionis|kebakaran|api|bahaya|maling|kecelakaan|rusak|bocor|mati lampu|hilang|kehilangan|tolong|bantuan)\b/i.test(cleanText) ||
     lower.includes('customer service') ||
     lower.includes('bicara sama orang') ||
     lower.includes('tanya resepsionis');
@@ -81,8 +81,8 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     const csResponse =
       '👨‍💼 *Menghubungkan ke Staf Customer Service / Resepsionis...*\n\n' +
       'Halo! Anda telah terhubung langsung dengan tim Customer Service SapaTamu.\n\n' +
-      '🟢 *Status: Staf Siap Membantu*\n' +
-      'Staf/Resepsionis kami akan segera membalas pesan Anda di sini. Mohon ditunggu ya 🙏';
+      '🟢 *Status: Staf Siap Membantu (Prioritas)*\n' +
+      'Staf/Resepsionis kami akan segera membalas pesan Anda di sini. Untuk keadaan darurat, tim operasional segera menuju ke lokasi Anda. Mohon ditunggu ya 🙏';
 
     await gateway.sendText(cleanPhone, csResponse);
     return;
@@ -121,13 +121,14 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     lower.startsWith('add_') ||
     /\b(kafe|cafe|kopi|ngopi|makan|minum|makanan|minuman|resto|restoran|snack|croissant|latte|espresso|cappuccino)\b/i.test(lower);
 
-  // Deteksi intent Hotel (Button payload atau kata kunci kamar/menginap)
+  // Deteksi intent Hotel (Button payload atau kata kunci spesifik reservasi/menginap)
   const isHotelIntent =
     session.status.startsWith('hotel_') ||
     ['menu_hotel', 'btn_hotel', 'hotel', 'hotel_reservasi', 'hotel_pay_step', 'hotel_pay_confirm', 'hotel_cancel'].includes(lower) ||
     lower.startsWith('room_') ||
     lower.startsWith('hotel_pay_') ||
-    /\b(hotel|kamar|nginep|menginap|checkin|check-in|checkout|check-out|deluxe|suite|presidential)\b/i.test(lower);
+    /\b(booking\s*(?:kamar|hotel)?|reservasi\s*(?:kamar|hotel)?|sewa\s*kamar|pesan\s*(?:kamar|hotel)|menginap|nginep|checkin|check-in|checkout|check-out|deluxe|executive\s*suite|presidential)\b/i.test(lower) ||
+    ((lower === 'hotel' || lower === 'kamar' || lower === 'kamar hotel') && session.status === 'idle');
 
   // Prioritas 1: Jika user menyebut kafe / makanan / minuman ➔ Langsung ke Kafe Flow
   if (isCafeIntent && !session.status.startsWith('hotel_')) {
@@ -141,10 +142,17 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     if (handled) return;
   }
 
-  // Prioritas 3: Coba proses melalui Rasa AI (Natural Language Processing untuk Pesanan Kafe / Q&A)
+  // Prioritas 3: Coba proses melalui Rasa AI (Natural Language Processing untuk Pesanan Kafe / Q&A / Out-of-Scope)
   const rasaResult = await sendToRasa(cleanPhone, cleanText);
   const isDefaultFallback = rasaResult.messages?.some((m) =>
     m.includes('belum memahami maksud Anda')
+  );
+
+  const isOutOfContextOrCS = rasaResult.messages?.some((m) =>
+    m.includes('di luar konteks') ||
+    m.includes('Customer Service') ||
+    m.includes('belum memahami maksud Anda') ||
+    m.includes('bantuan staf')
   );
 
   // Guard: Jangan sampai pesan default hotel terpental jika user tidak sedang booking hotel
@@ -155,12 +163,18 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
   if (
     rasaResult.handled &&
     rasaResult.messages?.length > 0 &&
-    !isDefaultFallback &&
     !(isUnwantedHotelPrompt && !isHotelIntent)
   ) {
     console.log(`🤖 [RASA HANDLED] Membalas ${rasaResult.messages.length} pesan dari Rasa ke +${cleanPhone}`);
     for (const reply of rasaResult.messages) {
       await gateway.sendText(cleanPhone, reply);
+    }
+    // Jika jawaban Rasa terkait di luar konteks / fallback / CS, tawarkan tombol Hubungi CS & Menu Utama
+    if (isOutOfContextOrCS) {
+      await gateway.sendButtons(cleanPhone, 'Butuh bantuan staf kami?', [
+        { id: 'menu_cs',   title: '🎧 Hubungi CS / Staf' },
+        { id: 'goto_main', title: '🔙 Menu Utama' },
+      ]);
     }
     return;
   }

@@ -161,6 +161,51 @@ nlu:
       - salah
       - ubah pesanan
 
+  - intent: ask_cs
+    examples: |
+      - tolong hubungkan ke cs
+      - mau bicara dengan customer service
+      - panggil staf
+      - butuh bantuan resepsionis
+      - bicara dengan orang
+      - tolong ada kebakaran di kamar gw
+      - ada kebakaran
+      - api di kamar
+      - tolong darurat
+      - ac kamar bocor
+      - ac mati
+      - kunci kamar hilang
+      - wifi hotel mati
+      - kamar mandi kotor
+      - ada masalah di kamar
+      - tolong panggil admin
+      - saya mau komplain
+      - pelayanan buruk
+      - tolong bantuan
+      - darurat min
+      - ada maling
+      - kamar banjir
+      - minta tolong segera
+
+  - intent: out_of_scope
+    examples: |
+      - siapa presiden indonesia?
+      - ramalkan cuaca hari ini
+      - kamu suka makan apa?
+      - berapa hasil 25 kali 4?
+      - bisa main game gak?
+      - ceritakan lelucon
+      - saham apa yang bagus dibeli?
+      - translate bahasa inggris
+      - kenapa langit berwarna biru?
+      - rekomendasi film horor
+      - cara membuat website
+      - siapa pencipta alam semesta?
+      - apa kabar kawan
+      - lagu apa yang enak didengar?
+      - cuaca besok hujan gak?
+      - berapa jarak bumi ke bulan?
+
   - synonym: Deluxe Room
     examples: |
       - deluxe

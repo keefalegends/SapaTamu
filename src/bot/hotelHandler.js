@@ -62,8 +62,12 @@ async function handleHotelFlow(phone, text, session) {
     lower.includes('kamar hotel') ||
     lower.includes('sewa kamar') ||
     lower.includes('mau booking') ||
-    lower.includes('info kamar') ||
-    (session.status === 'idle' && (lower.includes('kamar') || lower.includes('hotel') || lower.includes('menginap')))
+    (session.status === 'idle' && (
+      lower === 'kamar' || lower === 'hotel' ||
+      lower.includes('booking kamar') || lower.includes('reservasi kamar') ||
+      lower.includes('pesan kamar') || lower.includes('sewa kamar') ||
+      lower.includes('info kamar') || lower.includes('menginap') || lower.includes('nginep')
+    ))
   ) {
     db.setSession(phone, 'hotel_pick_room', { roomKey: null });
 

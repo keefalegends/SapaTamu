@@ -59,3 +59,18 @@ rules:
       - slot_was_set:
           - requested_slot: null
       - action: action_submit_cafe_order
+
+  - rule: Tangani permintaan CS dan bantuan darurat
+    steps:
+      - intent: ask_cs
+      - action: utter_ask_cs
+
+  - rule: Tangani pesan di luar konteks
+    steps:
+      - intent: out_of_scope
+      - action: utter_out_of_scope
+
+  - rule: Tangani fallback default
+    steps:
+      - intent: nlu_fallback
+      - action: utter_default

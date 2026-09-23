@@ -11,6 +11,8 @@ intents:
   - inform
   - affirm
   - deny
+  - ask_cs
+  - out_of_scope
 
 entities:
   - room_type
@@ -142,8 +144,14 @@ responses:
   utter_ask_quantity:
     - text: "Berapa porsi / gelas yang mau dipesan kak? (Contoh: *2 porsi* atau *1*)"
 
+  utter_ask_cs:
+    - text: "👨‍💼 *Layanan Bantuan & Customer Service SapaTamu* 🎧\n\nPesan Anda terkait bantuan staf/darurat telah kami terima. Tim Resepsionis & Customer Service kami siap membantu Anda secara langsung.\n\nKetik *'cs'* untuk langsung terhubung dengan staf kami atau klik opsi bantuan di bawah ya kak! 🙏"
+
+  utter_out_of_scope:
+    - text: "Mohon maaf kak, saya adalah asisten virtual khusus layanan reservasi Hotel & Kafe SapaTamu. Pertanyaan Anda di luar konteks layanan kami.\n\nJika Anda membutuhkan bantuan khusus atau informasi lainnya, silakan hubungi tim Customer Service kami dengan mengetik *'cs'* ya kak! 😊"
+
   utter_default:
-    - text: "Maaf, saya belum memahami maksud Anda. Anda bisa mengetik *'info kamar'* untuk booking hotel atau *'menu kafe'* untuk memesan makanan/minuman ya kak! 😊"
+    - text: "Maaf, saya belum memahami maksud Anda. Anda bisa mengetik *'cs'* untuk bantuan staf Customer Service, *'info kamar'* untuk booking hotel, atau *'menu kafe'* untuk memesan makanan ya kak! 😊"
 
 actions:
   - action_show_menu
