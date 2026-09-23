@@ -25,7 +25,83 @@ function getMenuCatalog() {
   return categories;
 }
 
+const MENU_ALIASES = [
+  { id: 'nas', name: 'Nasi Goreng Spesial', price: 35000, aliases: ['nasi goreng spesial', 'nasi goreng', 'nasgor', 'nasi gorng spesial', 'nasi gorng', 'nasigoreng', 'gorng'] },
+  { id: 'car', name: 'Spaghetti Carbonara', price: 45000, aliases: ['spaghetti carbonara', 'spaghetti', 'carbonara', 'spageti carbonara', 'spageti', 'pasta'] },
+  { id: 'cro', name: 'Butter Croissant', price: 20000, aliases: ['butter croissant', 'croissant', 'croisant', 'roti croissant'] },
+  { id: 'rot', name: 'Roti Bakar Spesial', price: 18000, aliases: ['roti bakar spesial', 'roti bakar'] },
+  { id: 'mat', name: 'Matcha Latte', price: 25000, aliases: ['matcha latte', 'matcha', 'macha', 'greentea', 'green tea', 'teh hijau'] },
+  { id: 'lat', name: 'Caffe Latte', price: 28000, aliases: ['caffe latte', 'cafe latte', 'kopi latte', 'latte', 'kopi susu', 'coffee latte'] },
+  { id: 'cap', name: 'Cappuccino', price: 28000, aliases: ['cappuccino', 'capuccino', 'kapucino'] },
+  { id: 'ame', name: 'Americano', price: 22000, aliases: ['americano', 'kopi hitam', 'black coffee'] },
+  { id: 'esp', name: 'Espresso', price: 22000, aliases: ['espresso', 'espreso'] },
+  { id: 'teh', name: 'Es Teh', price: 15000, aliases: ['es teh manis segar', 'es teh manis', 'es teh', 'teh manis', 'esteh', 'teh'] },
+  { id: 'jer', name: 'Jeruk Peras', price: 15000, aliases: ['jeruk peras alami', 'jeruk peras', 'es jeruk', 'jus jeruk'] },
+];
+
+function parseMultipleMenuItems(text) {
+  if (!text) return [];
+  const clean = ' ' + text.toLowerCase() + ' ';
+  const found = [];
+
+  const allAliases = [];
+  for (const item of MENU_ALIASES) {
+    for (const al of item.aliases) {
+      allAliases.push({ alias: al, item });
+    }
+  }
+  allAliases.sort((a, b) => b.alias.length - a.alias.length);
+
+  const occupied = [];
+  for (const { alias, item } of allAliases) {
+    const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp('(?:\\b|_)' + escaped + '(?:\\b|_)', 'g');
+    let match;
+    while ((match = regex.exec(clean)) !== null) {
+      const start = match.index;
+      const end = start + match[0].length;
+      if (occupied.some(([s, e]) => (s <= start && start < e) || (s < end && end <= e))) {
+        continue;
+      }
+      occupied.push([start, end]);
+
+      const before = clean.slice(0, start);
+      const after = clean.slice(end);
+
+      let qty = 1;
+      const qtyBefore = before.match(/(\d+)\s*(?:porsi|gelas|cup|item|x)?\s*$/);
+      if (qtyBefore) {
+        qty = parseInt(qtyBefore[1], 10) || 1;
+      } else {
+        const qtyAfter = after.match(/^\s*(?:x\s*)?(\d+)(?:\s*(?:porsi|gelas|cup|item))?/);
+        if (qtyAfter) {
+          qty = parseInt(qtyAfter[1], 10) || 1;
+        }
+      }
+
+      const existing = found.find(f => f.name === item.name);
+      if (existing) {
+        existing.qty += qty;
+        existing.subtotal = existing.qty * existing.price;
+      } else {
+        found.push({
+          name: item.name,
+          price: item.price,
+          qty,
+          subtotal: item.price * qty,
+        });
+      }
+    }
+  }
+  return found;
+}
+
 function findMenuItem(query) {
+  const parsed = parseMultipleMenuItems(query);
+  if (parsed.length > 0) {
+    return parsed[0];
+  }
+
   const lower = (query || '').toLowerCase().replace(/[0-9x×+]/g, '').trim();
   const rows = db.db.prepare('SELECT * FROM menu_catalog').all();
 
@@ -182,43 +258,60 @@ function isQuestion(text) {
       const itemId = lower.replace('add_', '');
       const item = db.prepare('SELECT * FROM menu_catalog WHERE id = ?').get(itemId);
       if (item) {
-        addedName = item.name;
-        addedPrice = item.price;
+        if (!draft.cart) draft.cart = [];
+        const existing = draft.cart.find(c => c.name === item.name);
+        if (existing) {
+          existing.qty += 1;
+          existing.subtotal = existing.qty * existing.price;
+        } else {
+          draft.cart.push({
+            name: item.name,
+            qty: 1,
+            price: item.price,
+            subtotal: item.price,
+          });
+        }
+        db.setSession(phone, 'cafe_ordering', draft);
+
+        await gateway.sendText(phone, `✅ Berhasil menambahkan *1x ${item.name}* ke keranjang.`);
+        await gateway.sendButtons(phone, 'Lanjut pesan atau periksa keranjang?', [
+          { id: 'cat_minuman', title: '☕ Minuman' },
+          { id: 'cat_makanan', title: '🍳 Makanan' },
+          { id: 'cart_view',   title: '🛒 Lihat Keranjang' },
+        ]);
+        return true;
       }
     } else {
-      // Free text parser (contoh: "1 espresso", "nasi goreng 2")
-      const item = findMenuItem(text);
-      if (item) {
-        addedName = item.name;
-        addedPrice = item.price;
-        const qtyMatch = text.match(/\b(\d+)\b/);
-        if (qtyMatch) addedQty = parseInt(qtyMatch[1], 10);
-      }
-    }
+      // Free text parser (mendukung 1 atau banyak item sekaligus: misal "1 nasi gorng sama matcha")
+      const parsedItems = parseMultipleMenuItems(text);
+      if (parsedItems.length > 0) {
+        if (!draft.cart) draft.cart = [];
+        const addedSummaries = [];
+        for (const it of parsedItems) {
+          const existing = draft.cart.find(c => c.name === it.name);
+          if (existing) {
+            existing.qty += it.qty;
+            existing.subtotal = existing.qty * existing.price;
+          } else {
+            draft.cart.push({
+              name: it.name,
+              qty: it.qty,
+              price: it.price,
+              subtotal: it.subtotal,
+            });
+          }
+          addedSummaries.push(`• *${it.qty}x ${it.name}*`);
+        }
+        db.setSession(phone, 'cafe_ordering', draft);
 
-    if (addedName) {
-      if (!draft.cart) draft.cart = [];
-      const existing = draft.cart.find(c => c.name === addedName);
-      if (existing) {
-        existing.qty += addedQty;
-        existing.subtotal = existing.qty * existing.price;
-      } else {
-        draft.cart.push({
-          name: addedName,
-          qty: addedQty,
-          price: addedPrice,
-          subtotal: addedQty * addedPrice,
-        });
+        await gateway.sendText(phone, `✅ Berhasil menambahkan ke keranjang:\n${addedSummaries.join('\n')}`);
+        await gateway.sendButtons(phone, 'Lanjut pesan atau periksa keranjang?', [
+          { id: 'cat_minuman', title: '☕ Minuman' },
+          { id: 'cat_makanan', title: '🍳 Makanan' },
+          { id: 'cart_view',   title: '🛒 Lihat Keranjang' },
+        ]);
+        return true;
       }
-      db.setSession(phone, 'cafe_ordering', draft);
-
-      await gateway.sendText(phone, `✅ Berhasil menambahkan *${addedQty}x ${addedName}* ke keranjang.`);
-      await gateway.sendButtons(phone, 'Lanjut pesan atau periksa keranjang?', [
-        { id: 'cat_minuman', title: '☕ Minuman' },
-        { id: 'cat_makanan', title: '🍳 Makanan' },
-        { id: 'cart_view',   title: '🛒 Lihat Keranjang' },
-      ]);
-      return true;
     }
   }
 
@@ -280,9 +373,13 @@ function isQuestion(text) {
     const rand = Math.random().toString(16).slice(2, 6).toUpperCase();
     const orderCode = `KFE-${ymd}-${rand}`;
 
+    const conv = db.getConversation(phone);
+    const customerName = (conv && conv.name && !conv.name.startsWith('Tamu (+')) ? conv.name : 'Pelanggan';
+
     db.saveCafeOrder({
       orderCode,
       phoneNumber: phone,
+      customerName,
       tableNumber: draft.tableNumber || null,
       orderType: draft.orderType || 'takeaway',
       totalAmount: draft.totalAmount,

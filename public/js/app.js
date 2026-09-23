@@ -785,6 +785,7 @@ function renderCafeOrdersTable() {
   if (cafeSearchQuery) {
     list = list.filter(o =>
       (o.order_code || '').toLowerCase().includes(cafeSearchQuery) ||
+      (o.customer_name || '').toLowerCase().includes(cafeSearchQuery) ||
       (o.phone_number || '').includes(cafeSearchQuery) ||
       String(o.table_number || '').includes(cafeSearchQuery)
     );
@@ -793,7 +794,7 @@ function renderCafeOrdersTable() {
   if (!list || list.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="px-5 py-12 text-center text-slate-400">
+        <td colspan="8" class="px-5 py-12 text-center text-slate-400">
           <i data-lucide="utensils" class="w-8 h-8 mx-auto mb-2 text-slate-300 stroke-1"></i>
           ${cachedOrders.length === 0 ? 'Belum ada pesanan kafe masuk.' : 'Tidak ada pesanan yang sesuai pencarian.'}
         </td>
@@ -808,6 +809,7 @@ function renderCafeOrdersTable() {
     const isDineIn = o.order_type === 'dine_in';
     const loc = isDineIn ? `Meja ${String(o.table_number).padStart(2, '0')}` : 'Takeaway';
     const isCompleted = o.status === 'completed';
+    const cleanPhone = (o.phone_number || '').replace(/\D/g, '');
 
     return `
       <tr class="hover:bg-slate-50/80 transition-colors">
@@ -816,6 +818,14 @@ function renderCafeOrdersTable() {
             <span>#${o.order_code}</span>
             <i data-lucide="copy" class="w-3 h-3 opacity-40 hover:opacity-100"></i>
           </button>
+        </td>
+        <td class="px-5 py-3.5">
+          <strong class="font-bold text-slate-900 block">${escapeHtml(o.customer_name || 'Pelanggan')}</strong>
+          ${cleanPhone ? `
+            <a href="https://wa.me/${cleanPhone}" target="_blank" class="text-[11px] font-mono text-slate-500 hover:text-emerald-600 transition-colors inline-flex items-center gap-1">
+              <span>+${cleanPhone}</span>
+              <i data-lucide="external-link" class="w-2.5 h-2.5 opacity-60"></i>
+            </a>` : '<span class="text-[11px] text-slate-400 font-mono">-</span>'}
         </td>
         <td class="px-5 py-3.5">
           <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${isDineIn ? 'bg-amber-50 text-amber-900 border border-amber-200/70' : 'bg-slate-100 text-slate-700 border border-slate-200'}">
@@ -866,6 +876,7 @@ function showOrderDetail(code) {
   const isDineIn = o.order_type === 'dine_in';
   const loc = isDineIn ? `Makan di Tempat (Meja ${String(o.table_number).padStart(2, '0')})` : 'Takeaway (Bawa Pulang)';
   const isCompleted = o.status === 'completed';
+  const cleanPhone = (o.phone_number || '').replace(/\D/g, '');
 
   const itemsHtml = (o.items || []).map(i => `
     <div class="flex items-center justify-between text-xs py-2 border-b border-slate-100 last:border-0">
@@ -894,13 +905,21 @@ function showOrderDetail(code) {
     <!-- Contact & Time -->
     <div class="grid grid-cols-2 gap-3">
       <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
-        <span class="text-slate-400 text-[11px] block">Nomor WhatsApp:</span>
-        <strong class="text-slate-900 font-mono text-xs">+${o.phone_number}</strong>
+        <span class="text-slate-400 text-[11px] block">Nama Pelanggan:</span>
+        <strong class="text-slate-900 font-bold text-xs">${escapeHtml(o.customer_name || 'Pelanggan')}</strong>
       </div>
       <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
-        <span class="text-slate-400 text-[11px] block">Waktu Pesanan:</span>
-        <strong class="text-slate-900 font-mono text-xs">${o.created_at || '-'}</strong>
+        <span class="text-slate-400 text-[11px] block">Nomor WhatsApp:</span>
+        ${cleanPhone ? `
+          <a href="https://wa.me/${cleanPhone}" target="_blank" class="text-slate-900 hover:text-emerald-600 font-mono font-bold text-xs inline-flex items-center gap-1">
+            <span>+${cleanPhone}</span>
+            <i data-lucide="external-link" class="w-3 h-3 opacity-60"></i>
+          </a>` : '<strong class="text-slate-400 font-mono text-xs">-</strong>'}
       </div>
+    </div>
+    <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+      <span class="text-slate-400 text-[11px] block">Waktu Pesanan:</span>
+      <strong class="text-slate-900 font-mono text-xs">${o.created_at || '-'}</strong>
     </div>
 
     <!-- Item Details -->

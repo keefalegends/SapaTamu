@@ -51,6 +51,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS cafe_orders (
     order_code TEXT PRIMARY KEY,
     phone_number TEXT,
+    customer_name TEXT,
     table_number INTEGER,
     order_type TEXT,               -- 'dine_in' / 'takeaway'
     total_amount INTEGER,
@@ -102,6 +103,13 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+// ─── Auto-migration Kolom Tambahan ──────────────────────────────────────────
+try {
+  db.exec('ALTER TABLE cafe_orders ADD COLUMN customer_name TEXT');
+} catch (e) {
+  // Kolom sudah ada
+}
 
 // ─── Initial Seed Catalog if Empty ──────────────────────────────────────────
 const countRooms = db.prepare('SELECT COUNT(*) as count FROM room_catalog').get();
@@ -222,8 +230,8 @@ function saveHotelBooking(data) {
 
 function saveCafeOrder(orderData, items) {
   const insertOrder = db.prepare(`
-    INSERT INTO cafe_orders (order_code, phone_number, table_number, order_type, total_amount, payment_status, status)
-    VALUES (?, ?, ?, ?, ?, 'paid', 'new')
+    INSERT INTO cafe_orders (order_code, phone_number, customer_name, table_number, order_type, total_amount, payment_status, status)
+    VALUES (?, ?, ?, ?, ?, ?, 'paid', 'new')
   `);
   const insertItem = db.prepare(`
     INSERT INTO cafe_order_items (order_code, item_name, qty, price, subtotal)
@@ -232,8 +240,12 @@ function saveCafeOrder(orderData, items) {
 
   const txn = db.transaction(() => {
     insertOrder.run(
-      orderData.orderCode, orderData.phoneNumber, orderData.tableNumber || null,
-      orderData.orderType, orderData.totalAmount
+      orderData.orderCode,
+      orderData.phoneNumber || null,
+      orderData.customerName || orderData.guestName || 'Pelanggan',
+      orderData.tableNumber || null,
+      orderData.orderType || 'dine_in',
+      orderData.totalAmount
     );
     for (const item of (items || [])) {
       insertItem.run(orderData.orderCode, item.name, item.qty, item.price, item.subtotal);
