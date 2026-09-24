@@ -27,7 +27,7 @@ function getMenuCatalog() {
 
 const MENU_ALIASES = [
   { id: 'nas', name: 'Nasi Goreng Spesial', price: 35000, aliases: ['nasi goreng spesial', 'nasi goreng', 'nasgor', 'nasi gorng spesial', 'nasi gorng', 'nasigoreng', 'gorng'] },
-  { id: 'car', name: 'Spaghetti Carbonara', price: 45000, aliases: ['spaghetti carbonara', 'spaghetti', 'carbonara', 'spageti carbonara', 'spageti', 'pasta'] },
+  { id: 'car', name: 'Spaghetti Carbonara', price: 45000, aliases: ['spaghetti carbonara', 'spaghetti', 'carbonara', 'spageti carbonara', 'spageti carbo', 'spaghetti carbo', 'carbo', 'spageti', 'pasta'] },
   { id: 'cro', name: 'Butter Croissant', price: 20000, aliases: ['butter croissant', 'croissant', 'croisant', 'roti croissant'] },
   { id: 'rot', name: 'Roti Bakar Spesial', price: 18000, aliases: ['roti bakar spesial', 'roti bakar'] },
   { id: 'mat', name: 'Matcha Latte', price: 25000, aliases: ['matcha latte', 'matcha', 'macha', 'greentea', 'green tea', 'teh hijau'] },
@@ -123,8 +123,69 @@ function findMenuItem(query) {
   return match;
 }
 
+function isQuestion(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase().trim();
+  return (
+    lower.includes('?') ||
+    /\b(berapa|total|apa|gimana|bagaimana|apakah|bisa|rekomendasi|menu|harga|kalo|kalau|kenapa|siapa|kapan|dimana|mana)\b/i.test(lower)
+  );
+}
+
 async function handleCafeFlow(phone, text, session) {
   const lower = (text || '').toLowerCase().trim();
+
+  // Interceptor Pertanyaan saat alur kafe aktif
+  if (isQuestion(text) && session.status.startsWith('cafe_')) {
+    const { jawabAI } = require('./aiService');
+    const chatHistory = db.getRecentSessionMessages(phone, 6, 30);
+    const guestProfile = db.getGuestProfile(phone);
+    const aiResp = await jawabAI(text, { chatHistory, guestProfile });
+    if (aiResp.jawaban) {
+      await gateway.sendText(phone, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
+    }
+    await gateway.sendButtons(phone, 'Lanjutkan pesanan Anda:', [
+      { id: 'cat_minuman', title: '☕ Minuman' },
+      { id: 'cat_makanan', title: '🍳 Makanan' },
+      { id: 'cart_view',   title: '🛒 Keranjang' },
+    ]);
+    return true;
+  }
+
+  // 0. Deteksi Pemesanan Menu Langsung (Direct Multi-Item Ordering dari percakapan bebas / idle)
+  if (!lower.startsWith('room_') && !session.status.startsWith('hotel_') && !isQuestion(text)) {
+    const directItems = parseMultipleMenuItems(text);
+    if (directItems.length > 0) {
+      let draft = session.draft || { orderType: 'takeaway', cart: [] };
+      if (!draft.cart) draft.cart = [];
+      const addedSummaries = [];
+      for (const it of directItems) {
+        const existing = draft.cart.find(c => c.name === it.name);
+        if (existing) {
+          existing.qty += it.qty;
+          existing.subtotal = existing.qty * existing.price;
+        } else {
+          draft.cart.push({
+            name: it.name,
+            qty: it.qty,
+            price: it.price,
+            subtotal: it.subtotal,
+          });
+        }
+        addedSummaries.push(`• *${it.qty}x ${it.name}* (${formatRupiah(it.subtotal)})`);
+      }
+      db.setSession(phone, 'cafe_ordering', draft);
+
+      await gateway.sendText(phone, `✅ Berhasil menambahkan ke keranjang:\n${addedSummaries.join('\n')}`);
+      await gateway.sendButtons(phone, 'Lanjut pesan atau periksa keranjang?', [
+        { id: 'cat_minuman', title: '☕ Minuman' },
+        { id: 'cat_makanan', title: '🍳 Makanan' },
+        { id: 'cart_view',   title: '🛒 Lihat Keranjang' },
+      ]);
+      return true;
+    }
+  }
+
   const tableNum = detectTableNumber(text);
 
   // 1. Deteksi Masuk Lewat Scan QR Meja ("Meja 04")
@@ -223,34 +284,8 @@ async function handleCafeFlow(phone, text, session) {
     return true;
   }
 
-function isQuestion(text) {
-  if (!text) return false;
-  const lower = text.toLowerCase();
-  return (
-    lower.includes('?') ||
-    /\b(berapa|total|apa|gimana|apakah|bisa|rekomendasi|menu|harga|kalo|kalau|kenapa|siapa|kapan|dimana|mana)\b/i.test(lower)
-  );
-}
-
   // 5. Tambah Menu ke Keranjang
   if (lower.startsWith('add_') || session.status === 'cafe_ordering') {
-    // Jika input adalah pertanyaan (misal: "kalo esteh tambah jeruk peras berapa?"), teruskan ke AI
-    if (!lower.startsWith('add_') && isQuestion(text)) {
-      const { jawabAI } = require('./aiService');
-      const chatHistory = db.getRecentSessionMessages(phone, 6, 30);
-      const guestProfile = db.getGuestProfile(phone);
-      const aiResp = await jawabAI(text, { chatHistory, guestProfile });
-      if (aiResp.jawaban) {
-        await gateway.sendText(phone, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
-      }
-      await gateway.sendButtons(phone, 'Lanjutkan pesanan Anda:', [
-        { id: 'cat_minuman', title: '☕ Minuman' },
-        { id: 'cat_makanan', title: '🍳 Makanan' },
-        { id: 'cart_view',   title: '🛒 Keranjang' },
-      ]);
-      return true;
-    }
-
     let draft = session.draft || { orderType: 'takeaway', cart: [] };
     let addedName = null;
     let addedPrice = 0;
@@ -478,4 +513,5 @@ function isQuestion(text) {
 
 module.exports = {
   handleCafeFlow,
+  parseMultipleMenuItems,
 };

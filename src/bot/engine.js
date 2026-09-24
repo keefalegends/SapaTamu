@@ -2,7 +2,7 @@ const gateway = require('../gateway/whatsappClient');
 const db = require('../db/database');
 const StateManager = require('./stateManager');
 const { handleHotelFlow } = require('./hotelHandler');
-const { handleCafeFlow } = require('./cafeHandler');
+const { handleCafeFlow, parseMultipleMenuItems } = require('./cafeHandler');
 const { jawabAI } = require('./aiService');
 const { sendToRasa } = require('./rasaService');
 
@@ -135,16 +135,19 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     /\b(berapa|total|apa|apakah|ada\s+gak|ada\s+tidak|ada\s+nggak|gimana|bagaimana|bisa|rekomendasi|harga|fasilitas|kalo|kalau|kenapa|siapa|kapan|dimana|mana)\b/i.test(lower);
 
   // ─── INTENT DETECTOR & ROUTER ──────────────────────────────────────────────
-  // Deteksi intent Kafe (Button payload atau kata kunci makanan/minuman)
+  // Deteksi intent Kafe (Button payload, kata kunci makanan/minuman, atau item menu langsung)
   const isCafeButton =
     ['menu_kafe', 'btn_kafe', 'kafe', 'cafe_dinein', 'cafe_takeaway', 'cafe_reservasi', 'cart_view', 'order_confirm'].includes(lower) ||
     lower.startsWith('cat_') ||
     lower.startsWith('add_');
 
+  const cafeItemsFound = (!session.status.startsWith('hotel_') && !isQuestion) ? parseMultipleMenuItems(cleanText) : [];
+
   const isCafeIntent =
     session.status.startsWith('cafe_') ||
     isCafeButton ||
-    (!isQuestion && /\b(kafe|cafe|kopi|ngopi|makan|minum|makanan|minuman|resto|restoran|snack|croissant|latte|espresso|cappuccino)\b/i.test(lower));
+    cafeItemsFound.length > 0 ||
+    (!isQuestion && /\b(kafe|cafe|kopi|ngopi|makan|minum|makanan|minuman|resto|restoran|snack|croissant|latte|espresso|cappuccino|pesan|order|beli)\b/i.test(lower));
 
   // Deteksi intent Hotel (Button payload atau kata kunci spesifik reservasi/menginap)
   const isHotelButton =
@@ -183,14 +186,19 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
       m.includes('bantuan staf')
     );
 
+    // Guard Anti-Halusinasi Hotel: Jika user tidak berniat booking hotel, jangan biarkan prompt kamar/checkin dari Rasa lolos
     const isUnwantedHotelPrompt = rasaResult.messages?.some((m) =>
-      m.includes('Mau booking tipe kamar')
+      m.includes('Mau booking tipe kamar') ||
+      m.includes('tanggal check-in') ||
+      m.includes('pemesanannya kak') ||
+      m.includes('RESERVASI KAMAR BERHASIL') ||
+      m.includes('PILIHAN KAMAR')
     );
 
     if (
       rasaResult.handled &&
       rasaResult.messages?.length > 0 &&
-      !isUnwantedHotelPrompt
+      (!isUnwantedHotelPrompt || isHotelIntent)
     ) {
       console.log(`🤖 [RASA HANDLED] Membalas ${rasaResult.messages.length} pesan dari Rasa ke +${cleanPhone}`);
       for (const reply of rasaResult.messages) {

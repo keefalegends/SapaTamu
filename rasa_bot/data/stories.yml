@@ -8,22 +8,12 @@ stories:
       - intent: ask_room_info
       - action: utter_ask_room_info
       - intent: book_room
-      - action: hotel_booking_form
-      - active_loop: hotel_booking_form
-      - active_loop: null
-      - slot_was_set:
-          - requested_slot: null
-      - action: action_submit_hotel_booking
+      - action: utter_ask_room_info
 
   - story: Direct booking
     steps:
       - intent: book_room
-      - action: hotel_booking_form
-      - active_loop: hotel_booking_form
-      - active_loop: null
-      - slot_was_set:
-          - requested_slot: null
-      - action: action_submit_hotel_booking
+      - action: utter_ask_room_info
 
   - story: Happy path - ask menu then order food
     steps:
@@ -32,19 +22,9 @@ stories:
       - intent: ask_menu
       - action: action_show_menu
       - intent: order_food
-      - action: cafe_order_form
-      - active_loop: cafe_order_form
-      - active_loop: null
-      - slot_was_set:
-          - requested_slot: null
       - action: action_submit_cafe_order
 
   - story: Direct order food
     steps:
       - intent: order_food
-      - action: cafe_order_form
-      - active_loop: cafe_order_form
-      - active_loop: null
-      - slot_was_set:
-          - requested_slot: null
       - action: action_submit_cafe_order

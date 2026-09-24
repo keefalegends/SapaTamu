@@ -30,10 +30,6 @@ slots:
     mappings:
       - type: from_entity
         entity: room_type
-      - type: from_text
-        conditions:
-          - active_loop: hotel_booking_form
-            requested_slot: room_type
 
   checkin_date:
     type: text
@@ -41,10 +37,6 @@ slots:
     mappings:
       - type: from_entity
         entity: checkin_date
-      - type: from_text
-        conditions:
-          - active_loop: hotel_booking_form
-            requested_slot: checkin_date
 
   guests:
     type: text
@@ -59,12 +51,6 @@ slots:
     mappings:
       - type: from_entity
         entity: guest_name
-      - type: from_text
-        conditions:
-          - active_loop: hotel_booking_form
-            requested_slot: guest_name
-          - active_loop: cafe_order_form
-            requested_slot: guest_name
 
   phone_number:
     type: text
@@ -72,10 +58,6 @@ slots:
     mappings:
       - type: from_entity
         entity: phone_number
-      - type: from_text
-        conditions:
-          - active_loop: hotel_booking_form
-            requested_slot: phone_number
 
   food_item:
     type: text
@@ -83,10 +65,6 @@ slots:
     mappings:
       - type: from_entity
         entity: food_item
-      - type: from_text
-        conditions:
-          - active_loop: cafe_order_form
-            requested_slot: food_item
 
   quantity:
     type: text
@@ -94,24 +72,6 @@ slots:
     mappings:
       - type: from_entity
         entity: quantity
-      - type: from_text
-        conditions:
-          - active_loop: cafe_order_form
-            requested_slot: quantity
-
-forms:
-  hotel_booking_form:
-    required_slots:
-      - room_type
-      - checkin_date
-      - guest_name
-      - phone_number
-
-  cafe_order_form:
-    required_slots:
-      - food_item
-      - quantity
-      - guest_name
 
 responses:
   utter_greet:
@@ -133,10 +93,10 @@ responses:
     - text: "Untuk tanggal check-in kapan kak? (Contoh: *Besok*, *Hari ini*, atau *25 September*)"
 
   utter_ask_guest_name:
-    - text: "Boleh tahu atas nama siapa pemesanannya kak? (Contoh: *Keefa*)"
+    - text: "Boleh tahu atas nama siapa pemesanannya kak? (Contoh: *Budi* atau *Siti*)"
 
   utter_ask_phone_number:
-    - text: "Mohon cantumkan nomor WhatsApp/HP aktif untuk konfirmasi pemesanan (Contoh: *082219472360* atau *+6282219472360*):"
+    - text: "Mohon cantumkan nomor WhatsApp/HP aktif untuk konfirmasi pemesanan (Contoh: *081234567890*):"
 
   utter_ask_food_item:
     - text: "👋 *Halo Kak! Selamat datang di SapaTamu Kafe & Resto* ☕🍽️\n\nMau pesan menu apa kak? (Contoh: *Nasi Goreng Spesial*, *Caffe Latte*, *Butter Croissant*)"

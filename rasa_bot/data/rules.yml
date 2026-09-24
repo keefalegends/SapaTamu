@@ -26,38 +26,16 @@ rules:
       - intent: ask_menu
       - action: action_show_menu
 
-  # --- HOTEL BOOKING FORM RULES ---
-  - rule: Activate hotel booking form
+  # --- HOTEL BOOKING RULES ---
+  - rule: Tampilkan pilihan kamar saat user ingin booking
     steps:
       - intent: book_room
-      - action: hotel_booking_form
-      - active_loop: hotel_booking_form
+      - action: utter_ask_room_info
 
-  - rule: Submit hotel booking form
-    condition:
-      - active_loop: hotel_booking_form
-    steps:
-      - action: hotel_booking_form
-      - active_loop: null
-      - slot_was_set:
-          - requested_slot: null
-      - action: action_submit_hotel_booking
-
-  # --- CAFE ORDER FORM RULES ---
-  - rule: Activate cafe order form
+  # --- CAFE ORDER RULES ---
+  - rule: Submit cafe order directly
     steps:
       - intent: order_food
-      - action: cafe_order_form
-      - active_loop: cafe_order_form
-
-  - rule: Submit cafe order form
-    condition:
-      - active_loop: cafe_order_form
-    steps:
-      - action: cafe_order_form
-      - active_loop: null
-      - slot_was_set:
-          - requested_slot: null
       - action: action_submit_cafe_order
 
   - rule: Tangani permintaan CS dan bantuan darurat
