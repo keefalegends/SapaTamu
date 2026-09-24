@@ -89,14 +89,65 @@ ATURAN ESKALASI & FORMAT:
 
 let SYSTEM_PROMPT = buildSystemPrompt();
 
-async function jawabAI(userText) {
+async function jawabAI(userText, options = {}) {
+  const { chatHistory = [], guestProfile = null } = options;
+
   try {
+    let systemContent = SYSTEM_PROMPT;
+
+    // Injeksi Profil & Histori Tamu ke System Prompt untuk personalisasi ramah
+    if (guestProfile && (guestProfile.name || guestProfile.isReturningGuest)) {
+      const profileParts = [];
+      if (guestProfile.name) {
+        profileParts.push(`- Nama Pelanggan: Kak ${guestProfile.name}`);
+      }
+      if (guestProfile.pastBookings && guestProfile.pastBookings.length > 0) {
+        const bList = guestProfile.pastBookings.map(b => `${b.room_name} (${b.check_in || 'Check-in'})`).join(', ');
+        profileParts.push(`- Riwayat Kamar Pernah Dipesan: ${bList}`);
+      }
+      if (guestProfile.pastOrders && guestProfile.pastOrders.length > 0) {
+        const oList = guestProfile.pastOrders.map(o => o.items).filter(Boolean).join('; ');
+        if (oList) {
+          profileParts.push(`- Riwayat Menu Kafe Pernah Dipesan: ${oList}`);
+        }
+      }
+      if (profileParts.length > 0) {
+        systemContent += `\n\nPROFIL & HISTORI TAMU SAAT INI (GUNAKAN UNTUK PERSONALISASI):\n${profileParts.join('\n')}\nPetunjuk: Sapa tamu dengan namanya jika terasa natural, dan manfaatkan riwayatnya untuk memberikan bantuan/rekomendasi yang hangat.`;
+      }
+    }
+
+    const messages = [
+      { role: 'system', content: systemContent },
+    ];
+
+    // Tambahkan sliding window riwayat chat sesi aktif (maksimal 6 pesan terakhir)
+    if (Array.isArray(chatHistory) && chatHistory.length > 0) {
+      const historyToInclude = [...chatHistory];
+      const lastMsg = historyToInclude[historyToInclude.length - 1];
+      if (lastMsg && lastMsg.sender === 'user' && lastMsg.content?.trim() === userText.trim()) {
+        historyToInclude.pop();
+      }
+
+      for (const msg of historyToInclude) {
+        if (msg.content && typeof msg.content === 'string') {
+          let cleanContent = msg.content.trim();
+          if (msg.sender !== 'user') {
+            cleanContent = cleanContent.replace(/^🤖 \*AI SapaTamu:\*\s*/, '');
+          }
+          messages.push({
+            role: msg.sender === 'user' ? 'user' : 'assistant',
+            content: cleanContent,
+          });
+        }
+      }
+    }
+
+    // Pesan pengguna terbaru
+    messages.push({ role: 'user', content: userText });
+
     const response = await client.chat.completions.create({
       model: config.ai.model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userText },
-      ],
+      messages,
       response_format: { type: 'json_object' },
       temperature: 0.3,
     });
@@ -119,16 +170,18 @@ async function jawabAI(userText) {
         return lower.includes(top) || top.split(' ').some(w => w.length >= 4 && lower.includes(w));
       });
       if (match) {
+        const greetingPrefix = guestProfile?.name ? `Halo Kak ${guestProfile.name}! ` : '';
         return {
-          jawaban: match.jawaban,
+          jawaban: greetingPrefix + match.jawaban,
           eskalasi: false,
           alasan: 'local_knowledge_fallback',
         };
       }
     } catch (e) {}
 
+    const defaultGreeting = guestProfile?.name ? `Halo Kak ${guestProfile.name}! ` : 'Halo! ';
     return {
-      jawaban: 'Halo! Ada yang bisa kami bantu seputar Hotel atau Kafe SapaTamu? Silakan pilih menu di bawah ini atau ketik pertanyaan Anda.',
+      jawaban: defaultGreeting + 'Ada yang bisa kami bantu seputar Hotel atau Kafe SapaTamu? Silakan pilih menu di bawah ini atau ketik pertanyaan Anda.',
       eskalasi: false,
       alasan: 'ai_fallback',
     };

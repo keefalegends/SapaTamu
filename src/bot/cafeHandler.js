@@ -237,7 +237,9 @@ function isQuestion(text) {
     // Jika input adalah pertanyaan (misal: "kalo esteh tambah jeruk peras berapa?"), teruskan ke AI
     if (!lower.startsWith('add_') && isQuestion(text)) {
       const { jawabAI } = require('./aiService');
-      const aiResp = await jawabAI(text);
+      const chatHistory = db.getRecentSessionMessages(phone, 6, 30);
+      const guestProfile = db.getGuestProfile(phone);
+      const aiResp = await jawabAI(text, { chatHistory, guestProfile });
       if (aiResp.jawaban) {
         await gateway.sendText(phone, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
       }

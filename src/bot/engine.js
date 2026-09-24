@@ -1,5 +1,6 @@
 const gateway = require('../gateway/whatsappClient');
 const db = require('../db/database');
+const StateManager = require('./stateManager');
 const { handleHotelFlow } = require('./hotelHandler');
 const { handleCafeFlow } = require('./cafeHandler');
 const { jawabAI } = require('./aiService');
@@ -18,13 +19,22 @@ const MENU_UTAMA = {
 };
 
 async function sendWelcomeMenu(phone) {
-  db.clearSession(phone);
-  try {
-    const axios = require('axios');
-    const rasaUrl = process.env.RASA_API_URL || 'http://localhost:5005/webhooks/rest/webhook';
-    axios.post(rasaUrl, { sender: String(phone), message: '/restart' }, { timeout: 1500 }).catch(() => {});
-  } catch (e) {}
-  await gateway.sendButtons(phone, MENU_UTAMA.text, MENU_UTAMA.buttons);
+  await StateManager.reset(phone, 'welcome_menu');
+
+  const guestProfile = db.getGuestProfile(phone);
+  let welcomeText;
+
+  if (guestProfile && guestProfile.name) {
+    welcomeText =
+      `👋 *Halo Kak ${guestProfile.name}!*\n` +
+      `Selamat datang kembali di *SapaTamu* 🏨☕\n\n` +
+      `Senang bisa melayani Kak ${guestProfile.name} lagi. Asisten virtual SapaTamu siap membantu kebutuhan Hotel & Kafe Anda.\n\n` +
+      `Silakan pilih layanan yang diinginkan:`;
+  } else {
+    welcomeText = MENU_UTAMA.text;
+  }
+
+  await gateway.sendButtons(phone, welcomeText, MENU_UTAMA.buttons);
 }
 
 // Antrean serial per-nomor untuk mencegah race condition keranjang & sesi
@@ -53,9 +63,18 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
   const cleanText = (text || '').trim();
   const lower = cleanText.toLowerCase();
 
+  // Cek apakah sesi pengguna telah idle > 30 menit SEBELUM timestamp percakapan diperbarui
+  const sessionExpired = StateManager.isSessionExpired(cleanPhone, 30);
+
   // 1. Simpan pesan masuk ke database
   db.saveMessage(cleanPhone, 'inbound', 'user', 'text', cleanText, rawPayload);
   db.upsertConversation(cleanPhone, senderName, cleanText);
+
+  // Jika sesi expired (> 30 menit idle), reset sesi transaksi & keranjang ke idle
+  if (sessionExpired) {
+    console.log(`⏱️ [SESSION TIMEOUT] Sesi +${cleanPhone} telah lewat 30 menit. Reset sesi ke IDLE.`);
+    await StateManager.reset(cleanPhone, 'session_timeout_30m');
+  }
 
   // 2. Periksa apakah kontak sedang di-takeover oleh Staf Manusia (Human CS)
   const conv = db.getConversation(cleanPhone);
@@ -75,7 +94,6 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
 
   if (isEscalation) {
     db.setBotStatus(cleanPhone, 'human');
-    const StateManager = require('./stateManager');
     await StateManager.reset(cleanPhone, 'escalation_to_human');
 
     const csResponse =
@@ -109,26 +127,38 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
   }
 
   // 5. Cek Sesi Aktif
-  const StateManager = require('./stateManager');
   const session = StateManager.get(cleanPhone);
+
+  // Helper untuk mengenali apakah input adalah kalimat tanya
+  const isQuestion =
+    lower.includes('?') ||
+    /\b(berapa|total|apa|apakah|ada\s+gak|ada\s+tidak|ada\s+nggak|gimana|bagaimana|bisa|rekomendasi|harga|fasilitas|kalo|kalau|kenapa|siapa|kapan|dimana|mana)\b/i.test(lower);
 
   // ─── INTENT DETECTOR & ROUTER ──────────────────────────────────────────────
   // Deteksi intent Kafe (Button payload atau kata kunci makanan/minuman)
-  const isCafeIntent =
-    session.status.startsWith('cafe_') ||
+  const isCafeButton =
     ['menu_kafe', 'btn_kafe', 'kafe', 'cafe_dinein', 'cafe_takeaway', 'cafe_reservasi', 'cart_view', 'order_confirm'].includes(lower) ||
     lower.startsWith('cat_') ||
-    lower.startsWith('add_') ||
-    /\b(kafe|cafe|kopi|ngopi|makan|minum|makanan|minuman|resto|restoran|snack|croissant|latte|espresso|cappuccino)\b/i.test(lower);
+    lower.startsWith('add_');
+
+  const isCafeIntent =
+    session.status.startsWith('cafe_') ||
+    isCafeButton ||
+    (!isQuestion && /\b(kafe|cafe|kopi|ngopi|makan|minum|makanan|minuman|resto|restoran|snack|croissant|latte|espresso|cappuccino)\b/i.test(lower));
 
   // Deteksi intent Hotel (Button payload atau kata kunci spesifik reservasi/menginap)
-  const isHotelIntent =
-    session.status.startsWith('hotel_') ||
+  const isHotelButton =
     ['menu_hotel', 'btn_hotel', 'hotel', 'hotel_reservasi', 'hotel_pay_step', 'hotel_pay_confirm', 'hotel_cancel'].includes(lower) ||
     lower.startsWith('room_') ||
-    lower.startsWith('hotel_pay_') ||
-    /\b(booking\s*(?:kamar|hotel)?|reservasi\s*(?:kamar|hotel)?|sewa\s*kamar|pesan\s*(?:kamar|hotel)|menginap|nginep|checkin|check-in|checkout|check-out|deluxe|executive\s*suite|presidential)\b/i.test(lower) ||
-    ((lower === 'hotel' || lower === 'kamar' || lower === 'kamar hotel') && session.status === 'idle');
+    lower.startsWith('hotel_pay_');
+
+  const isHotelIntent =
+    session.status.startsWith('hotel_') ||
+    isHotelButton ||
+    (!isQuestion && (
+      /\b(booking\s*(?:kamar|hotel)?|reservasi\s*(?:kamar|hotel)?|sewa\s*kamar|pesan\s*(?:kamar|hotel)|menginap|nginep|checkin|check-in|checkout|check-out)\b/i.test(lower) ||
+      ((lower === 'hotel' || lower === 'kamar' || lower === 'kamar hotel') && session.status === 'idle')
+    ));
 
   // Prioritas 1: Jika user menyebut kafe / makanan / minuman ➔ Langsung ke Kafe Flow
   if (isCafeIntent && !session.status.startsWith('hotel_')) {
@@ -142,46 +172,46 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     if (handled) return;
   }
 
-  // Prioritas 3: Coba proses melalui Rasa AI (Natural Language Processing untuk Pesanan Kafe / Q&A / Out-of-Scope)
-  const rasaResult = await sendToRasa(cleanPhone, cleanText);
-  const isDefaultFallback = rasaResult.messages?.some((m) =>
-    m.includes('belum memahami maksud Anda')
-  );
+  // Prioritas 3: Coba proses melalui Rasa AI (Natural Language Processing untuk Pesanan Kafe / Perintah Transaksi)
+  // Jika input adalah pertanyaan informatif/follow-up (isQuestion), lewati Rasa dan serahkan langsung ke Gemini AI (Prioritas 4)
+  if (!isQuestion) {
+    const rasaResult = await sendToRasa(cleanPhone, cleanText);
+    const isOutOfContextOrCS = rasaResult.messages?.some((m) =>
+      m.includes('di luar konteks') ||
+      m.includes('Customer Service') ||
+      m.includes('belum memahami maksud Anda') ||
+      m.includes('bantuan staf')
+    );
 
-  const isOutOfContextOrCS = rasaResult.messages?.some((m) =>
-    m.includes('di luar konteks') ||
-    m.includes('Customer Service') ||
-    m.includes('belum memahami maksud Anda') ||
-    m.includes('bantuan staf')
-  );
+    const isUnwantedHotelPrompt = rasaResult.messages?.some((m) =>
+      m.includes('Mau booking tipe kamar')
+    );
 
-  // Guard: Jangan sampai pesan default hotel terpental jika user tidak sedang booking hotel
-  const isUnwantedHotelPrompt = rasaResult.messages?.some((m) =>
-    m.includes('Mau booking tipe kamar apa kak')
-  );
-
-  if (
-    rasaResult.handled &&
-    rasaResult.messages?.length > 0 &&
-    !(isUnwantedHotelPrompt && !isHotelIntent)
-  ) {
-    console.log(`🤖 [RASA HANDLED] Membalas ${rasaResult.messages.length} pesan dari Rasa ke +${cleanPhone}`);
-    for (const reply of rasaResult.messages) {
-      await gateway.sendText(cleanPhone, reply);
+    if (
+      rasaResult.handled &&
+      rasaResult.messages?.length > 0 &&
+      !isUnwantedHotelPrompt
+    ) {
+      console.log(`🤖 [RASA HANDLED] Membalas ${rasaResult.messages.length} pesan dari Rasa ke +${cleanPhone}`);
+      for (const reply of rasaResult.messages) {
+        await gateway.sendText(cleanPhone, reply);
+      }
+      // Jika jawaban Rasa terkait di luar konteks / fallback / CS, tawarkan tombol Hubungi CS & Menu Utama
+      if (isOutOfContextOrCS) {
+        await gateway.sendButtons(cleanPhone, 'Butuh bantuan staf kami?', [
+          { id: 'menu_cs',   title: '🎧 Hubungi CS / Staf' },
+          { id: 'goto_main', title: '🔙 Menu Utama' },
+        ]);
+      }
+      return;
     }
-    // Jika jawaban Rasa terkait di luar konteks / fallback / CS, tawarkan tombol Hubungi CS & Menu Utama
-    if (isOutOfContextOrCS) {
-      await gateway.sendButtons(cleanPhone, 'Butuh bantuan staf kami?', [
-        { id: 'menu_cs',   title: '🎧 Hubungi CS / Staf' },
-        { id: 'goto_main', title: '🔙 Menu Utama' },
-      ]);
-    }
-    return;
   }
 
   // Prioritas 4: Default fallback ke AI Gemini Q&A (Anti-Defaulting to Hotel!)
   console.log(`🤖 [AI QUERY] Memanggil Gemini untuk: "${cleanText}"`);
-  const aiResult = await jawabAI(cleanText);
+  const chatHistory = db.getRecentSessionMessages(cleanPhone, 6, 30);
+  const guestProfile = db.getGuestProfile(cleanPhone);
+  const aiResult = await jawabAI(cleanText, { chatHistory, guestProfile });
 
   if (aiResult.eskalasi) {
     db.setBotStatus(cleanPhone, 'human');

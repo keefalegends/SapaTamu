@@ -45,8 +45,44 @@ function formatRupiah(num) {
   return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
 }
 
+function isQuestion(text) {
+  const lower = (text || '').toLowerCase().trim();
+  return (
+    lower.includes('?') ||
+    /\b(berapa|total|apa|apakah|ada\s+gak|ada\s+tidak|ada\s+nggak|gimana|bagaimana|bisa|rekomendasi|harga|fasilitas|kalo|kalau|kenapa|siapa|kapan|dimana|mana)\b/i.test(lower)
+  );
+}
+
 async function handleHotelFlow(phone, text, session) {
   const lower = (text || '').toLowerCase().trim();
+
+  // Interceptor: Jika sedang di alur hotel tapi user menanyakan hal lain (misal fasilitas kamar, harga, dsb)
+  if (isQuestion(text)) {
+    const { jawabAI } = require('./aiService');
+    const chatHistory = db.getRecentSessionMessages(phone, 6, 30);
+    const guestProfile = db.getGuestProfile(phone);
+    const aiResp = await jawabAI(text, { chatHistory, guestProfile });
+    if (aiResp.jawaban) {
+      await gateway.sendText(phone, `🤖 *AI SapaTamu:*\n\n${aiResp.jawaban}`);
+    }
+
+    if (session.status === 'hotel_await_date') {
+      const roomKey = session.draft?.roomKey || 'deluxe';
+      const room = getRoom(roomKey);
+      await gateway.sendButtons(phone, `Lanjutkan reservasi *${room.name}*?`, [
+        { id: `room_${roomKey}`, title: `🏨 Lanjut ${room.name}` },
+        { id: 'menu_hotel',      title: '🔄 Ganti Kamar' },
+        { id: 'goto_main',       title: '🔙 Menu Utama' },
+      ]);
+    } else {
+      await gateway.sendButtons(phone, 'Silakan pilih tipe kamar yang Anda inginkan:', [
+        { id: 'room_deluxe',    title: '🛏️ Deluxe Room' },
+        { id: 'room_executive', title: '🌟 Executive Suite' },
+        { id: 'room_suite',     title: '👑 Presidential' },
+      ]);
+    }
+    return true;
+  }
 
   // 1. Menu Pilihan Kamar
   if (
@@ -95,14 +131,17 @@ async function handleHotelFlow(phone, text, session) {
   }
 
   // 2. Pilih Kamar
-  if (
-    session.status === 'hotel_pick_room' ||
-    lower.startsWith('room_') ||
-    lower.includes('deluxe') ||
-    lower.includes('executive') ||
-    lower.includes('suite') ||
-    lower.includes('presidential')
-  ) {
+  const isRoomButton = lower.startsWith('room_');
+  const isRoomChoice =
+    (session.status === 'hotel_pick_room' && (
+      lower === 'deluxe' || lower === 'deluxe room' ||
+      lower === 'executive' || lower === 'executive suite' ||
+      lower === 'suite' || lower === 'presidential' || lower === 'presidential suite' ||
+      lower.includes('deluxe') || lower.includes('executive') || lower.includes('suite')
+    )) ||
+    (/\b(pilih|ambil|booking|pesan|sewa)\s*(?:kamar)?\s*(?:deluxe|executive|suite|presidential)\b/i.test(lower));
+
+  if (isRoomButton || isRoomChoice) {
     let chosenKey = 'deluxe';
     if (lower.includes('executive') || lower === 'room_executive') chosenKey = 'executive';
     if (lower.includes('suite') || lower.includes('presidential') || lower === 'room_suite') chosenKey = 'suite';

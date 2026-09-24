@@ -57,6 +57,30 @@ const StateManager = {
       console.log(`🔄 [STATE MANAGER] Reset lokal +${cleanPhone} ➔ IDLE (Rasa unreachable: ${err.message})`);
     }
   },
+
+  /**
+   * Memeriksa apakah sesi obrolan pengguna sudah kedaluwarsa (> timeoutMinutes)
+   * @param {string} phone 
+   * @param {number} timeoutMinutes default 30
+   * @returns {boolean}
+   */
+  isSessionExpired(phone, timeoutMinutes = 30) {
+    const cleanPhone = String(phone).replace(/\D/g, '');
+    const conv = db.getConversation(cleanPhone);
+    if (!conv || !conv.last_message_at) return false;
+
+    try {
+      const timeStr = String(conv.last_message_at);
+      const isoStr = timeStr.includes('Z') ? timeStr : timeStr.replace(' ', 'T') + 'Z';
+      const lastActive = new Date(isoStr).getTime();
+      if (isNaN(lastActive)) return false;
+
+      const diffMinutes = (Date.now() - lastActive) / (1000 * 60);
+      return diffMinutes > timeoutMinutes;
+    } catch (e) {
+      return false;
+    }
+  },
 };
 
 module.exports = StateManager;

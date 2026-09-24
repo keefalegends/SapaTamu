@@ -276,6 +276,90 @@ function getStats() {
   };
 }
 
+function getRecentSessionMessages(phone, limit = 6, timeoutMinutes = 30) {
+  try {
+    const cutoffTime = new Date(Date.now() - timeoutMinutes * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
+    const rows = db.prepare(`
+      SELECT sender, content, created_at 
+      FROM messages 
+      WHERE phone_number = ? 
+        AND created_at >= ?
+        AND content IS NOT NULL 
+        AND content != ''
+        AND message_type = 'text'
+      ORDER BY id DESC 
+      LIMIT ?
+    `).all(phone, cutoffTime, limit);
+
+    return rows.reverse();
+  } catch (err) {
+    console.error('⚠️ [DB] Gagal ambil recent session messages:', err.message);
+    return [];
+  }
+}
+
+function getGuestProfile(phone) {
+  try {
+    // 1. Ambil data nama dari percakapan
+    const conv = db.prepare('SELECT name, last_message_at FROM conversations WHERE phone_number = ?').get(phone);
+    let guestName = null;
+
+    if (conv && conv.name && !conv.name.startsWith('Tamu (+') && !conv.name.startsWith('628') && conv.name.trim().length > 1) {
+      guestName = conv.name.trim();
+    }
+
+    // 2. Ambil riwayat booking hotel terakhir
+    const pastBookings = db.prepare(`
+      SELECT booking_code, guest_name, room_name, check_in, total_price, status, created_at 
+      FROM hotel_bookings 
+      WHERE phone_number = ? 
+      ORDER BY created_at DESC 
+      LIMIT 3
+    `).all(phone);
+
+    // Jika nama belum ada di conversation, coba ambil dari nama pemesan kamar
+    if (!guestName && pastBookings.length > 0 && pastBookings[0].guest_name && pastBookings[0].guest_name !== 'Tamu SapaTamu') {
+      guestName = pastBookings[0].guest_name.trim();
+    }
+
+    // 3. Ambil riwayat pesanan kafe terakhir beserta itemnya
+    const pastOrders = db.prepare(`
+      SELECT o.order_code, o.customer_name, o.total_amount, o.status, o.created_at,
+             GROUP_CONCAT(i.item_name || ' (' || i.qty || 'x)', ', ') as items
+      FROM cafe_orders o
+      LEFT JOIN cafe_order_items i ON o.order_code = i.order_code
+      WHERE o.phone_number = ?
+      GROUP BY o.order_code
+      ORDER BY o.created_at DESC 
+      LIMIT 3
+    `).all(phone);
+
+    // Jika nama masih belum ada, coba ambil dari nama pemesan kafe
+    if (!guestName && pastOrders.length > 0 && pastOrders[0].customer_name && pastOrders[0].customer_name !== 'Pelanggan') {
+      guestName = pastOrders[0].customer_name.trim();
+    }
+
+    const isReturning = pastBookings.length > 0 || pastOrders.length > 0;
+
+    return {
+      name: guestName,
+      isReturningGuest: isReturning,
+      lastActiveAt: conv?.last_message_at || null,
+      pastBookings,
+      pastOrders,
+    };
+  } catch (err) {
+    console.error('⚠️ [DB] Gagal ambil guest profile:', err.message);
+    return {
+      name: null,
+      isReturningGuest: false,
+      lastActiveAt: null,
+      pastBookings: [],
+      pastOrders: [],
+    };
+  }
+}
+
 module.exports = {
   db,
   prepare: (...args) => db.prepare(...args),
@@ -285,6 +369,8 @@ module.exports = {
   setBotStatus,
   saveMessage,
   getMessages,
+  getRecentSessionMessages,
+  getGuestProfile,
   getAllConversations,
   getSession,
   setSession,
