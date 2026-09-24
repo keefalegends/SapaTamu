@@ -382,7 +382,7 @@ async function handleConfirm(convId, contactId, senderPhone, text) {
       `📱 *QRIS*\n` +
       `Scan QR pembayaran di kasir\n\n` +
       `🏦 *Transfer VA*\n` +
-      `Bank BCA: 8808-0822-1947-2360\n` +
+      `Bank BCA: 8808-0812-3456-7890\n` +
       `a.n. SapaTamu Cafe\n\n` +
       `_⚠️ Demo mode — tekan "Sudah Bayar" untuk lanjut._`
     );

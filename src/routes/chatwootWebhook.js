@@ -635,7 +635,7 @@ router.post('/', async (req, res) => {
               '🏦 *SIMULASI VIRTUAL ACCOUNT BCA (DEMO)*\n' +
               '════════════════════════\n' +
               '🏦 *Bank*          : BCA Virtual Account\n' +
-              '🔢 *No. Rekening*  : *8808-0822-1947-2360*\n' +
+              '🔢 *No. Rekening*  : *8808-0812-3456-7890*\n' +
               '👤 *Nama Penerima* : *SapaTamu Hotel Resort*\n' +
               `💵 *Total Tagihan* : *${total}*\n` +
               '════════════════════════\n\n' +

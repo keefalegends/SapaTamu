@@ -22,9 +22,9 @@ stories:
       - intent: ask_menu
       - action: action_show_menu
       - intent: order_food
-      - action: action_submit_cafe_order
+      - action: action_show_menu
 
   - story: Direct order food
     steps:
       - intent: order_food
-      - action: action_submit_cafe_order
+      - action: action_show_menu

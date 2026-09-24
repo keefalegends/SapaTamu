@@ -28,8 +28,8 @@ function getMenuCatalog() {
 const MENU_ALIASES = [
   { id: 'nas', name: 'Nasi Goreng Spesial', price: 35000, aliases: ['nasi goreng spesial', 'nasi goreng', 'nasgor', 'nasi gorng spesial', 'nasi gorng', 'nasigoreng', 'gorng'] },
   { id: 'car', name: 'Spaghetti Carbonara', price: 45000, aliases: ['spaghetti carbonara', 'spaghetti', 'carbonara', 'spageti carbonara', 'spageti carbo', 'spaghetti carbo', 'carbo', 'spageti', 'pasta'] },
-  { id: 'cro', name: 'Butter Croissant', price: 20000, aliases: ['butter croissant', 'croissant', 'croisant', 'roti croissant'] },
-  { id: 'rot', name: 'Roti Bakar Spesial', price: 18000, aliases: ['roti bakar spesial', 'roti bakar'] },
+  { id: 'cro', name: 'Butter Croissant', price: 20000, aliases: ['butter croissant', 'croissant', 'croisant', 'roti croissant', 'butter quaso', 'quaso', 'kwason', 'kuaso', 'croisnt', 'croisan', 'quasong', 'quasoo'] },
+  { id: 'rot', name: 'Roti Bakar Spesial', price: 18000, aliases: ['roti bakar spesial', 'roti bakar', 'rotbak'] },
   { id: 'mat', name: 'Matcha Latte', price: 25000, aliases: ['matcha latte', 'matcha', 'macha', 'greentea', 'green tea', 'teh hijau'] },
   { id: 'lat', name: 'Caffe Latte', price: 28000, aliases: ['caffe latte', 'cafe latte', 'kopi latte', 'latte', 'kopi susu', 'coffee latte'] },
   { id: 'cap', name: 'Cappuccino', price: 28000, aliases: ['cappuccino', 'capuccino', 'kapucino'] },
@@ -135,6 +135,20 @@ function isQuestion(text) {
 async function handleCafeFlow(phone, text, session) {
   const lower = (text || '').toLowerCase().trim();
 
+  // 0A. Interceptor Pembatalan Alur Kafe
+  const isCancellation = lower === 'cafe_cancel' || /\b(gajadi|ga jadi|gak jadi|nggak jadi|enggak jadi|batal|batalkan|cancel|abort|stop|jangan jadi)\b/i.test(lower);
+  if (isCancellation && session.status.startsWith('cafe_')) {
+    const StateManager = require('./stateManager');
+    await StateManager.reset(phone, 'cafe_cancelled');
+    await gateway.sendText(phone, '❌ *Pesanan kafe telah dibatalkan.*');
+    await gateway.sendButtons(phone, 'Silakan pilih layanan SapaTamu:', [
+      { id: 'goto_main',  title: '🔙 Menu Utama' },
+      { id: 'menu_kafe',  title: '☕ Kafe' },
+      { id: 'menu_hotel', title: '🏨 Hotel' },
+    ]);
+    return true;
+  }
+
   // Interceptor Pertanyaan saat alur kafe aktif
   if (isQuestion(text) && session.status.startsWith('cafe_')) {
     const { jawabAI } = require('./aiService');
@@ -152,8 +166,8 @@ async function handleCafeFlow(phone, text, session) {
     return true;
   }
 
-  // 0. Deteksi Pemesanan Menu Langsung (Direct Multi-Item Ordering dari percakapan bebas / idle)
-  if (!lower.startsWith('room_') && !session.status.startsWith('hotel_') && !isQuestion(text)) {
+  // 0B. Deteksi Pemesanan Menu Langsung (Direct Multi-Item Ordering dari percakapan bebas / idle)
+  if (!lower.startsWith('room_') && !isQuestion(text)) {
     const directItems = parseMultipleMenuItems(text);
     if (directItems.length > 0) {
       let draft = session.draft || { orderType: 'takeaway', cart: [] };
@@ -392,7 +406,11 @@ async function handleCafeFlow(phone, text, session) {
   }
 
   // 7. Konfirmasi Pesanan ➡️ Kode Pesanan & Catat ke DB
-  if ((session.status === 'cafe_confirm_order' || session.status === 'cafe_ordering') && (lower === 'order_confirm' || lower.includes('konfirmasi'))) {
+  const isOrderConfirm =
+    lower === 'order_confirm' ||
+    /\b(konfirmasi|confirm|gas|gas beli|gas order|gas pesan|beli|bayar|oke|ok|lanjut|proses|siap|deal|ya|yoi|pesan sekarang)\b/i.test(lower);
+
+  if ((session.status === 'cafe_confirm_order' || session.status === 'cafe_ordering') && isOrderConfirm) {
     const draft = session.draft || { cart: [] };
     if (!draft.cart || draft.cart.length === 0) {
       await gateway.sendButtons(phone, '🛒 Keranjang Anda masih kosong. Silakan pilih menu:', [

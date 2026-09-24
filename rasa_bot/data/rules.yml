@@ -33,10 +33,10 @@ rules:
       - action: utter_ask_room_info
 
   # --- CAFE ORDER RULES ---
-  - rule: Submit cafe order directly
+  - rule: Tampilkan menu kafe saat user ingin memesan
     steps:
       - intent: order_food
-      - action: action_submit_cafe_order
+      - action: action_show_menu
 
   - rule: Tangani permintaan CS dan bantuan darurat
     steps:

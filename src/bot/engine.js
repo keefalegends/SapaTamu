@@ -126,8 +126,18 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     return;
   }
 
+  // 4B. Global Interceptor: Pembatalan Alur (Anti-Draft Lock)
+  const isCancellation = /\b(gajadi|ga jadi|gak jadi|nggak jadi|enggak jadi|batal|batalkan|cancel|abort|stop|jangan jadi)\b/i.test(lower);
+  if (isCancellation) {
+    console.log(`🛑 [GLOBAL CANCEL] Pengguna +${cleanPhone} membatalkan alur via kata kunci '${cleanText}'`);
+    await StateManager.reset(cleanPhone, 'user_cancellation');
+    await gateway.sendText(cleanPhone, '❌ *Alur transaksi berhasil dibatalkan.*\nSesi Anda telah dikembalikan ke menu utama.');
+    await gateway.sendButtons(cleanPhone, 'Pilihan layanan SapaTamu:', MENU_UTAMA.buttons);
+    return;
+  }
+
   // 5. Cek Sesi Aktif
-  const session = StateManager.get(cleanPhone);
+  let session = StateManager.get(cleanPhone);
 
   // Helper untuk mengenali apakah input adalah kalimat tanya
   const isQuestion =
@@ -135,19 +145,20 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     /\b(berapa|total|apa|apakah|ada\s+gak|ada\s+tidak|ada\s+nggak|gimana|bagaimana|bisa|rekomendasi|harga|fasilitas|kalo|kalau|kenapa|siapa|kapan|dimana|mana)\b/i.test(lower);
 
   // ─── INTENT DETECTOR & ROUTER ──────────────────────────────────────────────
+  // Deteksi item kafe langsung dari teks bebas
+  const cafeItemsFound = !isQuestion ? parseMultipleMenuItems(cleanText) : [];
+
   // Deteksi intent Kafe (Button payload, kata kunci makanan/minuman, atau item menu langsung)
   const isCafeButton =
-    ['menu_kafe', 'btn_kafe', 'kafe', 'cafe_dinein', 'cafe_takeaway', 'cafe_reservasi', 'cart_view', 'order_confirm'].includes(lower) ||
+    ['menu_kafe', 'btn_kafe', 'kafe', 'cafe_dinein', 'cafe_takeaway', 'cafe_reservasi', 'cart_view', 'order_confirm', 'cafe_cancel'].includes(lower) ||
     lower.startsWith('cat_') ||
     lower.startsWith('add_');
-
-  const cafeItemsFound = (!session.status.startsWith('hotel_') && !isQuestion) ? parseMultipleMenuItems(cleanText) : [];
 
   const isCafeIntent =
     session.status.startsWith('cafe_') ||
     isCafeButton ||
     cafeItemsFound.length > 0 ||
-    (!isQuestion && /\b(kafe|cafe|kopi|ngopi|makan|minum|makanan|minuman|resto|restoran|snack|croissant|latte|espresso|cappuccino|pesan|order|beli)\b/i.test(lower));
+    (!isQuestion && /\b(kafe|cafe|kopi|ngopi|makan|minum|makanan|minuman|resto|restoran|snack|croissant|quaso|latte|espresso|cappuccino|pesan\s+(?:makan|minum|kopi)|order\s+(?:makan|minum)|beli)\b/i.test(lower));
 
   // Deteksi intent Hotel (Button payload atau kata kunci spesifik reservasi/menginap)
   const isHotelButton =
@@ -163,8 +174,25 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
       ((lower === 'hotel' || lower === 'kamar' || lower === 'kamar hotel') && session.status === 'idle')
     ));
 
+  // ─── CONTEXT SWITCHING (ANTI-TRAP DRAFT) ──────────────────────────────────
+  // Jika user sedang di alur Hotel tetapi secara eksplisit meminta Kafe / memesan makanan
+  const isExplicitCafeRequest = isCafeButton || cafeItemsFound.length > 0 || /\b(kafe|cafe|kopi|ngopi|makan|minum|makanan|minuman|resto|pesan|beli|order)\b/i.test(lower);
+  if (session.status.startsWith('hotel_') && isExplicitCafeRequest) {
+    console.log(`🔄 [CONTEXT SWITCH] Pengguna +${cleanPhone} beralih dari ${session.status} ke KAFE`);
+    await StateManager.reset(cleanPhone, 'switch_hotel_to_cafe');
+    session = StateManager.get(cleanPhone);
+  }
+
+  // Jika user sedang di alur Kafe tetapi secara eksplisit meminta Hotel / booking kamar
+  const isExplicitHotelRequest = isHotelButton || /\b(booking|reservasi|sewa\s*kamar|kamar\s*hotel|nginep|menginap|checkin)\b/i.test(lower);
+  if (session.status.startsWith('cafe_') && isExplicitHotelRequest) {
+    console.log(`🔄 [CONTEXT SWITCH] Pengguna +${cleanPhone} beralih dari ${session.status} ke HOTEL`);
+    await StateManager.reset(cleanPhone, 'switch_cafe_to_hotel');
+    session = StateManager.get(cleanPhone);
+  }
+
   // Prioritas 1: Jika user menyebut kafe / makanan / minuman ➔ Langsung ke Kafe Flow
-  if (isCafeIntent && !session.status.startsWith('hotel_')) {
+  if (isCafeIntent) {
     const handled = await handleCafeFlow(cleanPhone, cleanText, session);
     if (handled) return;
   }
@@ -179,11 +207,11 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
   // Jika input adalah pertanyaan informatif/follow-up (isQuestion), lewati Rasa dan serahkan langsung ke Gemini AI (Prioritas 4)
   if (!isQuestion) {
     const rasaResult = await sendToRasa(cleanPhone, cleanText);
-    const isOutOfContextOrCS = rasaResult.messages?.some((m) =>
-      m.includes('di luar konteks') ||
-      m.includes('Customer Service') ||
+
+    // Cek apakah Rasa memberikan respon fallback tidak paham
+    const isDefaultFallback = rasaResult.messages?.some((m) =>
       m.includes('belum memahami maksud Anda') ||
-      m.includes('bantuan staf')
+      m.includes('di luar konteks')
     );
 
     // Guard Anti-Halusinasi Hotel: Jika user tidak berniat booking hotel, jangan biarkan prompt kamar/checkin dari Rasa lolos
@@ -195,21 +223,22 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
       m.includes('PILIHAN KAMAR')
     );
 
+    // Guard Anti-Shadow Order Kafe dari Rasa: Rasa dilarang membuat pesanan otomatis langsung ke DB
+    const isUnwantedCafeOrder = rasaResult.messages?.some((m) =>
+      m.includes('PESANAN KAFE BERHASIL DIBUAT') ||
+      m.includes('No. Pesanan: ST-CAFE')
+    );
+
     if (
       rasaResult.handled &&
       rasaResult.messages?.length > 0 &&
+      !isDefaultFallback &&
+      !isUnwantedCafeOrder &&
       (!isUnwantedHotelPrompt || isHotelIntent)
     ) {
       console.log(`🤖 [RASA HANDLED] Membalas ${rasaResult.messages.length} pesan dari Rasa ke +${cleanPhone}`);
       for (const reply of rasaResult.messages) {
         await gateway.sendText(cleanPhone, reply);
-      }
-      // Jika jawaban Rasa terkait di luar konteks / fallback / CS, tawarkan tombol Hubungi CS & Menu Utama
-      if (isOutOfContextOrCS) {
-        await gateway.sendButtons(cleanPhone, 'Butuh bantuan staf kami?', [
-          { id: 'menu_cs',   title: '🎧 Hubungi CS / Staf' },
-          { id: 'goto_main', title: '🔙 Menu Utama' },
-        ]);
       }
       return;
     }

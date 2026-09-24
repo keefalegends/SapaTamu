@@ -329,28 +329,8 @@ class ActionSubmitCafeOrder(Action):
         grand_total_str = f"Rp {grand_total:,}".replace(",", ".")
         order_code = f"ST-CAFE-{random.randint(1000, 9999)}"
 
-        # 5. Simpan ke SQLite Database SapaTamu (Tabel cafe_orders & cafe_order_items)
-        try:
-            if os.path.exists(DB_PATH):
-                conn = sqlite3.connect(DB_PATH, timeout=5)
-                cur = conn.cursor()
-                cur.execute("""
-                    INSERT OR REPLACE INTO cafe_orders 
-                    (order_code, phone_number, customer_name, table_number, order_type, total_amount, payment_status, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (order_code, clean_phone, name, 1, 'dine_in', grand_total, 'paid', 'new'))
-                
-                for it in items:
-                    cur.execute("""
-                        INSERT INTO cafe_order_items (order_code, item_name, qty, price, subtotal)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (order_code, it['name'], it['qty'], it['price'], it['subtotal']))
-                
-                conn.commit()
-                conn.close()
-                print(f"[DB SAVE SUCCESS] Cafe Order {order_code} ({name}, {len(items)} items, Rp {grand_total})")
-        except Exception as e:
-            print(f"[DB SAVE ERROR] cafe_orders: {e}")
+        # 5. DB save dinonaktifkan di Rasa agar tidak terjadi shadow order, pemesanan dikelola oleh Node.js
+        print(f"[RASA CAFE ORDER DELEGATED TO NODE] ({name}, Rp {grand_total})")
 
         # 6. Format Rincian Item untuk WhatsApp
         items_lines = []

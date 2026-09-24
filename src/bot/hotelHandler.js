@@ -56,6 +56,20 @@ function isQuestion(text) {
 async function handleHotelFlow(phone, text, session) {
   const lower = (text || '').toLowerCase().trim();
 
+  // 0. Interceptor Pembatalan Eksplisit dalam Flow Hotel
+  const isCancellation = lower === 'hotel_cancel' || /\b(gajadi|ga jadi|gak jadi|nggak jadi|enggak jadi|batal|batalkan|cancel|abort|stop|jangan jadi)\b/i.test(lower);
+  if (isCancellation) {
+    const StateManager = require('./stateManager');
+    await StateManager.reset(phone, 'hotel_cancelled');
+    await gateway.sendText(phone, '❌ *Pemesanan kamar hotel telah dibatalkan.*');
+    await gateway.sendButtons(phone, 'Silakan pilih layanan SapaTamu:', [
+      { id: 'goto_main',  title: '🔙 Menu Utama' },
+      { id: 'menu_kafe',  title: '☕ Kafe' },
+      { id: 'menu_cs',    title: '🎧 Hubungi CS' },
+    ]);
+    return true;
+  }
+
   // Interceptor: Jika sedang di alur hotel tapi user menanyakan hal lain (misal fasilitas kamar, harga, dsb)
   if (isQuestion(text)) {
     const { jawabAI } = require('./aiService');
@@ -130,22 +144,34 @@ async function handleHotelFlow(phone, text, session) {
     return true;
   }
 
-  // 2. Pilih Kamar
+  // 2. Pilih Kamar (Toleran Typo: 'yang delux', 'delux', 'exec', dsb)
   const isRoomButton = lower.startsWith('room_');
-  const isRoomChoice =
-    (session.status === 'hotel_pick_room' && (
-      lower === 'deluxe' || lower === 'deluxe room' ||
-      lower === 'executive' || lower === 'executive suite' ||
-      lower === 'suite' || lower === 'presidential' || lower === 'presidential suite' ||
-      lower.includes('deluxe') || lower.includes('executive') || lower.includes('suite')
-    )) ||
-    (/\b(pilih|ambil|booking|pesan|sewa)\s*(?:kamar)?\s*(?:deluxe|executive|suite|presidential)\b/i.test(lower));
+  let chosenKey = null;
 
-  if (isRoomButton || isRoomChoice) {
-    let chosenKey = 'deluxe';
-    if (lower.includes('executive') || lower === 'room_executive') chosenKey = 'executive';
-    if (lower.includes('suite') || lower.includes('presidential') || lower === 'room_suite') chosenKey = 'suite';
+  if (isRoomButton) {
+    if (lower === 'room_deluxe') chosenKey = 'deluxe';
+    else if (lower === 'room_executive') chosenKey = 'executive';
+    else if (lower === 'room_suite') chosenKey = 'suite';
+  } else if (session.status === 'hotel_pick_room' || session.status === 'hotel_menu') {
+    if (/\b(deluxe|delux|dlx|deluks|kamar 1|pilihan 1|1)\b/i.test(lower) || lower.includes('delux')) {
+      chosenKey = 'deluxe';
+    } else if (/\b(executive|eksekutif|exec|eksekutip|kamar 2|pilihan 2|2)\b/i.test(lower) || lower.includes('exec') || lower.includes('eksekuti')) {
+      chosenKey = 'executive';
+    } else if (/\b(suite|presidential|presiden|kamar 3|pilihan 3|3)\b/i.test(lower) || lower.includes('suite') || lower.includes('presiden')) {
+      chosenKey = 'suite';
+    }
+  } else {
+    // Regex fleksibel saat di luar status hotel_pick_room
+    if (/\b(pilih|ambil|booking|pesan|sewa|mau|kamar)\s*(?:tipe\s*)?(?:deluxe|delux|dlx|deluks)\b/i.test(lower) || /\b(yang\s+delux[e]?)\b/i.test(lower)) {
+      chosenKey = 'deluxe';
+    } else if (/\b(pilih|ambil|booking|pesan|sewa|mau|kamar)\s*(?:tipe\s*)?(?:executive|eksekutif|exec|eksekutip)\b/i.test(lower) || /\b(yang\s+exec(?:utive)?|yang\s+eksekutif)\b/i.test(lower)) {
+      chosenKey = 'executive';
+    } else if (/\b(pilih|ambil|booking|pesan|sewa|mau|kamar)\s*(?:tipe\s*)?(?:suite|presidential|presiden)\b/i.test(lower) || /\b(yang\s+presiden(?:tial)?|yang\s+suite)\b/i.test(lower)) {
+      chosenKey = 'suite';
+    }
+  }
 
+  if (chosenKey) {
     const room = getRoom(chosenKey);
     db.setSession(phone, 'hotel_await_date', { roomKey: chosenKey });
 
@@ -204,7 +230,11 @@ async function handleHotelFlow(phone, text, session) {
   }
 
   // 4. Lanjut Bayar
-  if (session.status === 'hotel_confirm_draft' && (lower === 'hotel_pay_step' || lower.includes('bayar'))) {
+  const isPayStep =
+    lower === 'hotel_pay_step' ||
+    /\b(bayar|lanjut|lanjutkan|ya|oke|ok|gas|proses|deal)\b/i.test(lower);
+
+  if (session.status === 'hotel_confirm_draft' && isPayStep) {
     db.setSession(phone, 'hotel_select_payment', session.draft);
 
     await gateway.sendButtons(phone,
@@ -232,7 +262,7 @@ async function handleHotelFlow(phone, text, session) {
     } else {
       await gateway.sendText(phone,
         '🏦 *SIMULASI VIRTUAL ACCOUNT BCA (DEMO)*\n\n' +
-        'Nomor VA: *8808-0822-1947-2360*\n' +
+        'Nomor VA: *8808-0812-3456-7890*\n' +
         'Atas Nama: *SapaTamu Hotel Resort*\n' +
         `Total Tagihan: *${formatRupiah(draft.totalPrice)}*\n\n` +
         'Silakan transfer via m-BCA / ATM.'
@@ -247,7 +277,11 @@ async function handleHotelFlow(phone, text, session) {
   }
 
   // 6. Konfirmasi Lunas ➡️ E-Voucher Resmi
-  if (['hotel_confirm_draft', 'hotel_select_payment', 'hotel_await_payment'].includes(session.status) && (lower === 'hotel_pay_confirm' || lower.includes('sudah bayar'))) {
+  const isPaidConfirm =
+    lower === 'hotel_pay_confirm' ||
+    /\b(sudah bayar|lunas|transfer done|sudah tf|udah bayar|udah tf|selesai bayar)\b/i.test(lower);
+
+  if (['hotel_confirm_draft', 'hotel_select_payment', 'hotel_await_payment'].includes(session.status) && isPaidConfirm) {
     const draft = session.draft;
     const now = new Date();
     const ymd = now.toISOString().slice(2, 10).replace(/-/g, '');
