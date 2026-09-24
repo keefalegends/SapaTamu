@@ -99,10 +99,12 @@ async function handleHotelFlow(phone, text, session) {
   }
 
   // 1. Menu Pilihan Kamar
-  if (
+  const isMenuHotelRequest =
     session.status === 'hotel_menu' ||
+    session.status === 'idle' ||
     lower === 'menu_hotel' ||
     lower === 'hotel' ||
+    lower === 'kamar' ||
     lower === 'hotel_reservasi' ||
     lower.includes('reservasi kamar') ||
     lower.includes('booking kamar') ||
@@ -112,13 +114,9 @@ async function handleHotelFlow(phone, text, session) {
     lower.includes('kamar hotel') ||
     lower.includes('sewa kamar') ||
     lower.includes('mau booking') ||
-    (session.status === 'idle' && (
-      lower === 'kamar' || lower === 'hotel' ||
-      lower.includes('booking kamar') || lower.includes('reservasi kamar') ||
-      lower.includes('pesan kamar') || lower.includes('sewa kamar') ||
-      lower.includes('info kamar') || lower.includes('menginap') || lower.includes('nginep')
-    ))
-  ) {
+    /\b(kamar|hotel|booking|reservasi|sewa|menginap|nginep|checkin)\b/i.test(lower);
+
+  if (isMenuHotelRequest) {
     db.setSession(phone, 'hotel_pick_room', { roomKey: null });
 
     const deluxe = getRoom('deluxe');

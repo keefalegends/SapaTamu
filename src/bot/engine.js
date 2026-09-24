@@ -170,8 +170,9 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
     session.status.startsWith('hotel_') ||
     isHotelButton ||
     (!isQuestion && (
-      /\b(booking\s*(?:kamar|hotel)?|reservasi\s*(?:kamar|hotel)?|sewa\s*kamar|pesan\s*(?:kamar|hotel)|menginap|nginep|checkin|check-in|checkout|check-out)\b/i.test(lower) ||
-      ((lower === 'hotel' || lower === 'kamar' || lower === 'kamar hotel') && session.status === 'idle')
+      /\b(booking|reservasi|sewa|menginap|nginep|checkin|check-in|checkout|check-out)\b/i.test(lower) ||
+      /\b(kamar|hotel)\b/i.test(lower) ||
+      /\b(pengen\s+kamar|mau\s+kamar|butuh\s+kamar|cari\s+kamar|ambil\s+kamar|pesan\s+kamar|sewa\s+kamar)\b/i.test(lower)
     ));
 
   // ─── CONTEXT SWITCHING (ANTI-TRAP DRAFT) ──────────────────────────────────
@@ -184,7 +185,7 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
   }
 
   // Jika user sedang di alur Kafe tetapi secara eksplisit meminta Hotel / booking kamar
-  const isExplicitHotelRequest = isHotelButton || /\b(booking|reservasi|sewa\s*kamar|kamar\s*hotel|nginep|menginap|checkin)\b/i.test(lower);
+  const isExplicitHotelRequest = isHotelButton || /\b(booking|reservasi|sewa\s*kamar|kamar|hotel|nginep|menginap|checkin)\b/i.test(lower);
   if (session.status.startsWith('cafe_') && isExplicitHotelRequest) {
     console.log(`🔄 [CONTEXT SWITCH] Pengguna +${cleanPhone} beralih dari ${session.status} ke HOTEL`);
     await StateManager.reset(cleanPhone, 'switch_cafe_to_hotel');
@@ -229,11 +230,18 @@ async function _executeInboundMessage(cleanPhone, senderName, text, rawPayload) 
       m.includes('No. Pesanan: ST-CAFE')
     );
 
+    // Guard Anti-False-CS dari Rasa: Jika user tidak berniat darurat/CS, jangan biarkan prompt CS/Darurat dari Rasa lolos
+    const isUnwantedCSPrompt = rasaResult.messages?.some((m) =>
+      m.includes('Layanan Bantuan & Customer Service') ||
+      m.includes('Pesan Anda terkait bantuan staf/darurat')
+    ) && !isEscalation;
+
     if (
       rasaResult.handled &&
       rasaResult.messages?.length > 0 &&
       !isDefaultFallback &&
       !isUnwantedCafeOrder &&
+      !isUnwantedCSPrompt &&
       (!isUnwantedHotelPrompt || isHotelIntent)
     ) {
       console.log(`🤖 [RASA HANDLED] Membalas ${rasaResult.messages.length} pesan dari Rasa ke +${cleanPhone}`);

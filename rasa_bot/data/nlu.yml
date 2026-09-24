@@ -62,9 +62,18 @@ nlu:
       - mau reservasi [Executive Suite](room_type) untuk [25 September](checkin_date)
       - pesan kamar [Presidential Suite](room_type)
       - mau nginep di kamar [deluxe](room_type)
-      - reservasi hotel buat tanggal [10 Oktober](checkin_date)
-      - bisa booking kamar [executive](room_type) buat [2](guests) orang?
       - mau sewa kamar [suite](room_type)
+      - gw pengen kamar
+      - pengen kamar
+      - mau kamar
+      - butuh kamar
+      - cari kamar
+      - kamar dong
+      - kamar hotel
+      - gw mau nginep
+      - pengen nginep
+      - mau nginep
+      - mau kamar hotel
 
   - intent: ask_menu
     examples: |
@@ -167,23 +176,23 @@ nlu:
       - panggil staf
       - butuh bantuan resepsionis
       - bicara dengan orang
-      - tolong ada kebakaran di kamar gw
+      - tolong ada kebakaran
       - ada kebakaran
-      - api di kamar
+      - ada api
       - tolong darurat
-      - ac kamar bocor
+      - ac bocor
       - ac mati
-      - kunci kamar hilang
+      - kunci hilang
       - wifi hotel mati
-      - kamar mandi kotor
-      - ada masalah di kamar
+      - toilet kotor
+      - ada masalah fasilitas
       - tolong panggil admin
       - saya mau komplain
       - pelayanan buruk
       - tolong bantuan
       - darurat min
       - ada maling
-      - kamar banjir
+      - banjir min
       - minta tolong segera
 
   - intent: out_of_scope

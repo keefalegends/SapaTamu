@@ -225,7 +225,15 @@ async function handleCafeFlow(phone, text, session) {
   }
 
   // 2. Menu Pilihan Layanan Kafe
-  if (session.status === 'cafe_menu' || lower === 'menu_kafe' || lower === 'kafe') {
+  const isCafeMenuRequest =
+    session.status === 'cafe_menu' ||
+    session.status === 'idle' ||
+    lower === 'menu_kafe' ||
+    lower === 'kafe' ||
+    lower === 'btn_kafe' ||
+    /\b(kafe|cafe|resto|restoran|ngopi)\b/i.test(lower);
+
+  if (isCafeMenuRequest) {
     db.setSession(phone, 'cafe_choose_type', {});
 
     const welcomeCafe =
