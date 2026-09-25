@@ -535,7 +535,12 @@ async function handleCafeFlow(phone, text, session) {
   // 7. Konfirmasi Pesanan ➡️ Kode Pesanan & Catat ke DB
   const isOrderConfirm =
     lower === 'order_confirm' ||
-    /\b(konfirmasi|confirm|gas|gas beli|gas order|gas pesan|beli|bayar|oke|ok|lanjut|proses|siap|deal|ya|yoi|pesan sekarang)\b/i.test(lower);
+    lower === 'pesan' ||
+    lower === 'pesen' ||
+    lower === 'order' ||
+    lower === 'checkout' ||
+    lower === 'selesai' ||
+    /\b(konfirmasi|confirm|gas|gas beli|gas order|gas pesan|beli|bayar|oke|ok|lanjut|proses|siap|deal|ya|yoi|pesan sekarang|checkout sekarang|order sekarang|pesan ini|langsung pesan|selesai pesan|cukup|udah|sudah)\b/i.test(lower);
 
   if ((session.status === 'cafe_confirm_order' || session.status === 'cafe_ordering') && isOrderConfirm) {
     const draft = session.draft || { cart: [] };
@@ -702,6 +707,29 @@ async function handleCafeFlow(phone, text, session) {
       { id: 'menu_hotel', title: '🏨 Hotel' },
       { id: 'menu_cs',    title: '🎧 Hubungi CS' },
     ]);
+    return true;
+  }
+
+  // 10. Interceptor fallback saat dalam sesi pemesanan kafe (Mencegah teks non-tanya bocor ke AI Gemini yang bisa halusinasi)
+  if ((session.status === 'cafe_ordering' || session.status === 'cafe_confirm_order') && !isQuestion(text)) {
+    const draft = session.draft || { cart: [] };
+    const cartCount = draft.cart ? draft.cart.length : 0;
+
+    await gateway.sendText(phone,
+      `⚠️ Menu *"${text}"* tidak ditemukan di katalog kami.\n\n` +
+      `Silakan ketik nama menu yang sesuai katalog (contoh: _"1 Nasi Goreng Spesial"_ atau _"2 Caffe Latte"_)${cartCount > 0 ? ', atau ketik *pesan* untuk memproses pesanan di keranjang.' : '.'}`
+    );
+
+    const buttons = [
+      { id: 'cat_minuman', title: '☕ Minuman' },
+      { id: 'cat_makanan', title: '🍳 Makanan' },
+    ];
+    if (cartCount > 0) {
+      buttons.push({ id: 'cart_view', title: `🛒 Keranjang (${cartCount})` });
+    } else {
+      buttons.push({ id: 'goto_main', title: '🔙 Menu Utama' });
+    }
+    await gateway.sendButtons(phone, 'Pilihan bantuan:', buttons);
     return true;
   }
 
