@@ -74,4 +74,22 @@ app.listen(config.port, () => {
   console.log(`║ 🌐 Webhook Inbound    : http://localhost:${config.port}/api/webhook/whatsapp ║`);
   console.log(`║ 🤖 AI Engine          : Gemini 2.5 Flash (${config.ai.model})   ║`);
   console.log('╚══════════════════════════════════════════════════════════════╝');
+
+  // Auto-sync WooCommerce Catalog pada startup
+  try {
+    const { syncCatalogToDatabase } = require('./src/services/woocommerceService');
+    syncCatalogToDatabase()
+      .then((res) => {
+        if (res && res.success) {
+          console.log(`🛒 [WOOCOMMERCE] Auto-sync katalog awal sukses: ${res.syncedRooms} kamar, ${res.syncedMenus} menu.`);
+        } else {
+          console.warn(`⚠️ [WOOCOMMERCE] Auto-sync katalog dilewati / info: ${res ? res.message || res.error : 'Unknown'}`);
+        }
+      })
+      .catch((err) => {
+        console.error('⚠️ [WOOCOMMERCE] Auto-sync awal error:', err.message);
+      });
+  } catch (err) {
+    console.error('⚠️ [WOOCOMMERCE] Gagal inisialisasi auto-sync:', err.message);
+  }
 });

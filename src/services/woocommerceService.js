@@ -201,26 +201,51 @@ async function createWooCommerceOrder(params) {
     const lineItems = [];
 
     if (type === 'cafe') {
+      // Default fallback product jika ada item khusus yang tidak ada di DB
+      const defaultCafeProduct = db.prepare('SELECT wc_product_id FROM menu_catalog WHERE wc_product_id IS NOT NULL LIMIT 1').get();
+      const defaultProductId = defaultCafeProduct ? defaultCafeProduct.wc_product_id : 36;
+
       for (const item of items) {
-        // Cari WooCommerce product ID dari database lokal
-        const row = db.prepare('SELECT wc_product_id, name, price FROM menu_catalog WHERE name = ? OR id = ?').get(item.name, item.id);
-        const productId = row && row.wc_product_id ? row.wc_product_id : undefined;
+        const itemName = (item.name || '').trim();
+        const itemId = (item.id || '').trim();
+
+        // 1. Coba exact match name atau id
+        let row = db.prepare('SELECT wc_product_id, name, price FROM menu_catalog WHERE id = ? OR LOWER(name) = LOWER(?)').get(itemId, itemName);
+
+        // 2. Coba partial match (LIKE)
+        if (!row && itemName) {
+          row = db.prepare('SELECT wc_product_id, name, price FROM menu_catalog WHERE LOWER(name) LIKE LOWER(?) OR LOWER(?) LIKE (\'%\' || LOWER(name) || \'%\')').get(`%${itemName}%`, itemName);
+        }
+
+        // 3. Coba cari berdasarkan kata kunci populer (misal 'nasi', 'kopi', 'roti')
+        if (!row && itemName) {
+          const words = itemName.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+          for (const w of words) {
+            row = db.prepare('SELECT wc_product_id, name, price FROM menu_catalog WHERE LOWER(name) LIKE ?').get(`%${w}%`);
+            if (row) break;
+          }
+        }
+
+        const productId = row && row.wc_product_id ? row.wc_product_id : defaultProductId;
 
         lineItems.push({
-          ...(productId ? { product_id: productId } : {}),
-          name: item.name,
+          product_id: productId,
+          name: itemName || (row ? row.name : 'Item Kafe'),
           quantity: item.qty || 1,
-          total: String(item.subtotal || (item.price * item.qty)),
+          total: String(item.subtotal || (item.price * (item.qty || 1))),
         });
       }
     } else if (type === 'hotel') {
       const roomKey = params.roomKey || 'deluxe';
-      const row = db.prepare('SELECT wc_product_id, name, price FROM room_catalog WHERE room_key = ?').get(roomKey);
-      const productId = row && row.wc_product_id ? row.wc_product_id : undefined;
+      let row = db.prepare('SELECT wc_product_id, name, price FROM room_catalog WHERE room_key = ?').get(roomKey);
+      if (!row) {
+        row = db.prepare('SELECT wc_product_id, name, price FROM room_catalog WHERE wc_product_id IS NOT NULL LIMIT 1').get();
+      }
+      const productId = row && row.wc_product_id ? row.wc_product_id : 19;
 
       lineItems.push({
-        ...(productId ? { product_id: productId } : {}),
-        name: params.roomName || 'Kamar Hotel SapaTamu',
+        product_id: productId,
+        name: params.roomName || (row ? row.name : 'Kamar Hotel SapaTamu'),
         quantity: nights || 1,
         total: String(totalAmount || (row ? row.price * nights : 550000)),
       });

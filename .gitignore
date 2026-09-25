@@ -18,3 +18,5 @@ rasa_bot/venv/
 __pycache__/
 *.pyc
 .rasa/
+scratch/
+

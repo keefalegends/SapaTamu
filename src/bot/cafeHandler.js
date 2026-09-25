@@ -448,6 +448,19 @@ async function handleCafeFlow(phone, text, session) {
       totalAmount: draft.totalAmount,
     }, draft.cart);
 
+    // Kirim pesanan ke WooCommerce Orders secara background
+    const { createWooCommerceOrder } = require('../services/woocommerceService');
+    createWooCommerceOrder({
+      type: 'cafe',
+      orderCode,
+      customerName,
+      phoneNumber: phone,
+      items: draft.cart,
+      tableNumber: draft.tableNumber,
+      orderType: draft.orderType,
+      totalAmount: draft.totalAmount,
+    }).catch((err) => console.error('⚠️ [WOOCOMMERCE BG ERROR] cafe order push:', err.message));
+
     const StateManager = require('./stateManager');
     await StateManager.reset(phone, 'cafe_order_confirmed');
 

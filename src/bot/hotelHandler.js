@@ -299,6 +299,20 @@ async function handleHotelFlow(phone, text, session) {
       paymentMethod: 'Simulasi QRIS/VA',
     });
 
+    // Kirim reservasi ke WooCommerce Orders secara background
+    const { createWooCommerceOrder } = require('../services/woocommerceService');
+    createWooCommerceOrder({
+      type: 'hotel',
+      orderCode: bookingCode,
+      customerName: draft.guestName,
+      phoneNumber: phone,
+      roomKey: draft.roomKey,
+      roomName: draft.roomName,
+      nights: draft.nights,
+      checkIn: draft.checkIn,
+      totalAmount: draft.totalPrice,
+    }).catch((err) => console.error('⚠️ [WOOCOMMERCE BG ERROR] hotel booking push:', err.message));
+
     const StateManager = require('./stateManager');
     await StateManager.reset(phone, 'hotel_booking_confirmed');
 
