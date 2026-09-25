@@ -1158,9 +1158,12 @@ function renderRoomCatalog() {
               <span class="text-[11px] font-normal text-slate-500 font-sans">/ malam</span>
             </div>
           </div>
-          <span class="text-[10px] font-bold px-2 py-1 bg-emerald-50 text-emerald-800 rounded-md border border-emerald-200">
-            Tersedia
-          </span>
+          ${(() => {
+            const isOut = r.stock_status === 'outofstock' || (r.manage_stock === 1 && r.stock_quantity !== null && r.stock_quantity <= 0);
+            return isOut
+              ? '<span class="text-[10px] font-bold px-2.5 py-1 bg-red-50 text-red-700 rounded-md border border-red-200">Penuh (0)</span>'
+              : `<span class="text-[10px] font-bold px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-md border border-emerald-200">Tersedia (${r.stock_quantity ?? 5})</span>`;
+          })()}
         </div>
       </div>
     `;
@@ -1193,10 +1196,14 @@ function renderMenuCatalog() {
   menuEl.innerHTML = list.map(m => {
     const photoUrl = MENU_PHOTO_MAP[m.id] || '/images/cafe_sapatamu.jpg';
     const isBeverage = (m.category || '').toLowerCase().includes('minum') || ['esp', 'ame', 'lat', 'cap', 'mat', 'teh', 'jer'].includes(m.id);
+    const isOut = m.stock_status === 'outofstock' || (m.manage_stock === 1 && m.stock_quantity !== null && m.stock_quantity <= 0);
 
     return `
-      <div class="p-3 bg-white border border-slate-200/90 rounded-xl flex items-center gap-3 shadow-sm hover:border-slate-300 transition-all">
-        <img src="${photoUrl}" alt="${escapeHtml(m.name)}" class="w-14 h-14 rounded-lg object-cover shrink-0 border border-slate-100" onerror="this.src='/images/cafe_sapatamu.jpg'">
+      <div class="p-3 bg-white border ${isOut ? 'border-red-200/90 bg-red-50/20' : 'border-slate-200/90'} rounded-xl flex items-center gap-3 shadow-sm hover:border-slate-300 transition-all">
+        <div class="relative shrink-0">
+          <img src="${photoUrl}" alt="${escapeHtml(m.name)}" class="w-14 h-14 rounded-lg object-cover border border-slate-100 ${isOut ? 'grayscale opacity-70' : ''}" onerror="this.src='/images/cafe_sapatamu.jpg'">
+          ${isOut ? '<span class="absolute inset-0 bg-red-950/40 rounded-lg flex items-center justify-center text-[9px] font-bold text-white uppercase tracking-wider">Habis</span>' : ''}
+        </div>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-1.5 mb-0.5">
             <span class="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded ${isBeverage ? 'bg-amber-50 text-amber-800' : 'bg-orange-50 text-orange-800'}">
@@ -1208,9 +1215,14 @@ function renderMenuCatalog() {
               </span>
             ` : ''}
           </div>
-          <h5 class="text-xs font-bold text-slate-900 truncate">${escapeHtml(m.name)}</h5>
-          <div class="font-bold text-xs text-emerald-800 font-mono mt-1 tabular-nums">
-            Rp ${Number(m.price).toLocaleString('id-ID')}
+          <h5 class="text-xs font-bold text-slate-900 truncate ${isOut ? 'line-through text-slate-400' : ''}">${escapeHtml(m.name)}</h5>
+          <div class="flex items-center justify-between mt-1">
+            <div class="font-bold text-xs ${isOut ? 'text-slate-400' : 'text-emerald-800'} font-mono tabular-nums">
+              Rp ${Number(m.price).toLocaleString('id-ID')}
+            </div>
+            ${isOut
+              ? '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-200">Habis (0)</span>'
+              : `<span class="text-[9px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">Stok: ${m.stock_quantity ?? 'Ada'}</span>`}
           </div>
         </div>
       </div>

@@ -35,10 +35,20 @@ function getRoom(key) {
         price: row.price,
         desc: row.description,
         image: row.image || 'kamar_deluxe.jpg',
+        stock_status: row.stock_status,
+        stock_quantity: row.stock_quantity,
+        manage_stock: row.manage_stock,
       };
     }
   } catch (e) {}
   return ROOMS[key] || ROOMS.deluxe;
+}
+
+function isRoomOutOfStock(room) {
+  if (!room) return false;
+  if (room.stock_status === 'outofstock') return true;
+  if (room.manage_stock === 1 && room.stock_quantity !== null && room.stock_quantity <= 0) return true;
+  return false;
 }
 
 function formatRupiah(num) {
@@ -123,22 +133,31 @@ async function handleHotelFlow(phone, text, session) {
     const executive = getRoom('executive');
     const suite = getRoom('suite');
 
+    const deluxeTag = isRoomOutOfStock(deluxe) ? ' ❌ _(Penuh)_' : '';
+    const execTag = isRoomOutOfStock(executive) ? ' ❌ _(Penuh)_' : '';
+    const suiteTag = isRoomOutOfStock(suite) ? ' ❌ _(Penuh)_' : '';
+
     const menuText =
       '🛏️ *Pilihan Kamar Hotel SapaTamu*\n\n' +
       'Nikmati kenyamanan bintang 4 dengan fasilitas lengkap:\n\n' +
-      `• 🛏️ *${deluxe.name}* — ${formatRupiah(deluxe.price)} / malam\n` +
+      `• 🛏️ *${deluxe.name}* — ${formatRupiah(deluxe.price)} / malam${deluxeTag}\n` +
       `  _${deluxe.desc}_\n\n` +
-      `• 🌟 *${executive.name}* — ${formatRupiah(executive.price)} / malam\n` +
+      `• 🌟 *${executive.name}* — ${formatRupiah(executive.price)} / malam${execTag}\n` +
       `  _${executive.desc}_\n\n` +
-      `• 👑 *${suite.name}* — ${formatRupiah(suite.price)} / malam\n` +
+      `• 👑 *${suite.name}* — ${formatRupiah(suite.price)} / malam${suiteTag}\n` +
       `  _${suite.desc}_\n\n` +
       'Silakan pilih tipe kamar yang Anda inginkan:';
 
-    await gateway.sendButtons(phone, menuText, [
-      { id: 'room_deluxe',    title: '🛏️ Deluxe Room' },
-      { id: 'room_executive', title: '🌟 Executive Suite' },
-      { id: 'room_suite',     title: '👑 Presidential' },
-    ]);
+    const buttons = [];
+    if (!isRoomOutOfStock(deluxe)) buttons.push({ id: 'room_deluxe', title: '🛏️ Deluxe Room' });
+    if (!isRoomOutOfStock(executive)) buttons.push({ id: 'room_executive', title: '🌟 Executive Suite' });
+    if (!isRoomOutOfStock(suite)) buttons.push({ id: 'room_suite', title: '👑 Presidential' });
+
+    if (buttons.length > 0) {
+      await gateway.sendButtons(phone, menuText, buttons);
+    } else {
+      await gateway.sendText(phone, menuText + '\n\n⚠️ Saat ini seluruh kamar sedang penuh.');
+    }
     return true;
   }
 
@@ -171,6 +190,19 @@ async function handleHotelFlow(phone, text, session) {
 
   if (chosenKey) {
     const room = getRoom(chosenKey);
+    if (isRoomOutOfStock(room)) {
+      await gateway.sendText(phone, `⚠️ *Mohon maaf Kak*, tipe kamar *${room.name}* saat ini sedang penuh (tidak tersedia). 🙏\n\nSilakan pilih tipe kamar lainnya ya!`);
+      const buttons = [
+        { id: 'room_deluxe',    title: '🛏️ Deluxe Room' },
+        { id: 'room_executive', title: '🌟 Executive Suite' },
+        { id: 'room_suite',     title: '👑 Presidential' },
+      ].filter(b => b.id !== `room_${chosenKey}`);
+      if (buttons.length > 0) {
+        await gateway.sendButtons(phone, 'Pilihan kamar lain:', buttons);
+      }
+      return true;
+    }
+
     db.setSession(phone, 'hotel_await_date', { roomKey: chosenKey });
 
     // Kirim foto kamar

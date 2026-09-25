@@ -39,10 +39,18 @@ function buildSystemPrompt() {
 
     // Ambil katalog kamar & menu dari SQLite database
     const rooms = db.prepare('SELECT * FROM room_catalog').all();
-    const roomText = rooms.map(r => `- ${r.name}: Rp ${r.price.toLocaleString('id-ID')}/malam (${r.description})`).join('\n');
+    const roomText = rooms.map(r => {
+      const isOut = r.stock_status === 'outofstock' || (r.manage_stock === 1 && r.stock_quantity !== null && r.stock_quantity <= 0);
+      const stockBadge = isOut ? '[❌ STATUS: KAMAR PENUH / HABIS]' : `[✅ Tersedia: ${r.stock_quantity ?? 5} kamar]`;
+      return `- ${r.name}: Rp ${r.price.toLocaleString('id-ID')}/malam (${r.description}) ${stockBadge}`;
+    }).join('\n');
 
     const menus = db.prepare('SELECT * FROM menu_catalog').all();
-    const menuText = menus.map(m => `- ${m.name} (${m.category}): Rp ${m.price.toLocaleString('id-ID')}`).join('\n');
+    const menuText = menus.map(m => {
+      const isOut = m.stock_status === 'outofstock' || (m.manage_stock === 1 && m.stock_quantity !== null && m.stock_quantity <= 0);
+      const stockBadge = isOut ? '[❌ STATUS: STOK HABIS / KOSONG - JANGAN DITAWARKAN / DITERIMA]' : `[✅ Tersedia: ${m.stock_quantity ?? 'Ada'}]`;
+      return `- ${m.name} (${m.category}): Rp ${m.price.toLocaleString('id-ID')} ${stockBadge}`;
+    }).join('\n');
 
     const knowledgeText = topics
       .map((item, i) => `${i + 1}. [${item.topik}]\n   ${item.jawaban}`)
@@ -63,6 +71,10 @@ ATURAN CONTEXT HANDLING & TOPIC SWITCHING:
    - Sambut dengan antusias mengenai kafe (tawarkan kopi/makanan atau jenis pesanan dine-in/takeaway). JANGAN SEKALI-KALI menanyakan tipe kamar hotel!
 3. RESPON BINGUNG / AMBIGU:
    - Jika pelanggan bingung atau berkata singkat ("menu", "bantuan"), berikan pilihan ringkas layanan SapaTamu (Hotel, Kafe, atau CS) tanpa memaksa pelanggan memilih tipe kamar.
+4. PENGECEKAN KETERSEDIAAN STOK (SANGAT KETAT & WAJIB):
+   - Perhatikan tanda [❌ STATUS: STOK HABIS / KOSONG] pada katalog menu dan kamar.
+   - JANGAN PERNAH menyarankan, menawarkan, atau menerima pesanan untuk menu/kamar yang stoknya habis (misalnya: jika Espresso berstatus STOK HABIS, jangan rekomendasikan Espresso!).
+   - Jika pelanggan menanyakan menu yang sedang habis (contoh: "ada espresso?", "mau pesan espresso dong"), jelaskan dengan ramah bahwa menu tersebut saat ini sedang HABIS/KOSONG, lalu rekomendasikan menu alternatif yang masih tersedia (misalnya Americano, Caffe Latte, atau Cappuccino).
 
 KNOWLEDGE BASE & KATALOG RESMI:
 ${knowledgeText}

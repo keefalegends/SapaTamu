@@ -131,6 +131,26 @@ try {
   db.exec('ALTER TABLE menu_catalog ADD COLUMN description TEXT');
 } catch (e) {}
 
+try {
+  db.exec('ALTER TABLE menu_catalog ADD COLUMN stock_status TEXT DEFAULT "instock"');
+} catch (e) {}
+try {
+  db.exec('ALTER TABLE menu_catalog ADD COLUMN stock_quantity INTEGER DEFAULT 100');
+} catch (e) {}
+try {
+  db.exec('ALTER TABLE menu_catalog ADD COLUMN manage_stock INTEGER DEFAULT 0');
+} catch (e) {}
+
+try {
+  db.exec('ALTER TABLE room_catalog ADD COLUMN stock_status TEXT DEFAULT "instock"');
+} catch (e) {}
+try {
+  db.exec('ALTER TABLE room_catalog ADD COLUMN stock_quantity INTEGER DEFAULT 10');
+} catch (e) {}
+try {
+  db.exec('ALTER TABLE room_catalog ADD COLUMN manage_stock INTEGER DEFAULT 0');
+} catch (e) {}
+
 // ─── Initial Seed Catalog if Empty ──────────────────────────────────────────
 const countRooms = db.prepare('SELECT COUNT(*) as count FROM room_catalog').get();
 if (countRooms.count === 0) {

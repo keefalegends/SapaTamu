@@ -175,23 +175,58 @@ class ActionShowMenu(Action):
             tracker: Tracker,
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
+        kopi_lines = []
+        non_kopi_lines = []
+        makanan_lines = []
+
+        try:
+            if os.path.exists(DB_PATH):
+                conn = sqlite3.connect(DB_PATH, timeout=5)
+                cur = conn.cursor()
+                cur.execute("SELECT id, name, price, category, stock_status, stock_quantity, manage_stock FROM menu_catalog")
+                rows = cur.fetchall()
+                conn.close()
+                for r in rows:
+                    name, price, cat, status, qty, manage = r[1], r[2], r[3], r[4], r[5], r[6]
+                    price_str = f"Rp {price:,}".replace(",", ".")
+                    is_out = (status == "outofstock") or (manage == 1 and qty is not None and qty <= 0)
+                    tag = " ❌ _(Stok Habis)_" if is_out else ""
+                    line = f"• {name} — {price_str}{tag}"
+                    if cat == "minuman":
+                        if any(k in name.lower() for k in ["kopi", "espresso", "americano", "latte", "cappuccino"]):
+                            kopi_lines.append(line)
+                        else:
+                            non_kopi_lines.append(line)
+                    else:
+                        makanan_lines.append(line)
+        except Exception as e:
+            print(f"[RASA MENU DB ERROR]: {e}")
+
+        # Fallback jika db kosong
+        if not kopi_lines and not makanan_lines:
+            kopi_lines = [
+                "• Americano — Rp 22.000",
+                "• Caffe Latte — Rp 28.000",
+                "• Cappuccino — Rp 28.000"
+            ]
+            non_kopi_lines = [
+                "• Matcha Latte — Rp 25.000",
+                "• Es Teh Manis Segar — Rp 15.000",
+                "• Jeruk Peras Alami — Rp 15.000"
+            ]
+            makanan_lines = [
+                "• Butter Croissant — Rp 20.000",
+                "• Roti Bakar Spesial — Rp 18.000",
+                "• Spaghetti Carbonara — Rp 45.000",
+                "• Nasi Goreng Spesial — Rp 35.000"
+            ]
+
         menu_text = (
             "🍽️ *DAFTAR MENU SAPATAMU KAFE & RESTO* ☕\n\n"
-            "☕ *Kopi Pilihan:*\n"
-            "• Espresso — Rp 22.000\n"
-            "• Americano (Ice/Hot) — Rp 22.000\n"
-            "• Caffe Latte — Rp 28.000\n"
-            "• Cappuccino — Rp 28.000\n\n"
-            "🍵 *Non-Kopi Segar:*\n"
-            "• Matcha Latte — Rp 25.000\n"
-            "• Es Teh Manis Segar — Rp 15.000\n"
-            "• Jeruk Peras Alami — Rp 15.000\n\n"
-            "🥐 *Makanan & Snack:*\n"
-            "• Butter Croissant — Rp 20.000\n"
-            "• Roti Bakar Spesial — Rp 18.000\n"
-            "• Spaghetti Carbonara — Rp 45.000\n"
-            "• Nasi Goreng Spesial — Rp 35.000\n\n"
-            "Mau pesan yang mana kak? Cukup ketik misalnya: *'Pesan 2 Nasi Goreng Spesial dan 1 Caffe Latte'* ya!"
+            "☕ *Kopi Pilihan:*\n" + "\n".join(kopi_lines) + "\n\n"
+            "🍵 *Non-Kopi Segar:*\n" + "\n".join(non_kopi_lines) + "\n\n"
+            "🥐 *Makanan & Snack:*\n" + "\n".join(makanan_lines) + "\n\n"
+            "Mau pesan yang mana kak? Cukup ketik misalnya: *'Pesan 2 Nasi Goreng dan 1 Caffe Latte'* ya!"
         )
         dispatcher.utter_message(text=menu_text)
         return []
@@ -219,6 +254,22 @@ class ActionSubmitHotelBooking(Action):
         elif "exec" in raw_room:
             room_info = HOTEL_ROOMS["executive"]
             room_key = "executive"
+
+        # Cek ketersediaan kamar di database
+        try:
+            if os.path.exists(DB_PATH):
+                conn = sqlite3.connect(DB_PATH, timeout=5)
+                cur = conn.cursor()
+                cur.execute("SELECT stock_status, stock_quantity, manage_stock FROM room_catalog WHERE room_key = ?", (room_key,))
+                row = cur.fetchone()
+                conn.close()
+                if row:
+                    status, qty, manage = row[0], row[1], row[2]
+                    if status == "outofstock" or (manage == 1 and qty is not None and qty <= 0):
+                        dispatcher.utter_message(text=f"⚠️ *Mohon maaf Kak*, tipe kamar *{room_info['name']}* saat ini sedang penuh / habis. 🙏\n\nSilakan pilih tipe kamar lainnya yang masih tersedia ya!")
+                        return [AllSlotsReset()]
+        except Exception as e:
+            print(f"[RASA ROOM STOCK CHECK ERROR]: {e}")
 
         booking_code = f"ST-HTL-{random.randint(1000, 9999)}"
         price_str = f"Rp {room_info['price']:,}".replace(",", ".")
@@ -305,6 +356,27 @@ class ActionSubmitCafeOrder(Action):
                 "qty": qty,
                 "subtotal": matched["price"] * qty
             }]
+
+        # Cek ketersediaan stok item kafe di database
+        out_of_stock = []
+        try:
+            if os.path.exists(DB_PATH):
+                conn = sqlite3.connect(DB_PATH, timeout=5)
+                cur = conn.cursor()
+                for it in items:
+                    cur.execute("SELECT stock_status, stock_quantity, manage_stock FROM menu_catalog WHERE LOWER(name) LIKE ? OR LOWER(?) LIKE ('%' || LOWER(name) || '%')", (f"%{it['name'].lower()}%", it['name'].lower()))
+                    row = cur.fetchone()
+                    if row:
+                        status, qty, manage = row[0], row[1], row[2]
+                        if status == "outofstock" or (manage == 1 and qty is not None and qty <= 0):
+                            out_of_stock.append(it["name"])
+                conn.close()
+        except Exception as e:
+            print(f"[RASA CAFE STOCK CHECK ERROR]: {e}")
+
+        if out_of_stock:
+            dispatcher.utter_message(text=f"⚠️ *Mohon maaf Kak*, menu *{', '.join(out_of_stock)}* saat ini sedang habis (out of stock). 🙏\n\nSilakan pilih menu lainnya yang masih tersedia ya!")
+            return [AllSlotsReset()]
 
         # 2. Parsing Nama Pelanggan
         name = tracker.get_slot("guest_name")

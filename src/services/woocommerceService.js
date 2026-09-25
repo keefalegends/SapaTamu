@@ -51,20 +51,23 @@ async function syncCatalogToDatabase() {
     let syncedMenus = 0;
 
     const upsertRoom = db.prepare(`
-      INSERT INTO room_catalog (room_key, name, price, description, image, wc_product_id, wc_sku)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO room_catalog (room_key, name, price, description, image, wc_product_id, wc_sku, stock_status, stock_quantity, manage_stock)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(room_key) DO UPDATE SET
         name = excluded.name,
         price = excluded.price,
         description = excluded.description,
         image = excluded.image,
         wc_product_id = excluded.wc_product_id,
-        wc_sku = excluded.wc_sku
+        wc_sku = excluded.wc_sku,
+        stock_status = excluded.stock_status,
+        stock_quantity = excluded.stock_quantity,
+        manage_stock = excluded.manage_stock
     `);
 
     const upsertMenu = db.prepare(`
-      INSERT INTO menu_catalog (id, category, name, price, wc_product_id, wc_sku, image, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO menu_catalog (id, category, name, price, wc_product_id, wc_sku, image, description, stock_status, stock_quantity, manage_stock)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         category = excluded.category,
         name = excluded.name,
@@ -72,7 +75,10 @@ async function syncCatalogToDatabase() {
         wc_product_id = excluded.wc_product_id,
         wc_sku = excluded.wc_sku,
         image = excluded.image,
-        description = excluded.description
+        description = excluded.description,
+        stock_status = excluded.stock_status,
+        stock_quantity = excluded.stock_quantity,
+        manage_stock = excluded.manage_stock
     `);
 
     const syncTransaction = db.transaction((items) => {
@@ -88,6 +94,10 @@ async function syncCatalogToDatabase() {
           .replace(/&nbsp;/g, ' ')
           .trim();
         const imageUrl = p.images && p.images.length > 0 ? p.images[0].src : '';
+
+        const stockStatus = (p.stock_status || 'instock').toLowerCase().trim();
+        const stockQuantity = p.stock_quantity !== null && p.stock_quantity !== undefined ? p.stock_quantity : 0;
+        const manageStock = p.manage_stock ? 1 : 0;
 
         if (isHotelRoom) {
           // Deteksi roomKey
@@ -108,7 +118,10 @@ async function syncCatalogToDatabase() {
             cleanDesc || 'Fasilitas kamar lengkap standar hotel bintang 4',
             imageUrl || localImage,
             p.id,
-            sku
+            sku,
+            stockStatus,
+            stockQuantity,
+            manageStock
           );
           syncedRooms++;
         } else {
@@ -132,7 +145,10 @@ async function syncCatalogToDatabase() {
             p.id,
             sku,
             imageUrl,
-            cleanDesc
+            cleanDesc,
+            stockStatus,
+            stockQuantity,
+            manageStock
           );
           syncedMenus++;
         }

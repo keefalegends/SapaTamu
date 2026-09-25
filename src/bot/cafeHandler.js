@@ -85,6 +85,7 @@ function parseMultipleMenuItems(text) {
         existing.subtotal = existing.qty * existing.price;
       } else {
         found.push({
+          id: item.id,
           name: item.name,
           price: item.price,
           qty,
@@ -94,6 +95,28 @@ function parseMultipleMenuItems(text) {
     }
   }
   return found;
+}
+
+function getMenuItemStock(identifier) {
+  if (!identifier) return null;
+  const clean = String(identifier).trim();
+  try {
+    return db.db.prepare(`
+      SELECT id, name, price, category, stock_status, stock_quantity, manage_stock
+      FROM menu_catalog
+      WHERE id = ? OR LOWER(name) = LOWER(?) OR LOWER(name) LIKE ?
+      LIMIT 1
+    `).get(clean, clean, `%${clean}%`);
+  } catch (e) {
+    return null;
+  }
+}
+
+function isItemOutOfStock(row) {
+  if (!row) return false;
+  if (row.stock_status === 'outofstock') return true;
+  if (row.manage_stock === 1 && row.stock_quantity !== null && row.stock_quantity <= 0) return true;
+  return false;
 }
 
 function findMenuItem(query) {
@@ -173,29 +196,64 @@ async function handleCafeFlow(phone, text, session) {
       let draft = session.draft || { orderType: 'takeaway', cart: [] };
       if (!draft.cart) draft.cart = [];
       const addedSummaries = [];
+      const outOfStockItems = [];
+
       for (const it of directItems) {
+        const stockRow = getMenuItemStock(it.id || it.name);
+        if (isItemOutOfStock(stockRow)) {
+          outOfStockItems.push(it.name);
+          continue;
+        }
+
+        let finalQty = it.qty;
+        if (stockRow && stockRow.manage_stock === 1 && stockRow.stock_quantity > 0) {
+          const existing = draft.cart.find(c => c.name === it.name);
+          const currentQty = existing ? existing.qty : 0;
+          if (currentQty + finalQty > stockRow.stock_quantity) {
+            finalQty = Math.max(0, stockRow.stock_quantity - currentQty);
+          }
+        }
+
+        if (finalQty <= 0) {
+          outOfStockItems.push(`${it.name} (stok tersisa sudah di keranjang)`);
+          continue;
+        }
+
         const existing = draft.cart.find(c => c.name === it.name);
         if (existing) {
-          existing.qty += it.qty;
+          existing.qty += finalQty;
           existing.subtotal = existing.qty * existing.price;
         } else {
           draft.cart.push({
+            id: it.id,
             name: it.name,
-            qty: it.qty,
+            qty: finalQty,
             price: it.price,
-            subtotal: it.subtotal,
+            subtotal: it.price * finalQty,
           });
         }
-        addedSummaries.push(`• *${it.qty}x ${it.name}* (${formatRupiah(it.subtotal)})`);
+        addedSummaries.push(`• *${finalQty}x ${it.name}* (${formatRupiah(it.price * finalQty)})`);
       }
-      db.setSession(phone, 'cafe_ordering', draft);
 
-      await gateway.sendText(phone, `✅ Berhasil menambahkan ke keranjang:\n${addedSummaries.join('\n')}`);
-      await gateway.sendButtons(phone, 'Lanjut pesan atau periksa keranjang?', [
-        { id: 'cat_minuman', title: '☕ Minuman' },
-        { id: 'cat_makanan', title: '🍳 Makanan' },
-        { id: 'cart_view',   title: '🛒 Lihat Keranjang' },
-      ]);
+      if (outOfStockItems.length > 0) {
+        await gateway.sendText(phone, `⚠️ *Pemberitahuan Stok Kosong:*\nMohon maaf Kak, menu berikut sedang habis:\n${outOfStockItems.map(n => `• *${n}* (Stok Habis)`).join('\n')}\n\nItem tersebut tidak dapat dipesan saat ini. 🙏`);
+      }
+
+      if (addedSummaries.length > 0) {
+        db.setSession(phone, 'cafe_ordering', draft);
+        await gateway.sendText(phone, `✅ Berhasil menambahkan ke keranjang:\n${addedSummaries.join('\n')}`);
+        await gateway.sendButtons(phone, 'Lanjut pesan atau periksa keranjang?', [
+          { id: 'cat_minuman', title: '☕ Minuman' },
+          { id: 'cat_makanan', title: '🍳 Makanan' },
+          { id: 'cart_view',   title: '🛒 Lihat Keranjang' },
+        ]);
+      } else if (outOfStockItems.length > 0) {
+        await gateway.sendButtons(phone, 'Silakan pilih menu lain yang masih tersedia:', [
+          { id: 'cat_minuman', title: '☕ Minuman' },
+          { id: 'cat_makanan', title: '🍳 Makanan' },
+          { id: 'goto_main',   title: '🔙 Menu Utama' },
+        ]);
+      }
       return true;
     }
   }
@@ -291,32 +349,57 @@ async function handleCafeFlow(phone, text, session) {
 
     let menuListText = `${isMinuman ? '☕ *MENU MINUMAN*' : '🍳 *MENU MAKANAN*'}\n════════════════════════\n`;
     for (const r of rows) {
-      menuListText += `• *${r.name}* — ${formatRupiah(r.price)}\n`;
+      const isOut = isItemOutOfStock(r);
+      if (isOut) {
+        menuListText += `• *${r.name}* — ${formatRupiah(r.price)} ❌ _(Stok Habis)_\n`;
+      } else {
+        menuListText += `• *${r.name}* — ${formatRupiah(r.price)}\n`;
+      }
     }
     menuListText += '\nKetik nama menu yang diinginkan (contoh: _"1 Nasi Goreng"_ atau _"2 Caffe Latte"_):';
 
     await gateway.sendText(phone, menuListText);
 
-    // Kirim quick buttons untuk 3 item terlaris
-    const quickItems = rows.slice(0, 3).map(r => ({
+    // Kirim quick buttons HANYA untuk item yang stoknya tersedia
+    const availableRows = rows.filter(r => !isItemOutOfStock(r));
+    const quickItems = availableRows.slice(0, 3).map(r => ({
       id: `add_${r.id}`,
       title: `+1 ${r.name.length > 15 ? r.name.substring(0, 15) : r.name}`,
     }));
-    await gateway.sendButtons(phone, 'Pilih cepat:', quickItems);
+    if (quickItems.length > 0) {
+      await gateway.sendButtons(phone, 'Pilih cepat:', quickItems);
+    }
     return true;
   }
 
   // 5. Tambah Menu ke Keranjang
   if (lower.startsWith('add_') || session.status === 'cafe_ordering') {
     let draft = session.draft || { orderType: 'takeaway', cart: [] };
-    let addedName = null;
-    let addedPrice = 0;
-    let addedQty = 1;
 
     if (lower.startsWith('add_')) {
       const itemId = lower.replace('add_', '');
       const item = db.prepare('SELECT * FROM menu_catalog WHERE id = ?').get(itemId);
       if (item) {
+        if (isItemOutOfStock(item)) {
+          await gateway.sendText(phone, `⚠️ *Mohon maaf Kak*, menu *${item.name}* saat ini sedang habis (out of stock). 🙏\n\nSilakan pilih menu lainnya yang masih tersedia ya!`);
+          await gateway.sendButtons(phone, 'Pilih kategori menu:', [
+            { id: 'cat_minuman', title: '☕ Minuman' },
+            { id: 'cat_makanan', title: '🍳 Makanan' },
+            { id: 'cart_view',   title: '🛒 Lihat Keranjang' },
+          ]);
+          return true;
+        }
+
+        if (item.manage_stock === 1 && item.stock_quantity > 0) {
+          if (!draft.cart) draft.cart = [];
+          const existing = draft.cart.find(c => c.name === item.name);
+          const currentQty = existing ? existing.qty : 0;
+          if (currentQty + 1 > item.stock_quantity) {
+            await gateway.sendText(phone, `⚠️ *Mohon maaf Kak*, stok *${item.name}* hanya tersisa ${item.stock_quantity} porsi. Anda sudah memasukkan ${currentQty} porsi ke keranjang.`);
+            return true;
+          }
+        }
+
         if (!draft.cart) draft.cart = [];
         const existing = draft.cart.find(c => c.name === item.name);
         if (existing) {
@@ -324,6 +407,7 @@ async function handleCafeFlow(phone, text, session) {
           existing.subtotal = existing.qty * existing.price;
         } else {
           draft.cart.push({
+            id: item.id,
             name: item.name,
             qty: 1,
             price: item.price,
@@ -346,29 +430,64 @@ async function handleCafeFlow(phone, text, session) {
       if (parsedItems.length > 0) {
         if (!draft.cart) draft.cart = [];
         const addedSummaries = [];
+        const outOfStockItems = [];
+
         for (const it of parsedItems) {
+          const stockRow = getMenuItemStock(it.id || it.name);
+          if (isItemOutOfStock(stockRow)) {
+            outOfStockItems.push(it.name);
+            continue;
+          }
+
+          let finalQty = it.qty;
+          if (stockRow && stockRow.manage_stock === 1 && stockRow.stock_quantity > 0) {
+            const existing = draft.cart.find(c => c.name === it.name);
+            const currentQty = existing ? existing.qty : 0;
+            if (currentQty + finalQty > stockRow.stock_quantity) {
+              finalQty = Math.max(0, stockRow.stock_quantity - currentQty);
+            }
+          }
+
+          if (finalQty <= 0) {
+            outOfStockItems.push(`${it.name} (stok tersisa sudah di keranjang)`);
+            continue;
+          }
+
           const existing = draft.cart.find(c => c.name === it.name);
           if (existing) {
-            existing.qty += it.qty;
+            existing.qty += finalQty;
             existing.subtotal = existing.qty * existing.price;
           } else {
             draft.cart.push({
+              id: it.id,
               name: it.name,
-              qty: it.qty,
+              qty: finalQty,
               price: it.price,
-              subtotal: it.subtotal,
+              subtotal: it.price * finalQty,
             });
           }
-          addedSummaries.push(`• *${it.qty}x ${it.name}*`);
+          addedSummaries.push(`• *${finalQty}x ${it.name}*`);
         }
-        db.setSession(phone, 'cafe_ordering', draft);
 
-        await gateway.sendText(phone, `✅ Berhasil menambahkan ke keranjang:\n${addedSummaries.join('\n')}`);
-        await gateway.sendButtons(phone, 'Lanjut pesan atau periksa keranjang?', [
-          { id: 'cat_minuman', title: '☕ Minuman' },
-          { id: 'cat_makanan', title: '🍳 Makanan' },
-          { id: 'cart_view',   title: '🛒 Lihat Keranjang' },
-        ]);
+        if (outOfStockItems.length > 0) {
+          await gateway.sendText(phone, `⚠️ *Pemberitahuan Stok Kosong:*\nMohon maaf Kak, menu berikut sedang habis:\n${outOfStockItems.map(n => `• *${n}* (Stok Habis)`).join('\n')}\n\nItem tersebut tidak dimasukkan ke keranjang.`);
+        }
+
+        if (addedSummaries.length > 0) {
+          db.setSession(phone, 'cafe_ordering', draft);
+          await gateway.sendText(phone, `✅ Berhasil menambahkan ke keranjang:\n${addedSummaries.join('\n')}`);
+          await gateway.sendButtons(phone, 'Lanjut pesan atau periksa keranjang?', [
+            { id: 'cat_minuman', title: '☕ Minuman' },
+            { id: 'cat_makanan', title: '🍳 Makanan' },
+            { id: 'cart_view',   title: '🛒 Lihat Keranjang' },
+          ]);
+        } else if (outOfStockItems.length > 0) {
+          await gateway.sendButtons(phone, 'Silakan pilih menu lain yang masih tersedia:', [
+            { id: 'cat_minuman', title: '☕ Minuman' },
+            { id: 'cat_makanan', title: '🍳 Makanan' },
+            { id: 'cart_view',   title: '🛒 Lihat Keranjang' },
+          ]);
+        }
         return true;
       }
     }
@@ -428,6 +547,45 @@ async function handleCafeFlow(phone, text, session) {
       ]);
       return true;
     }
+
+    // Validasi stok terakhir sebelum order dibuat
+    const outOfStockInCart = [];
+    for (const it of draft.cart) {
+      const row = getMenuItemStock(it.id || it.name);
+      if (isItemOutOfStock(row)) {
+        outOfStockInCart.push(it.name);
+      }
+    }
+    if (outOfStockInCart.length > 0) {
+      // Hapus item yang out of stock dari keranjang
+      draft.cart = draft.cart.filter(it => !outOfStockInCart.includes(it.name));
+      draft.totalAmount = draft.cart.reduce((sum, item) => sum + (item.subtotal || (item.price * item.qty)), 0);
+      db.setSession(phone, 'cafe_ordering', draft);
+
+      await gateway.sendText(phone,
+        `⚠️ *Peringatan Stok Kosong!*\n\n` +
+        `Mohon maaf Kak, menu berikut ternyata stoknya sedang habis:\n` +
+        `${outOfStockInCart.map(n => `• *${n}*`).join('\n')}\n\n` +
+        `Item tersebut telah kami keluarkan dari keranjang Anda.`
+      );
+
+      if (draft.cart.length === 0) {
+        await gateway.sendButtons(phone, 'Keranjang Anda saat ini kosong. Silakan pilih menu lain:', [
+          { id: 'cat_minuman', title: '☕ Minuman' },
+          { id: 'cat_makanan', title: '🍳 Makanan' },
+          { id: 'goto_main',   title: '🔙 Menu Utama' },
+        ]);
+        return true;
+      } else {
+        await gateway.sendButtons(phone, `Sisa keranjang: ${draft.cart.length} item (${formatRupiah(draft.totalAmount)}). Lanjutkan pesanan?`, [
+          { id: 'order_confirm', title: '✅ Ya, Pesan Sisa' },
+          { id: 'cart_view',     title: '🛒 Lihat Keranjang' },
+          { id: 'cat_minuman',   title: '➕ Tambah Lain' },
+        ]);
+        return true;
+      }
+    }
+
     if (!draft.totalAmount) {
       draft.totalAmount = draft.cart.reduce((sum, item) => sum + (item.subtotal || (item.price * item.qty)), 0);
     }
