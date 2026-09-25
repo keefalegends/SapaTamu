@@ -21,4 +21,10 @@ module.exports = {
     username: process.env.ADMIN_USERNAME || 'admin',
     password: process.env.ADMIN_PASSWORD || 'admin123',
   },
+
+  woocommerce: {
+    url: process.env.WOOCOMMERCE_URL || 'https://wocommercee.bagusarya.me',
+    consumerKey: process.env.WOOCOMMERCE_KEY || 'ck_0677392bf90a980dd109272d466c36b90aa5a79e',
+    consumerSecret: process.env.WOOCOMMERCE_SECRET || 'cs_74e795c9cc243ea93a2f928fb88621819658f06c',
+  },
 };

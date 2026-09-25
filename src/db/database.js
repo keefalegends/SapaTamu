@@ -111,6 +111,26 @@ try {
   // Kolom sudah ada
 }
 
+try {
+  db.exec('ALTER TABLE cafe_orders ADD COLUMN wc_order_id INTEGER');
+} catch (e) {}
+
+try {
+  db.exec('ALTER TABLE hotel_bookings ADD COLUMN wc_order_id INTEGER');
+} catch (e) {}
+
+try {
+  db.exec('ALTER TABLE room_catalog ADD COLUMN wc_product_id INTEGER');
+  db.exec('ALTER TABLE room_catalog ADD COLUMN wc_sku TEXT');
+} catch (e) {}
+
+try {
+  db.exec('ALTER TABLE menu_catalog ADD COLUMN wc_product_id INTEGER');
+  db.exec('ALTER TABLE menu_catalog ADD COLUMN wc_sku TEXT');
+  db.exec('ALTER TABLE menu_catalog ADD COLUMN image TEXT');
+  db.exec('ALTER TABLE menu_catalog ADD COLUMN description TEXT');
+} catch (e) {}
+
 // ─── Initial Seed Catalog if Empty ──────────────────────────────────────────
 const countRooms = db.prepare('SELECT COUNT(*) as count FROM room_catalog').get();
 if (countRooms.count === 0) {
