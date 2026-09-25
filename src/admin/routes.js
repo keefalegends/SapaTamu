@@ -284,4 +284,56 @@ router.post('/ai-test', async (req, res) => {
   }
 });
 
+// 15. WooCommerce Status & Health Check
+router.get('/woocommerce/status', async (req, res) => {
+  try {
+    const wcService = require('../services/woocommerceService');
+    const conn = await wcService.checkConnection();
+    const config = require('../config/env');
+
+    const totalRooms = db.db.prepare('SELECT COUNT(*) as count FROM room_catalog').get().count;
+    const totalMenu = db.db.prepare('SELECT COUNT(*) as count FROM menu_catalog').get().count;
+    const wcHotelOrders = db.db.prepare('SELECT COUNT(*) as count FROM hotel_bookings WHERE wc_order_id IS NOT NULL').get().count;
+    const wcCafeOrders = db.db.prepare('SELECT COUNT(*) as count FROM cafe_orders WHERE wc_order_id IS NOT NULL').get().count;
+
+    res.json({
+      success: true,
+      online: conn.online,
+      storeUrl: config.woocommerce.url,
+      lastSync: wcService.getLastSyncStatus(),
+      counts: {
+        rooms: totalRooms,
+        menu: totalMenu,
+        wcSyncedOrders: wcHotelOrders + wcCafeOrders,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 16. Manual Trigger Sinkronisasi Katalog WooCommerce
+router.post('/woocommerce/sync', async (req, res) => {
+  try {
+    const wcService = require('../services/woocommerceService');
+    const result = await wcService.syncCatalogToDatabase();
+    if (result.success) {
+      res.json({
+        success: true,
+        message: `Berhasil sinkronisasi ${result.syncedRooms} tipe kamar & ${result.syncedMenus} menu kafe dari WooCommerce.`,
+        data: result,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Gagal sinkronisasi katalog dari WooCommerce',
+        error: result.error || result.message,
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
+

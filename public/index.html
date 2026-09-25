@@ -263,6 +263,13 @@
           <span class="font-semibold text-slate-800" id="nav-gateway-status">Memeriksa...</span>
         </div>
 
+        <!-- WooCommerce Status Pill -->
+        <button onclick="switchTab('tab-catalog')" id="nav-wc-badge" class="hidden xl:flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-full text-[11px] font-medium text-slate-700 shadow-xs transition-colors cursor-pointer shrink-0" title="Status Koneksi & Katalog WooCommerce">
+          <span class="w-2 h-2 rounded-full bg-emerald-500" id="nav-wc-dot"></span>
+          <span class="text-slate-400 font-mono">WooCommerce:</span>
+          <span class="font-bold text-slate-900" id="nav-wc-status">Sync Ready</span>
+        </button>
+
         <!-- Refresh Action Button -->
         <button onclick="refreshAll()" id="btn-refresh-all" class="w-8 h-8 bg-white hover:bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-slate-700 hover:text-slate-950 shadow-xs transition-all cursor-pointer shrink-0" title="Segarkan Data">
           <i data-lucide="rotate-cw" id="icon-refresh-all" class="w-3.5 h-3.5"></i>
@@ -619,6 +626,37 @@
       <!-- ── TAB 5: KATALOG TARIF & MENU ─────────────────────────────────── -->
       <!-- ══════════════════════════════════════════════════════════════════════ -->
       <div id="tab-catalog" class="tab-content hidden flex-1 min-h-0 overflow-y-auto custom-scroll space-y-4 pr-1">
+
+        <!-- ── WOOCOMMERCE SYNC CARD ────────────────────────────────────── -->
+        <div class="bg-gradient-to-r from-[#0b0e14] via-slate-900 to-slate-950 text-white p-5 rounded-2xl border border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.12)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-[#d4f65c] text-slate-950 flex items-center justify-center font-bold shrink-0 shadow-sm">
+              <i data-lucide="refresh-cw" class="w-5 h-5 text-slate-950"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-white tracking-wide">Sinkronisasi WooCommerce REST API</h3>
+                <span id="wc-status-badge" class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  TERHUBUNG
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span>Toko: <a href="https://wocommercee.bagusarya.me" target="_blank" class="text-[#d4f65c] hover:underline font-mono text-[11px]">https://wocommercee.bagusarya.me</a></span>
+                <span class="text-slate-600">•</span>
+                <span id="wc-last-sync-time" class="text-slate-400 text-[11px]">Terakhir sync: Memuat...</span>
+                <span class="text-slate-600">•</span>
+                <span id="wc-product-count" class="text-slate-300 font-medium text-[11px]">14 Produk Terdaftar</span>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5 self-end md:self-auto">
+            <button id="btn-sync-wc" onclick="triggerWooCommerceSync()" class="px-4 py-2.5 bg-[#d4f65c] hover:bg-[#c2e448] text-[#0b0e14] text-xs font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95">
+              <i data-lucide="refresh-cw" id="icon-sync-wc" class="w-4 h-4"></i>
+              <span id="lbl-sync-wc">Sinkronkan Sekarang</span>
+            </button>
+          </div>
+        </div>
 
         <!-- Room Catalog -->
         <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">

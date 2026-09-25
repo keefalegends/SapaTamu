@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshAll();
   checkSystemStatus();
   checkAIStatus();
+  checkWooCommerceStatus();
 
   // Keyboard shortcut listener
   document.addEventListener('keydown', (e) => {
@@ -95,7 +96,8 @@ function refreshAll() {
     loadCafeOrders(),
     loadReservations(),
     loadCatalog(),
-    checkSystemStatus()
+    checkSystemStatus(),
+    checkWooCommerceStatus()
   ]).finally(() => {
     setTimeout(() => {
       if (icon) icon.classList.remove('animate-spin');
@@ -582,6 +584,13 @@ function renderBookingsTable() {
             <span>#${b.booking_code}</span>
             <i data-lucide="copy" class="w-3 h-3 opacity-40 hover:opacity-100"></i>
           </button>
+          ${b.wc_order_id ? `
+            <div class="mt-0.5">
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded font-mono text-[9px] font-semibold" title="Tercatat di WooCommerce Order #${b.wc_order_id}">
+                <i data-lucide="shopping-bag" class="w-2.5 h-2.5"></i> WC #${b.wc_order_id}
+              </span>
+            </div>
+          ` : ''}
         </td>
         <td class="px-5 py-3.5">
           <strong class="font-bold text-slate-900 block">${escapeHtml(b.guest_name || 'Tamu')}</strong>
@@ -818,6 +827,13 @@ function renderCafeOrdersTable() {
             <span>#${o.order_code}</span>
             <i data-lucide="copy" class="w-3 h-3 opacity-40 hover:opacity-100"></i>
           </button>
+          ${o.wc_order_id ? `
+            <div class="mt-0.5">
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded font-mono text-[9px] font-semibold" title="Tercatat di WooCommerce Order #${o.wc_order_id}">
+                <i data-lucide="shopping-bag" class="w-2.5 h-2.5"></i> WC #${o.wc_order_id}
+              </span>
+            </div>
+          ` : ''}
         </td>
         <td class="px-5 py-3.5">
           <strong class="font-bold text-slate-900 block">${escapeHtml(o.customer_name || 'Pelanggan')}</strong>
@@ -1118,10 +1134,15 @@ function renderRoomCatalog() {
         <div>
           <div class="relative h-44 overflow-hidden bg-slate-100">
             <img src="${photoUrl}" alt="${escapeHtml(r.name)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='/images/hotel_sapatamu.jpg'">
-            <div class="absolute top-3 left-3">
+            <div class="absolute top-3 left-3 flex items-center gap-1.5">
               <span class="px-2.5 py-1 bg-slate-950/80 backdrop-blur-sm text-white font-mono text-[10px] font-bold rounded-lg uppercase tracking-wider">
                 ${r.room_key}
               </span>
+              ${r.wc_sku ? `
+                <span class="px-2 py-1 bg-[#d4f65c] text-slate-950 font-mono text-[9px] font-bold rounded-lg tracking-wide shadow-xs">
+                  ${r.wc_sku}
+                </span>
+              ` : ''}
             </div>
           </div>
           <div class="p-4 space-y-2">
@@ -1177,10 +1198,15 @@ function renderMenuCatalog() {
       <div class="p-3 bg-white border border-slate-200/90 rounded-xl flex items-center gap-3 shadow-sm hover:border-slate-300 transition-all">
         <img src="${photoUrl}" alt="${escapeHtml(m.name)}" class="w-14 h-14 rounded-lg object-cover shrink-0 border border-slate-100" onerror="this.src='/images/cafe_sapatamu.jpg'">
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-1 mb-0.5">
+          <div class="flex items-center gap-1.5 mb-0.5">
             <span class="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded ${isBeverage ? 'bg-amber-50 text-amber-800' : 'bg-orange-50 text-orange-800'}">
               ${isBeverage ? 'Kopi & Minuman' : 'Makanan'}
             </span>
+            ${m.wc_sku ? `
+              <span class="text-[9px] font-mono font-medium text-slate-500 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">
+                ${m.wc_sku}
+              </span>
+            ` : ''}
           </div>
           <h5 class="text-xs font-bold text-slate-900 truncate">${escapeHtml(m.name)}</h5>
           <div class="font-bold text-xs text-emerald-800 font-mono mt-1 tabular-nums">
@@ -1190,6 +1216,86 @@ function renderMenuCatalog() {
       </div>
     `;
   }).join('');
+}
+
+// ─── WOOCOMMERCE SYNC & INTEGRATION ──────────────────────────────────────────
+
+async function checkWooCommerceStatus() {
+  try {
+    const res = await fetch('/api/admin/woocommerce/status');
+    const data = await res.json();
+    if (!data.success) return;
+
+    const navDot = document.getElementById('nav-wc-dot');
+    const navStatus = document.getElementById('nav-wc-status');
+    const badge = document.getElementById('wc-status-badge');
+    const lastSyncEl = document.getElementById('wc-last-sync-time');
+    const countEl = document.getElementById('wc-product-count');
+
+    if (data.online) {
+      if (navDot) navDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+      if (navStatus) navStatus.innerText = 'Online';
+      if (badge) {
+        badge.className = 'px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1';
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> TERHUBUNG';
+      }
+    } else {
+      if (navDot) navDot.className = 'w-2 h-2 rounded-full bg-red-400';
+      if (navStatus) navStatus.innerText = 'Offline';
+      if (badge) {
+        badge.className = 'px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1';
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> TERPUTUS';
+      }
+    }
+
+    if (lastSyncEl) {
+      if (data.lastSync && data.lastSync.lastSyncTime) {
+        const d = new Date(data.lastSync.lastSyncTime);
+        lastSyncEl.innerText = `Terakhir sync: ${d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+      } else {
+        lastSyncEl.innerText = 'Terakhir sync: Startup';
+      }
+    }
+
+    if (countEl && data.counts) {
+      const total = (data.counts.rooms || 0) + (data.counts.menu || 0);
+      countEl.innerText = `${total} Produk (${data.counts.rooms} Kamar, ${data.counts.menu} Menu)`;
+    }
+  } catch (err) {
+    console.warn('Gagal cek status WooCommerce:', err.message);
+  }
+}
+
+async function triggerWooCommerceSync() {
+  const btn = document.getElementById('btn-sync-wc');
+  const icon = document.getElementById('icon-sync-wc');
+  const lbl = document.getElementById('lbl-sync-wc');
+
+  if (btn) btn.disabled = true;
+  if (icon) icon.classList.add('animate-spin');
+  if (lbl) lbl.innerText = 'Menyinkronkan...';
+
+  try {
+    const res = await fetch('/api/admin/woocommerce/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      showToast(data.message || 'Katalog berhasil disinkronkan dari WooCommerce!', 'success');
+      await Promise.all([loadCatalog(), checkWooCommerceStatus()]);
+    } else {
+      showToast('Gagal sync: ' + (data.error || data.message), 'error');
+    }
+  } catch (err) {
+    showToast('Koneksi sync terputus: ' + err.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+    if (icon) icon.classList.remove('animate-spin');
+    if (lbl) lbl.innerText = 'Sinkronkan Sekarang';
+    if (window.lucide) lucide.createIcons();
+  }
 }
 
 // ─── AI 9ROUTER PLAYGROUND & DIAGNOSTICS ────────────────────────────────────
