@@ -373,7 +373,7 @@ async function handleCafeFlow(phone, text, session) {
   }
 
   // 5. Tambah Menu ke Keranjang
-  if (lower.startsWith('add_') || session.status === 'cafe_ordering') {
+  if (lower.startsWith('add_') || session.status === 'cafe_ordering' || session.status === 'cafe_confirm_order') {
     let draft = session.draft || { orderType: 'takeaway', cart: [] };
 
     if (lower.startsWith('add_')) {
@@ -493,20 +493,19 @@ async function handleCafeFlow(phone, text, session) {
     }
   }
 
-  // 6. Tampilkan Keranjang & Opsi Konfirmasi
-  if (lower === 'cart_view' || lower.includes('keranjang')) {
-    const draft = session.draft || { cart: [] };
+  // Helper: Kirim Ringkasan Keranjang (Opsi A: Review Konfirmasi Dulu)
+  async function sendCartReview(phone, draft) {
     if (!draft.cart || draft.cart.length === 0) {
-      await gateway.sendButtons(phone, '🛒 Keranjang Anda masih kosong. Silakan pilih menu:', [
+      await gateway.sendButtons(phone, '🛒 Keranjang Anda masih kosong. Silakan pilih menu terlebih dahulu:', [
         { id: 'cat_minuman', title: '☕ Minuman' },
         { id: 'cat_makanan', title: '🍳 Makanan' },
         { id: 'goto_main',   title: '🔙 Menu Utama' },
       ]);
-      return true;
+      return;
     }
 
     let total = 0;
-    let cartText = '🛒 *KERANJANG PESANAN KAFE*\n';
+    let cartText = '🛒 *RINGKASAN PESANAN KAFE*\n';
     if (draft.orderType === 'dine_in') {
       cartText += `📍 *Makan di Tempat (Meja ${String(draft.tableNumber).padStart(2, '0')})*\n`;
     } else {
@@ -515,34 +514,66 @@ async function handleCafeFlow(phone, text, session) {
     cartText += '════════════════════════\n';
 
     for (const item of draft.cart) {
-      cartText += `• ${item.name} (${item.qty}x) = ${formatRupiah(item.subtotal)}\n`;
-      total += item.subtotal;
+      const sub = item.subtotal || (item.price * item.qty);
+      cartText += `• ${item.name} (${item.qty}x) = ${formatRupiah(sub)}\n`;
+      total += sub;
     }
     draft.totalAmount = total;
     db.setSession(phone, 'cafe_confirm_order', draft);
 
     cartText += '════════════════════════\n';
-    cartText += `💰 *Total Belanja: ${formatRupiah(total)}*\n\nKonfirmasi pesanan ini?`;
+    cartText += `💰 *Total Belanja: ${formatRupiah(total)}*\n\nApakah rincian pesanan sudah sesuai Kak?`;
 
     await gateway.sendButtons(phone, cartText, [
-      { id: 'order_confirm', title: '✅ Konfirmasi' },
+      { id: 'order_confirm', title: '✅ Ya, Pesan' },
       { id: 'cat_makanan',   title: '➕ Tambah Menu' },
       { id: 'cafe_cancel',   title: '❌ Batalkan' },
+    ]);
+  }
+
+  // 6. Review Keranjang (Opsi A: Tampilkan Ringkasan & Konfirmasi Sebelum Checkout Final)
+  // Menangkap kata kunci checkout & typo slang: pesan, pesen, pesn, psn, bli, bayar, byr, cekot, gas, keranjang, dll.
+  const isReviewOrCheckout =
+    lower === 'cart_view' ||
+    lower.includes('keranjang') ||
+    lower.includes('cart') ||
+    /\b(pesan|pesen|pesn|psn|order|ordr|odr|checkout|cekot|chckout|cek\s*out|beli|bli|bayar|byr|gas|gas\s*(?:beli|order|pesan)|selesai|cukup|udah|sudah|itu\s*(?:aja|saja)|konfirmasi|confirm)\b/i.test(lower);
+
+  if (session.status === 'cafe_ordering' && isReviewOrCheckout) {
+    const draft = session.draft || { cart: [] };
+    await sendCartReview(phone, draft);
+    return true;
+  }
+
+  if (session.status === 'cafe_confirm_order' && (lower === 'cart_view' || lower.includes('keranjang'))) {
+    const draft = session.draft || { cart: [] };
+    await sendCartReview(phone, draft);
+    return true;
+  }
+
+  // Tambah menu lanjutan saat di tahap konfirmasi
+  const isAddMore =
+    lower === 'cat_makanan' ||
+    lower === 'cat_minuman' ||
+    /\b(tambah|tambah\s*menu|nambah|mau\s*nambah|kurang|lagi)\b/i.test(lower);
+
+  if (session.status === 'cafe_confirm_order' && isAddMore) {
+    const draft = session.draft || { cart: [] };
+    db.setSession(phone, 'cafe_ordering', draft);
+    await gateway.sendButtons(phone, 'Silakan pilih kategori menu tambahan:', [
+      { id: 'cat_minuman', title: '☕ Minuman' },
+      { id: 'cat_makanan', title: '🍳 Makanan' },
+      { id: 'cart_view',   title: '🛒 Lihat Keranjang' },
     ]);
     return true;
   }
 
-  // 7. Konfirmasi Pesanan ➡️ Kode Pesanan & Catat ke DB
-  const isOrderConfirm =
+  // 7. Konfirmasi Final (Order Resmi Dibuat ke SQLite & WooCommerce)
+  const isFinalConfirm =
     lower === 'order_confirm' ||
-    lower === 'pesan' ||
-    lower === 'pesen' ||
-    lower === 'order' ||
-    lower === 'checkout' ||
-    lower === 'selesai' ||
-    /\b(konfirmasi|confirm|gas|gas beli|gas order|gas pesan|beli|bayar|oke|ok|lanjut|proses|siap|deal|ya|yoi|pesan sekarang|checkout sekarang|order sekarang|pesan ini|langsung pesan|selesai pesan|cukup|udah|sudah)\b/i.test(lower);
+    /\b(ya|yoi|yes|iya|yep|yap|oke|ok|deal|siap|proses|lanjut|lanjutkan|bener|sesuai|cocok|betul|gas|gas\s*(?:beli|order|pesan)|pesan\s*sekarang|checkout\s*sekarang|bayar\s*sekarang|order\s*sekarang|konfirmasi|confirm|pesan|pesen|pesn|psn|beli|bli|order|ordr|checkout|cekot|bayar|byr)\b/i.test(lower);
 
-  if ((session.status === 'cafe_confirm_order' || session.status === 'cafe_ordering') && isOrderConfirm) {
+  if (session.status === 'cafe_confirm_order' && isFinalConfirm) {
     const draft = session.draft || { cart: [] };
     if (!draft.cart || draft.cart.length === 0) {
       await gateway.sendButtons(phone, '🛒 Keranjang Anda masih kosong. Silakan pilih menu:', [
